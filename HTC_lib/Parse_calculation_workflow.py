@@ -61,11 +61,12 @@ def parse_calculation_workflow(filename="Calculation_setup"):
                 assert "job_killing_command" in firework.keys(), "Error: must specify job_killing_command by job_killing_command in the first firework. (e.g. 'bkill' on GRC)"
                 assert "where_to_parse_queue_id" in firework.keys(), "Error: must specify which file to parse queue id by where_to_parse_queue_id in the first firework. (e.g. if job_submission_command is 'bsub < vasp.lsf > job_id', it is 'job_id')"
                 assert "re_to_parse_queue_id" in firework.keys(), "Error: must specify the regular expression by tag re_to_parse_queue_id to parse queue id in the first firework. (e.g. '<([0-9]+)>' on GRC)"
-                queue_stdout_file_prefix = firework.get("queue_stdout_file_prefix", "")
-                queue_stdout_file_suffix = firework.get("queue_stdout_file_suffix", "")
-                queue_stderr_file_prefix = firework.get("queue_stderr_file_prefix", "")
-                queue_stderr_file_suffix = firework.get("queue_stderr_file_suffix", "")
-                pref_suf_sum = queue_stdout_file_prefix+queue_stdout_file_suffix+queue_stderr_file_prefix+queue_stderr_file_suffix
+                firework["queue_stdout_file_prefix"] = firework.get("queue_stdout_file_prefix", "")
+                firework["queue_stdout_file_suffix"] = firework.get("queue_stdout_file_suffix", "")
+                firework["queue_stderr_file_prefix"] = firework.get("queue_stderr_file_prefix", "")
+                firework["queue_stderr_file_suffix"] = firework.get("queue_stderr_file_suffix", "")
+                pref_suf_sum = firework["queue_stdout_file_prefix"] + firework["queue_stdout_file_suffix"]
+                pref_suf_sum += firework["queue_stderr_file_prefix"] + firework["queue_stderr_file_suffix"]
                 if pref_suf_sum == "":
                     print("Error: must specify at least one of the tags below in the first firework:")
                     print("\t\tqueue_stdout_file_prefix, queue_stdout_file_suffix, queue_stderr_file_prefix, queue_stderr_file_suffix")
