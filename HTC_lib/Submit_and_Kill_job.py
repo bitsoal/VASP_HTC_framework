@@ -3,13 +3,14 @@
 
 # # created on Feb 18 2018
 
-# In[6]:
+# In[2]:
 
 
 import os, shutil, subprocess
 import re
 
 from Utilities import get_time_str
+from Error_checker import Queue_std_files
 
 
 # In[ ]:
@@ -157,6 +158,23 @@ class Job_management():
                 f.write("\t\t\t__error__ --> __killed__\n")
                 
     def submit(self):
+        if os.path.isfile(os.path.join(self.cal_loc, self.workflow[0]["where_to_parse_queue_id"])) and self.is_cal_in_queue():
+            with open(self.log_txt, "a") as f:
+                f.write("{} INFO: at {}\n".format(get_time_str(), self.firework_name))
+                f.write("\t\t\tThe job has been found in the queue system. No need to submit again.\n")
+            return True
+        
+        error_checking_files = ["OUTCAR", "OSIZCAR", self.workflow[0]["vasp.out"]]
+        with open(self.log_txt, "a") as f:
+            f.write("{} Submission: at {}\n".format(get_time_str(), self.firework_name))
+            f.write("\t\t\tBefore the job submission, remove certain VASP files from which error checkers check errors.\n")
+            for file_ in error_checking_files:
+                if os.path.isfile(os.path.join(self.cal_loc, file_)):
+                    os.remove(os.path.join(self.cal_loc, file_))
+                    f.write("\t\t\t\tremove {}\n".format(file_))
+            f.write("\t\t\t\tremove the queue stdout and stderr files if found\n")
+            Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).remove_std_files()
+        
         dir0 = os.getcwd()
         os.chdir(self.cal_loc)
         with open(self.log_txt, "a") as f:
