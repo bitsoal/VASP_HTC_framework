@@ -164,7 +164,7 @@ class Job_management():
                 f.write("\t\t\tThe job has been found in the queue system. No need to submit again.\n")
             return True
         
-        error_checking_files = ["OUTCAR", "OSIZCAR", self.workflow[0]["vasp.out"]]
+        error_checking_files = ["OUTCAR", "OSZICAR", self.workflow[0]["vasp.out"]]
         with open(self.log_txt, "a") as f:
             f.write("{} Submission: at {}\n".format(get_time_str(), self.firework_name))
             f.write("\t\t\tBefore the job submission, remove certain VASP files from which error checkers check errors.\n")
