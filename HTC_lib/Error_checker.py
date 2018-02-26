@@ -104,39 +104,6 @@ class Write_and_read_error_tag(object):
             return f.read().strip()
 
 
-# class Update_and_read_error_times(object):
-#     """
-#     __error_count__ will host a number denoting the times that errors are detected.
-#     The method update_error_time will increment this number by one.
-#     The method read_error_time will read the number from __error_count__.
-#     input argument:
-#         -cal_loc (str): the location of the to-be-checked calculation
-#     """
-#     
-#     def __init__(self, cal_loc):
-#         self.cal_loc = cal_loc
-#         self.error_count = os.path.join(self.cal_loc, "__error_count__")
-#         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-#         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
-#         
-#     def update_error_time(self, amount=1):
-#         current_error_time = self.read_error_time()
-#         with open(self.error_count, "w") as f:
-#             f.write(str(current_error_time+amount))
-#         self.write_log()
-#     
-#     def read_error_time(self):
-#         if os.path.isfile(self.error_count):
-#             with open(self.error_count, "r") as f:
-#                 return int(f.read().strip())
-#         else:
-#             return 0
-#         
-#     def write_log(self):
-#         with open(self.log_txt, "a") as f:
-#             f.write("{} Error: update the error time to {} under {}\n".format(get_time_str(), 
-#                                                                               self.read_error_time(), self.firework_name))
-
 # In[4]:
 
 
@@ -179,47 +146,6 @@ class Queue_std_files():
         if self.stderr_file != None:
             os.remove(os.path.join(self.cal_loc, self.stderr_file))
 
-
-# class Check_queue_std_files(Write_and_read_error_tag):
-#     """
-#     On grc, upon the completion of a calculation, file ls*.o and ls*.e will generated. If the calculation successfully completes,
-#     "completed" will be found in ls*.o
-#     inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
-#     input argument:
-#         -cal_loc: the location of the to-be-checked calculation
-#     return True, if found; return False and write error logs otherwise.
-#     """
-#     def __init__(self, cal_loc):
-#         self.cal_loc = cal_loc
-#         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-#         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
-#         self.ls_o_filename = search_file(cal_loc=cal_loc, prefix="ls", suffix=".o")
-#         self.ls_e_filename = search_file(cal_loc=cal_loc, prefix="ls", suffix=".e")
-#         super(Check_ls_stdout, self).__init__(cal_loc)
-#         
-#         
-#     
-#     def check(self):
-#         with open(os.path.join(self.cal_loc, self.filename)) as f:
-#             for line in f:
-#                 if "completed" in line:
-#                     return True
-#                 
-#         self.write_error_log()
-#         Update_and_read_error_times(cal_loc=self.cal_loc).update_error_time()
-#         return False
-# 
-#     def write_error_log(self):
-#         with open(self.log_txt, "a") as f:
-#             f.write("{} Error: no 'completed' in {} at {\n}".format(get_time_str(), self.filename, self.firework_name))
-#             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-#             f.write("\t\t\t__running__ --> __error__\n")
-#             f.write("\t\t\t write __no_completed_in_ls_o__ into __error__\n")
-#             super(Check_ls_stdout, self).write_error_tag("__no_completed_in_ls_o__")   
-#     
-#     def correct(self):
-#         return False
-#     
 
 # In[5]:
 
@@ -469,82 +395,6 @@ class Check_vasp_out_pricel(Write_and_read_error_tag, Vasp_Error_Saver):
 
 
 
-# class Check_vasp_out_pricel(Write_and_read_error_tag):
-#     """
-#     Error checking type: after the calculation.
-#     Target file: vasp.out or the one specified by tag vasp.out
-#     Target error string: "internal error in subroutine PRICEL"
-#     inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
-#     input arguments:
-#         -cal_loc: the location of the to-be-checked calculation
-#         -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
-#     check method: return True, if not found; return False and write error logs otherwise.
-#     """
-#     def __init__(self, cal_loc, workflow):
-#         self.workflow = workflow
-#         self.cal_loc = cal_loc
-#         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-#         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
-#         self.target_str = "internal error in subroutine PRICEL"
-#         self.target_file = self.workflow[0]["vasp.out"]
-#         super(Check_vasp_out_pricel, self).__init__(cal_loc)
-#         
-#         
-#     def check(self):
-#         
-#         #This if statement deactivate the check method until the calculation is done.
-#         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow) == [None, None]:
-#             return True
-#         
-#         with open(os.path.join(self.cal_loc, self.target_file), "r") as f:
-#             for line in f:
-#                 if self.target_str in line:
-#                     self.write_error_log()
-#                     Update_and_read_error_times(cal_loc=self.cal_loc).update_error_time()
-#                     return False
-#         
-#         return True
-#     
-#     def write_error_log(self):
-#         with open(self.log_txt, "a") as f:
-#             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-#             f.write("\t\t{}\n".format(self.target_str))
-#             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-#             f.write("\t\t\t__running__ --> __error__\n")
-#             f.write("\t\t\t write __pricel__ into __error__\n")
-#             super(Check_vasp_out_pricel, self).write_error_tag("__pricel__")
-#     
-#     def correct(self):
-#         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
-#         SYMPREC = float(incar_dict.get("SYMPREC", 1.0e-5))
-#         ISYM = int(incar_dict.get("ISYM", 2))
-#         
-#         if ISYM != 0 or SYMPREC > 1.1e-9:
-#             pref_suf_no = self.save_files()
-#             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1e-8, "ISYM": 0}, 
-#                               rename_old_incar=construct_name(orig_name="INCAR", pref_suf_no=pref_suf_no))
-#             with open(self.log_txt, "a") as f:
-#                 f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
-#                 f.write("\t\t\tSYMPREC: {} --> 1.0e-8\n".format(SYMPREC))
-#                 f.write("\t\t\tISYM: {} --> 0\n".format(ISYM))
-#             return True
-#         else:
-#             return False
-#         
-#     def save_files(self):
-#         file_list = [self.workflow[0]["vasp.out"]]
-#         for queue_file in Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files():
-#             if queue_file:
-#                 file_list.append(queue_file)
-#         additional_file_list = ["KPOINTS", "POSCAR", "OUTCAR", "INCAR"]
-#         pref_suf_no = rename_files(loc=self.cal_loc, file_list=file_list, additional_file_list=additional_file_list)
-#         with open(self.log_txt, "a") as f:
-#             f.write("{} Correction: rename files\n".format(get_time_str()))
-#             for file in file_list:
-#                 f.write("\t\t\t{} --> {}_{}_{}\n".format(file, pref_suf_no, file, pref_suf_no))
-#         return pref_suf_no
-# 
-
 # In[10]:
 
 
@@ -752,82 +602,6 @@ class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
             return True
                         
 
-
-# class Check_vasp_out_posmap(Check_vasp_out_pricel):
-#     """
-#     Error checking type: after the calculation.
-#     Target file: vasp.out or the one specified by tag vasp.out
-#     Target error string: "POSMAP internal error: symmetry equivalent atom not found"
-#     inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
-#     input arguments:
-#         -cal_loc: the location of the to-be-checked calculation
-#         -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
-#     check method: return True, if not found; return False and write error logs otherwise.
-#     """
-#     def __init__(self, cal_loc, workflow):
-#         #self.workflow = workflow
-#         #self.cal_loc = cal_loc
-#         #self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-#         #self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
-#         super(Check_vasp_out_posmap, self).__init__(cal_loc, workflow)
-#         self.target_str = "POSMAP internal error: symmetry equivalent atom not found"
-#         #self.target_file = self.workflow[0]["vasp.out"]
-#         
-#         
-#         
-#     def check(self):
-#         return super(Check_vasp_out_posmap, self).check()
-#         ##This if statement deactivate the check method until the calculation is done.
-#         #if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow) == [None, None]:
-#         #    return True
-#         #
-#         #with open(os.path.join(self.cal_loc, self.target_file), "r") as f:
-#         #    for line in f:
-#         #        if self.target_str in line:
-#         #            self.write_error_log()
-#         #            Update_and_read_error_times(cal_loc=self.cal_loc).update_error_time()
-#         #            return False
-#         
-#         #return True
-#     
-#     def write_error_log(self):
-#         with open(self.log_txt, "a") as f:
-#             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-#             f.write("\t\t{}\n".format(self.target_str))
-#             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-#             f.write("\t\t\t__running__ --> __error__\n")
-#             f.write("\t\t\t write __posmap__ into __error__\n")
-#             super(Check_vasp_out_posmap, self).write_error_tag("__posmap__")
-#     
-#     def correct(self):
-#         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
-#         SYMPREC = float(incar_dict.get("SYMPREC", 1.0e-5))
-#         
-#         if SYMPREC > 1e-7:
-#             pref_suf_no = self.save_files()
-#             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC/10.}, 
-#                               rename_old_incar=construct_name(orig_name="INCAR", pref_suf_no=pref_suf_no))
-#             with open(self.log_txt, "a") as f:
-#                 f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
-#                 f.write("\t\t\tSYMPREC: {} --> {}\n".format(SYMPREC, SYMPREC/10.))
-#             return True
-#         else:
-#             return False
-#         
-#     def save_files(self):
-#         return super(Check_vasp_out_posmap, self).save_files()
-#         #file_list = [self.workflow[0]["vasp.out"]]
-#         #for queue_file in Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files():
-#         #    if queue_file:
-#         #        file_list.append(queue_file)
-#         #additional_file_list = ["KPOINTS", "POSCAR", "OUTCAR", "INCAR"]
-#         #pref_suf_no = rename_files(loc=self.cal_loc, file_list=file_list, additional_file_list=additional_file_list)
-#         #with open(self.log_txt, "a") as f:
-#         #    f.write("{} Correction: rename files\n".format(get_time_str()))
-#         #    for file in file_list:
-#         #        f.write("\t\t\t{} --> {}_{}_{}\n".format(file, pref_suf_no, file, pref_suf_no))
-#         #return pref_suf_no
-# 
 
 # In[13]:
 
