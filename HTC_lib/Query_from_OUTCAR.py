@@ -290,6 +290,26 @@ def find_NELM_from_OUTCAR(cal_loc="."):
             
 
 
+# In[2]:
+
+
+def find_NBANDS_from_OUTCAR(cal_loc="."):
+    """
+    Find NBANDS from OUTCAR.
+    input arguments:
+        -cal_loc (str): the location of the calculation. Default: "."
+    return the corresponding value if found; otherwise, return None
+    """
+    
+    with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
+        for line in f:
+            if "NBANDS" in line and "=" in line:
+                return int(line.strip().split("=")[-1].strip())
+    return None
+            
+            
+
+
 # In[14]:
 
 
@@ -420,7 +440,8 @@ def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
                       "ISPIN": find_ISPIN_from_OUTCAR, 
                       "LORBIT": find_LORBIT_from_OUTCAR, 
                       "LSORBIT":find_LSORBIT_from_OUTCAR,
-                      "IALGO": find_IALGO_from_OUTCAR
+                      "IALGO": find_IALGO_from_OUTCAR,
+                      "NBANDS": find_NBANDS_from_OUTCAR
                      }
     tag = tag.upper()
     assert tag in find_func_dict.keys(), "Error: currently don't support the search for {} in OUTCAR".format(tag)
