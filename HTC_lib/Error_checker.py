@@ -592,7 +592,7 @@ class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
     Error checking type: after the calculation.
     Target file: vasp.out or the one specified by tag vasp.out
     Target error string: "VERY BAD NEWS! internal error in subroutine INVGRP:" 
-                        && "inverse of rotation matrix was not found (increase SYMPREC)       2"
+                        && "inverse of rotation matrix was not found (increase SYMPREC)"
     inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
     input arguments:
         -cal_loc: the location of the to-be-checked calculation
@@ -610,7 +610,7 @@ class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
         self.target_file = self.workflow[0]["vasp.out"]
         #super(Check_vasp_out_posmap, self).__init__(cal_loc, workflow)
         self.target_str_list = [" VERY BAD NEWS! internal error in subroutine INVGRP:", 
-                                "inverse of rotation matrix was not found (increase SYMPREC)       2"]
+                                "inverse of rotation matrix was not found (increase SYMPREC)"]
         
         
         
