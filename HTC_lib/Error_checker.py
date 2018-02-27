@@ -45,10 +45,12 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__bad_termination__": Check_vasp_out_bad_termination, 
                           "__zbrent__":Check_vasp_out_zbrent, 
                           "__invgrp__": Check_vasp_out_invgrp, 
-                          "__too_few_bands__": Check_vasp_out_too_few_bands}
+                          "__too_few_bands__": Check_vasp_out_too_few_bands, 
+                          "__too_few_kpoints__":Check_vasp_out_too_few_kpoints}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__positive_energy__"]
-    after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
+    after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
+    after_cal += ["__too_few_kpoints__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
     
     if isinstance(error_type, str):  
         if error_type in error_checker_dict:
@@ -423,6 +425,10 @@ class Check_vasp_out_too_few_bands(Write_and_read_error_tag, Vasp_Error_Saver):
         
         
     def check(self):
+        
+        #This method will be active only when the job is done.
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
                 
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
@@ -455,6 +461,70 @@ class Check_vasp_out_too_few_bands(Write_and_read_error_tag, Vasp_Error_Saver):
 
 
 # In[11]:
+
+
+class Check_vasp_out_too_few_kpoints(Write_and_read_error_tag, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "Tetrahedron method fails for NKPT<4."
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str = "Tetrahedron method fails for NKPT<4."
+        
+        
+    def check(self):
+        
+        #This method will be active only when the job is done.
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+                
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+            self.write_error_log()
+            return False
+        else:
+            return True
+    
+    def write_error_log(self):
+        with open(self.log_txt, "a") as f:
+            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
+            f.write("\t\t{}\n".format(self.target_str))
+            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            f.write("\t\t\t__running__ --> __error__\n")
+            f.write("\t\t\t write __too_few_kpoints__ into __error__\n")
+            super(Check_vasp_out_too_few_kpoints, self).write_error_tag("__too_few_kpoints__")
+    
+    def correct(self):
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        ISMEAR = int(incar_dict.get("ISMEAR", 1))
+        SIGMA = float(incar_dict.get("SIGMA", 0.2))
+        
+        if ISMEAR == -5:     
+            super(Check_vasp_out_too_few_kpoints, self).backup()
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISMEAR": 0, "SIGMA":0.05}, rename_old_incar=False)
+            with open(self.log_txt, "a") as f:
+                f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
+                f.write("\t\t\tISMEAR: {} --> 0\n".format(ISMEAR))
+                f.write("\t\t\tSIGMA: {} --> 0.05\n".format(SIGMA))
+            return True
+        else:
+            return False
+
+
+
+# In[12]:
 
 
 class Check_vasp_out_posmap(Write_and_read_error_tag, Vasp_Error_Saver):
@@ -517,7 +587,7 @@ class Check_vasp_out_posmap(Write_and_read_error_tag, Vasp_Error_Saver):
         
 
 
-# In[12]:
+# In[13]:
 
 
 class Check_vasp_out_bad_termination(Write_and_read_error_tag):
@@ -584,7 +654,7 @@ class Check_vasp_out_bad_termination(Write_and_read_error_tag):
 
 
 
-# In[13]:
+# In[14]:
 
 
 class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
@@ -659,7 +729,7 @@ class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
                         
 
 
-# In[14]:
+# In[15]:
 
 
 class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
@@ -737,7 +807,7 @@ class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
                         
 
 
-# In[15]:
+# In[16]:
 
 
 class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
@@ -857,7 +927,7 @@ class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
     
 
 
-# In[16]:
+# In[17]:
 
 
 class Check_ionic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
@@ -946,7 +1016,7 @@ class Check_ionic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
         
 
 
-# In[17]:
+# In[18]:
 
 
 class Check_positive_energy(Write_and_read_error_tag, Vasp_Error_Saver):
@@ -1009,7 +1079,7 @@ class Check_positive_energy(Write_and_read_error_tag, Vasp_Error_Saver):
         return False
 
 
-# In[18]:
+# In[19]:
 
 
 class Check_nothing(object):
