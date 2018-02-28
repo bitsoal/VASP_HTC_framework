@@ -884,7 +884,9 @@ class Vasp_out_rhosyg(Vasp_Error_Logger, Vasp_Error_Saver):
         -cal_loc: the location of the to-be-checked calculation
         -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
     check method: return True, if not found; return False and write error logs otherwise.
-    correct method: IBRION --> 1 & EDIFF --> 0.5*EDIFF & CONTCAR --> POSCAR
+    correct method: if SYMPREC < 1.0E-4, SYMPREC --> 1.0E-4 & return True;
+                    elif SYMPREC >= 1.0e-4 and ISYM != 0, ISYM --> 0 & return True;
+                    else: return False
     """
     def __init__(self, cal_loc, workflow):
         Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
