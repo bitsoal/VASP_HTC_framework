@@ -36,27 +36,28 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
         - cal_loc: the location of the calculation.
         - workflow:  the output of func Parse_calculation_workflow.parse_calculation_workflow
     """
-    error_checker_dict = {"__unfinished_OUTCAR__": Check_OUTCAR_status, 
-                          "__electronic_divergence__": Check_electronic_divergence, 
-                          "__ionic_divergence__": Check_ionic_divergence, 
-                          "__pricel__":Check_vasp_out_pricel, 
-                          "__posmap__": Check_vasp_out_posmap,
-                          "__positive_energy__": Check_positive_energy, 
-                          "__bad_termination__": Check_vasp_out_bad_termination, 
-                          "__zbrent__":Check_vasp_out_zbrent, 
-                          "__invgrp__": Check_vasp_out_invgrp, 
-                          "__too_few_bands__": Check_vasp_out_too_few_bands, 
-                          "__too_few_kpoints__":Check_vasp_out_too_few_kpoints}
+    error_checker_dict = {"__unfinished_OUTCAR__": OUTCAR_status, 
+                          "__electronic_divergence__": Electronic_divergence, 
+                          "__ionic_divergence__": Ionic_divergence, 
+                          "__pricel__":Vasp_out_pricel, 
+                          "__posmap__": Vasp_out_posmap,
+                          "__positive_energy__": Positive_energy, 
+                          "__bad_termination__": Vasp_out_bad_termination, 
+                          "__zbrent__":Vasp_out_zbrent, 
+                          "__invgrp__": Vasp_out_invgrp, 
+                          "__too_few_bands__": Vasp_out_too_few_bands, 
+                          "__too_few_kpoints__":Vasp_out_too_few_kpoints, 
+                          "__rhosyg__":Vasp_out_rhosyg}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__positive_energy__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
-    after_cal += ["__too_few_kpoints__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
+    after_cal += ["__too_few_kpoints__", "__rhosyg__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
     
     if isinstance(error_type, str):  
         if error_type in error_checker_dict:
             return error_checker_dict[error_type](cal_loc=cal_loc, workflow=workflow)
         else:
-            return Check_nothing(cal_loc=cal_loc, workflow=workflow)
+            return Null_error_checker(cal_loc=cal_loc, workflow=workflow)
     elif isinstance(error_type, list):
         if error_type[0] == "on_the_fly":
             error_type_list = on_the_fly
@@ -285,12 +286,53 @@ class Vasp_Error_Saver(object):
                 return "error_"+str(error_times+1)
 
 
-# # For all error checkers, the check method will return False if an error is found. Otherwise return True
-
 # In[8]:
 
 
-class Check_OUTCAR_status(Write_and_read_error_tag):
+class Vasp_Error_Logger(Write_and_read_error_tag):
+    """
+    This class provides a method write_error_log which writes down the error information into log.txt for a material and
+    changes file __running__ to file __error__, and writes down the error type into file __error__
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    write_error_log method:
+        input arguments:
+            -target_error_str (list or str): an error string or a list of error strings.
+            -error_type (str): the error type that will be written into file __error__
+    """
+    
+    def __init__(self, cal_loc, workflow):
+        self.cal_loc = cal_loc
+        self.workflow = workflow
+        self.lot_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt, "log.txt")
+    
+    def write_error_log(self, target_error_str, error_type):
+        error_type = error_type.strip()
+        if isinstance(target_error_str, str):
+            target_error_str_list = [target_error_str]
+        elif isinstance(target_error_str, list):
+            target_error_str_list = target_error_str
+        else:
+            raise Exception("target_error_str for Vasp_error_logger.write_error_log must be a string or a list of strings.")
+            
+        with open(self.log_txt, "a") as f:
+            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
+            for error_str in target_error_str_list:
+                f.write("\t\t{}\n".format(error_str))
+            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            f.write("\t\t\t__running__ --> __error__\n")
+            f.write("\t\t\t write {} into __error__\n".format(error_type))
+            super(Vasp_Error_Logger, self).write_error_tag(error_type)
+
+
+# # For all error checkers, the check method will return False if an error is found. Otherwise return True
+
+# In[9]:
+
+
+class OUTCAR_status(Vasp_Error_Logger):
     """
     Error chekcing type: after the calculation.
     If the calculation successfully completes, "General timing and accounting informations for this job:" will 
@@ -322,23 +364,26 @@ class Check_OUTCAR_status(Write_and_read_error_tag):
             self.write_error_log()
             return False
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: The calculation fails to complete at {}\n".format(get_time_str(), self.firework_name))
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write __unfinished_OUTCAR__ into __error__\n")
-            super(Check_OUTCAR_status, self).write_error_tag("__unfinished_OUTCAR__")
+            super(OUTCAR_status, self).write_error_tag("__unfinished_OUTCAR__")
+            
+    def write_error_log(self):
+        super(OUTCAR_status, self).write_error_log(target_error_str=self.target_str, error_type="__unfinished_OUTCAR__")
     
     def correct(self):
         return False
     
 
 
-# In[9]:
+# In[10]:
 
 
-class Check_vasp_out_pricel(Write_and_read_error_tag, Vasp_Error_Saver):
+class Vasp_out_pricel(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: after the calculation.
     Target file: vasp.out or the one specified by tag vasp.out
@@ -372,14 +417,17 @@ class Check_vasp_out_pricel(Write_and_read_error_tag, Vasp_Error_Saver):
         else:
             return True
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
             f.write("\t\t{}\n".format(self.target_str))
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write __pricel__ into __error__\n")
-            super(Check_vasp_out_pricel, self).write_error_tag("__pricel__")
+            super(Vasp_out_pricel, self).write_error_tag("__pricel__")
+            
+    def write_error_log(self):
+        super(Vasp_out_pricel, self).write_error_log(target_error_str=self.target_str, error_type="__pricel__")
     
     def correct(self):
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
@@ -387,7 +435,7 @@ class Check_vasp_out_pricel(Write_and_read_error_tag, Vasp_Error_Saver):
         ISYM = int(incar_dict.get("ISYM", 2))
         
         if ISYM != 0 or SYMPREC > 1.1e-9:
-            super(Check_vasp_out_pricel, self).backup()
+            super(Vasp_out_pricel, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1e-8, "ISYM": 0}, rename_old_incar=False)
             with open(self.log_txt, "a") as f:
                 f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
@@ -399,10 +447,10 @@ class Check_vasp_out_pricel(Write_and_read_error_tag, Vasp_Error_Saver):
 
 
 
-# In[10]:
+# In[11]:
 
 
-class Check_vasp_out_too_few_bands(Write_and_read_error_tag, Vasp_Error_Saver):
+class Vasp_out_too_few_bands(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: after the calculation.
     Target file: vasp.out or the one specified by tag vasp.out
@@ -436,21 +484,24 @@ class Check_vasp_out_too_few_bands(Write_and_read_error_tag, Vasp_Error_Saver):
         else:
             return True
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
             f.write("\t\t{}\n".format(self.target_str))
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write __too_few_bands__ into __error__\n")
-            super(Check_vasp_out_too_few_bands, self).write_error_tag("__too_few_bands__")
+            super(Vasp_out_too_few_bands, self).write_error_tag("__too_few_bands__")
+    
+    def write_error_log(self):
+        super(Vasp_out_too_few_bands, self).write_error_log(target_error_str=self.target_str, error_type="__too_few_bands__")
     
     @file_existence_decorator("OUTCAR", true=False)
     def correct(self):
         NBANDS = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="NBANDS")
         NBANDS_ = int(NBANDS*1.1)
         
-        super(Check_vasp_out_too_few_bands, self).backup()
+        super(Vasp_out_too_few_bands, self).backup()
         modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"NBANDS": NBANDS_}, rename_old_incar=False)
         
         with open(self.log_txt, "a") as f:
@@ -460,10 +511,10 @@ class Check_vasp_out_too_few_bands(Write_and_read_error_tag, Vasp_Error_Saver):
 
 
 
-# In[11]:
+# In[12]:
 
 
-class Check_vasp_out_too_few_kpoints(Write_and_read_error_tag, Vasp_Error_Saver):
+class Vasp_out_too_few_kpoints(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: after the calculation.
     Target file: vasp.out or the one specified by tag vasp.out
@@ -497,14 +548,17 @@ class Check_vasp_out_too_few_kpoints(Write_and_read_error_tag, Vasp_Error_Saver)
         else:
             return True
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
             f.write("\t\t{}\n".format(self.target_str))
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write __too_few_kpoints__ into __error__\n")
-            super(Check_vasp_out_too_few_kpoints, self).write_error_tag("__too_few_kpoints__")
+            super(Vasp_out_too_few_kpoints, self).write_error_tag("__too_few_kpoints__")
+            
+    def write_error_log(self):
+        super(Vasp_out_too_few_kpoints, self).write_error_log(target_error_str=self.target_str, error_type="__too_few_kpoints__")
     
     def correct(self):
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
@@ -512,7 +566,7 @@ class Check_vasp_out_too_few_kpoints(Write_and_read_error_tag, Vasp_Error_Saver)
         SIGMA = float(incar_dict.get("SIGMA", 0.2))
         
         if ISMEAR == -5:     
-            super(Check_vasp_out_too_few_kpoints, self).backup()
+            super(Vasp_out_too_few_kpoints, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISMEAR": 0, "SIGMA":0.05}, rename_old_incar=False)
             with open(self.log_txt, "a") as f:
                 f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
@@ -524,10 +578,10 @@ class Check_vasp_out_too_few_kpoints(Write_and_read_error_tag, Vasp_Error_Saver)
 
 
 
-# In[12]:
+# In[13]:
 
 
-class Check_vasp_out_posmap(Write_and_read_error_tag, Vasp_Error_Saver):
+class Vasp_out_posmap(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: after the calculation.
     Target file: vasp.out or the one specified by tag vasp.out
@@ -546,7 +600,7 @@ class Check_vasp_out_posmap(Write_and_read_error_tag, Vasp_Error_Saver):
         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
-        #super(Check_vasp_out_posmap, self).__init__(cal_loc, workflow)
+        #super(Vasp_out_posmap, self).__init__(cal_loc, workflow)
         self.target_str = "POSMAP internal error: symmetry equivalent atom not found"
         
         
@@ -562,21 +616,24 @@ class Check_vasp_out_posmap(Write_and_read_error_tag, Vasp_Error_Saver):
         else:
             return True
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
             f.write("\t\t{}\n".format(self.target_str))
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write __posmap__ into __error__\n")
-            super(Check_vasp_out_posmap, self).write_error_tag("__posmap__")
+            super(Vasp_out_posmap, self).write_error_tag("__posmap__")
+            
+    def write_error_log(self):
+        super(Vasp_out_posmap, self).write_error_log(target_error_str=self.target_str, error_type="__posmap__")
     
     def correct(self):
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         SYMPREC = float(incar_dict.get("SYMPREC", 1.0e-5))
         
         if SYMPREC > 1e-7:
-            super(Check_vasp_out_posmap, self).backup()
+            super(Vasp_out_posmap, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC/10.}, rename_old_incar=False)
             with open(self.log_txt, "a") as f:
                 f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
@@ -587,10 +644,10 @@ class Check_vasp_out_posmap(Write_and_read_error_tag, Vasp_Error_Saver):
         
 
 
-# In[13]:
+# In[14]:
 
 
-class Check_vasp_out_bad_termination(Write_and_read_error_tag):
+class Vasp_out_bad_termination(Vasp_Error_Logger):
     """
     Error checking type: after the calculation.
     Target file: vasp.out or the one specified by tag vasp.out
@@ -607,7 +664,6 @@ class Check_vasp_out_bad_termination(Write_and_read_error_tag):
         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
-        #super(Check_vasp_out_posmap, self).__init__(cal_loc, workflow)
         self.target_str = "=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES"
         
         
@@ -624,14 +680,17 @@ class Check_vasp_out_bad_termination(Write_and_read_error_tag):
             return True
             
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
             f.write("\t\t{}\n".format(self.target_str))
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write __bad_termination__ into __error__\n")
-            super(Check_vasp_out_bad_termination, self).write_error_tag("__bad_termination__")
+            super(Vasp_out_bad_termination, self).write_error_tag("__bad_termination__")
+            
+    def write_error_log(self):
+        super(Vasp_out_bad_termination, self).write_error_log(target_error_str=self.target_str, error_type="__bad_termination__")
     
     def correct(self):
         if os.path.isfile(os.path.join(self.cal_loc, "__bad_termination__")):
@@ -654,10 +713,10 @@ class Check_vasp_out_bad_termination(Write_and_read_error_tag):
 
 
 
-# In[14]:
+# In[15]:
 
 
-class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
+class Vasp_out_invgrp(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: after the calculation.
     Target file: vasp.out or the one specified by tag vasp.out
@@ -678,7 +737,6 @@ class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
-        #super(Check_vasp_out_posmap, self).__init__(cal_loc, workflow)
         self.target_str_list = [" VERY BAD NEWS! internal error in subroutine INVGRP:", 
                                 "inverse of rotation matrix was not found (increase SYMPREC)"]
         
@@ -699,7 +757,7 @@ class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
             self.write_error_log()
             return False
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
             for target_str in self.target_str_list:
@@ -707,7 +765,10 @@ class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write __invgrp__ into __error__\n")
-            super(Check_vasp_out_invgrp, self).write_error_tag("__invgrp__")
+            super(Vasp_out_invgrp, self).write_error_tag("__invgrp__")
+            
+    def write_error_log(self):
+        super(Vasp_out_invgrp, self).write_error_log(target_error_str=self.target_str_list, error_type="__invgrp__")
     
     def correct(self):
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
@@ -715,7 +776,7 @@ class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
         SYMPREC_ = SYMPREC * 5
         
         if SYMPREC_ < 0.9e-4:
-            super(Check_vasp_out_invgrp, self).backup()
+            super(Vasp_out_invgrp, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC_}, rename_old_incar=False)
             with open(self.log_txt, "a") as f:
                 f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
@@ -729,10 +790,10 @@ class Check_vasp_out_invgrp(Write_and_read_error_tag, Vasp_Error_Saver):
                         
 
 
-# In[15]:
+# In[16]:
 
 
-class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
+class Vasp_out_zbrent(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: after the calculation.
     Target file: vasp.out or the one specified by tag vasp.out
@@ -753,7 +814,6 @@ class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
-        #super(Check_vasp_out_posmap, self).__init__(cal_loc, workflow)
         self.target_str_list = ["ZBRENT: fatal error in bracketing", 
                                 "please rerun with smaller EDIFF, or copy CONTCAR", 
                                 "to POSCAR and continue"]
@@ -775,7 +835,7 @@ class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
             self.write_error_log()
             return False
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
             for target_str in self.target_str_list:
@@ -783,7 +843,11 @@ class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write __zbrent__ into __error__\n")
-            super(Check_vasp_out_zbrent, self).write_error_tag("__zbrent__")
+            super(Vasp_out_zbrent, self).write_error_tag("__zbrent__")
+            
+    def write_error_log(self):
+        super(Vasp_out_zbrent, self).write_error_log(target_error_str=self.target_str_list, error_type="__zbrent__")
+    
     
     def correct(self):
         EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
@@ -795,7 +859,7 @@ class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
                 f.write("\t\t\tEDIFF {} is too small\n".format(EDIFF))
             return False
         else:
-            super(Check_vasp_out_zbrent, self).backup()
+            super(Vasp_out_zbrent, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"EDIFF": EDIFF*0.5}, rename_old_incar=False)
             shutil.copyfile(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
             with open(self.log_txt, "a") as f:
@@ -807,10 +871,84 @@ class Check_vasp_out_zbrent(Write_and_read_error_tag, Vasp_Error_Saver):
                         
 
 
-# In[16]:
+# In[17]:
 
 
-class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
+class Vasp_out_rhosyg(Vasp_Error_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "RHOSYG internal error: stars are not distinct, try to increase SYMPREC to e.g."
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    correct method: IBRION --> 1 & EDIFF --> 0.5*EDIFF & CONTCAR --> POSCAR
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str = "RHOSYG internal error: stars are not distinct, try to increase SYMPREC to e.g."
+        
+        
+        
+    def check(self):
+        #this method is not active until the job is done
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+        
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+            self.write_error_log()
+            return False
+        else:
+            return True
+            
+    
+    def write_error_log_(self):
+        with open(self.log_txt, "a") as f:
+            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
+            for target_str in self.target_str_list:
+                f.write("\t\t{}\n".format(target_str))
+            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            f.write("\t\t\t__running__ --> __error__\n")
+            f.write("\t\t\t write __rhosyg__ into __error__\n")
+            super(Vasp_out_rhosyg, self).write_error_tag("__rhosyg__")
+            
+    def write_error_log(self):
+        super(Vasp_out_rhosyg, self).write_error_log(target_error_str=self.target_str, error_type="__rhosyg__")
+    
+    def correct(self):
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        SYMPREC = float(incar_dict.get("SYMPREC", 1.0e-5))
+        ISYM = int(incar_dict.get("ISYM", 2))
+        
+        if 1.0e-4 > SYMPREC:
+            super(Vasp_out_rhosyg, self).backup()
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1.0e-4}, rename_old_incar=False)
+            with open(self.log_txt, "a") as f:
+                f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
+                f.write("\t\t\tSYMPREC: {} --> 1.0e-4\n".format(SYMPREC))
+            return True
+        elif ISYM != 0:
+            super(Vasp_out_rhosyg, self).backup()
+            with open(self.log_txt, "a") as f:
+                f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
+                f.write("\t\t\tISYM: {} --> 0\n".format(ISYM))
+            return True
+        else:
+            return False                        
+
+
+# In[18]:
+
+
+class Electronic_divergence(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: on the fly & after the calculation.
     Check if electonic cal divergences and the max ionoic step is reached.
@@ -827,7 +965,7 @@ class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
         self.cal_loc = cal_loc
         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
-        #super(Check_electronic_divergence, self).__init__(cal_loc)
+        #super(Electronic_divergence, self).__init__(cal_loc)
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
      
     #Because method check is called on the fly, this decorator avoids the case where OUTCAR 
@@ -848,13 +986,17 @@ class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
                     return False
         return True
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: Electronic divergence happens at {}\n".format(get_time_str(), self.firework_name))
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\twrite __electronic_divergence__ into __error__\n")
-            super(Check_electronic_divergence, self).write_error_tag("__electronic_divergence__")
+            super(Electronic_divergence, self).write_error_tag("__electronic_divergence__")
+            
+    def write_error_log(self):
+        error_str = "Electronic divergence happens"
+        super(Electronic_divergence, self).write_error_log(target_error_str=error_str, error_type="__electronic_divergence__")
     
     @file_existence_decorator("OUTCAR", False)
     def correct(self):
@@ -881,7 +1023,7 @@ class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
                 EDIFF_ *= 0.5 * EDIFF
             
             
-            super(Check_electronic_divergence, self).backup()
+            super(Electronic_divergence, self).backup()
             NELM_ = NELM if NELM > 100 else 100
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal", "NELM": NELM_, "EDIFF": EDIFF_}, 
                               rename_old_incar=False)
@@ -896,7 +1038,7 @@ class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
         #print("AMIX={}, BMIX={}, AMIN={}".format(AMIX, BMIX, AMIN))
         #print("AMIX > 0.1 ={}, BMIX > 0.01={}".format(AMIX > 0.1, BMIX > 0.01))
         if AMIX > 0.1 and BMIX > 0.01:
-            super(Check_electronic_divergence, self).backup()
+            super(Electronic_divergence, self).backup()
             NELM_ = 150 if NELM < 150 else NELM
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"AMIX": 0.1, "BMIX": 0.01, "ICHARG": 2, "NELM": NELM_}, 
                               rename_old_incar=False)
@@ -910,7 +1052,7 @@ class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
         
         #print("Second method")
         if BMIX < 3.0 and AMIN > 0.01:
-            super(Check_electronic_divergence, self).backup()
+            super(Electronic_divergence, self).backup()
             NELM_ = 200 if 200 > NELM else NELM
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"AMIN": 0.01, "BMIX": 3.0, "ICHARG": 2, "NELM": NELM_}, 
                               remove_tags=["AMIX"], rename_old_incar=False)
@@ -927,10 +1069,10 @@ class Check_electronic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
     
 
 
-# In[17]:
+# In[19]:
 
 
-class Check_ionic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
+class Ionic_divergence(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: after the calculation.
     Check if the ionic convergence is reached.
@@ -974,24 +1116,21 @@ class Check_ionic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
         self.write_error_log()
         return False
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: Ionic divergence happens at {}\n".format(get_time_str(), self.firework_name))
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\twrite __ionic_divergence__ into __error__\n")
-            super(Check_ionic_divergence, self).write_error_tag("__ionic_divergence__")
+            super(Ionic_divergence, self).write_error_tag("__ionic_divergence__")
+            
+    def write_error_log(self):
+        error_str = "Ionic divergence happens"
+        super(Ionic_divergence, self).write_error_log(target_error_str=error_str, error_type="__ionic_divergence__")
     
     @file_existence_decorator("OSZICAR", False)
     @file_existence_decorator("OUTCAR", False)
     def correct(self):
-        #electronic_div = Check_electronic_divergence(cal_loc=self.cal_loc)
-        #if not electronic_div.check():
-        #    return electronic_div.correct()
-        
-        #positive_energy = Check_positive_energy(cal_loc=self.cal_loc)
-        #if not positive_energy.check():
-            #return positive_energy.correct()
         
         EDIFF = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="EDIFF")
         EDIFFG = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="EDIFFG")
@@ -999,7 +1138,7 @@ class Check_ionic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
         
         oszicar = Oszicar(filename=os.path.join(self.cal_loc, "OSZICAR"))
         if len(oszicar.electronic_steps) < NSW:
-            super(Check_ionic_divergence, self).backup()
+            super(Ionic_divergence, self).backup()
             shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
             with open(self.log_txt, "a") as f:
                 f.write("{} Correction: This error may be due to that the walltime is reached.\n".format(get_time_str()))
@@ -1016,10 +1155,10 @@ class Check_ionic_divergence(Write_and_read_error_tag, Vasp_Error_Saver):
         
 
 
-# In[18]:
+# In[20]:
 
 
-class Check_positive_energy(Write_and_read_error_tag, Vasp_Error_Saver):
+class Positive_energy(Vasp_Error_Logger, Vasp_Error_Saver):
     """
     Error checking type: on the fly & after the calculation.
     Check if a electronic run has positive energy.
@@ -1037,7 +1176,7 @@ class Check_positive_energy(Write_and_read_error_tag, Vasp_Error_Saver):
         self.cal_loc = cal_loc
         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
-        #super(Check_positive_energy, self).__init__(cal_loc)
+        #super(Positive_energy, self).__init__(cal_loc)
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
     
     #Because method check is called on the fly, this decorator avoids the case where OUTCAR 
@@ -1051,20 +1190,24 @@ class Check_positive_energy(Write_and_read_error_tag, Vasp_Error_Saver):
                 return False
         return True
     
-    def write_error_log(self):
+    def write_error_log_(self):
         with open(self.log_txt, "a") as f:
             f.write("{} Error: Positive energy has been found at {}\n".format(get_time_str(), self.firework_name))
             f.write("\t\t\t__running__ --> __error__\n")
             os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\twrite __positive_energy__ into __error__\n")
-            super(Check_positive_energy, self).write_error_tag("__positive_energy__")
+            super(Positive_energy, self).write_error_tag("__positive_energy__")
+            
+    def write_error_log(self):
+        error_str = "Positive energy has been found"
+        super(Positive_energy, self).write_error_log(target_error_str=error_str, error_type="__positive_energy__")
     
     @file_existence_decorator("OUTCAR", False)
     def correct(self):
         IALGO = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="IALGO")
         
         if IALGO != 38:
-            super(Check_positive_energy, self).backup()
+            super(Positive_energy, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False)
             with open(self.log_txt, "a") as f:
                 f.write("{} Correction: ALGO --> Normal\n".format(get_time_str()))
@@ -1079,10 +1222,10 @@ class Check_positive_energy(Write_and_read_error_tag, Vasp_Error_Saver):
         return False
 
 
-# In[19]:
+# In[21]:
 
 
-class Check_nothing(object):
+class Null_error_checker(object):
     """
     This class deals with any exceptional cases where the error_type in __error__ under cal_loc is not written
     by our defined Error Checker classes in this sript.
