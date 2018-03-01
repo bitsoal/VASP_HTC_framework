@@ -123,6 +123,7 @@ class Job_management():
                 m = re.findall(self.re_to_queue_id, line)
                 assert len(m)==1, "Error: fail to parse queue ID Given {}".format(self.re_to_queue_id)
                 return m[0]
+        raise Exception("Cannot find queue id in {}".format(self.cal_loc))
         
     def is_cal_in_queue(self):
         queue_id = self.find_queue_id()
