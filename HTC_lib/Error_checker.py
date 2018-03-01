@@ -469,7 +469,7 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if ISYM != 0 or SYMPREC > 1.1e-9:
             super(Vasp_out_pricel, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1e-8, "ISYM": 0}, rename_old_incar=False)
-            super(Vasp_out_pricel, self).write_correction_log(new_incar_tags={{"SYMPREC": 1e-8, "ISYM": 0}})
+            super(Vasp_out_pricel, self).write_correction_log(new_incar_tags={"SYMPREC": 1e-8, "ISYM": 0})
             #with open(self.log_txt, "a") as f:
             #    f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
             #    f.write("\t\t\tSYMPREC: {} --> 1.0e-8\n".format(SYMPREC))
@@ -1080,6 +1080,9 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         #print("AMIX={}, BMIX={}, AMIN={}".format(AMIX, BMIX, AMIN))
         #print("AMIX > 0.1 ={}, BMIX > 0.01={}".format(AMIX > 0.1, BMIX > 0.01))
+        if BMIX == 3.0:
+            return False
+        
         if AMIX > 0.1 and BMIX > 0.01:
             super(Electronic_divergence, self).backup()
             NELM_ = 150 if NELM < 150 else NELM
