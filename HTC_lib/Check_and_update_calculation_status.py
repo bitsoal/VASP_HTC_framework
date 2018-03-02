@@ -131,7 +131,6 @@ def update_running_jobs_status(running_jobs_list, workflow):
 # In[4]:
 
 
-def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=3):
 def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
     """
     Update killed jobs's status. If the error in __killed__ can be fixed, fix it and __killed__ --> __ready__; 
