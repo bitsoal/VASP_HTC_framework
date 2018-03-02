@@ -169,9 +169,9 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
             open(os.path.join(killed_job, "__ready__"), "w").close()
             with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
                 f.write("{} Killed: Successfully correct the error {} under {}\n".format(get_time_str(), error_type, firework_name))
-                f.write("\t\t\tremove stdout and stderr files\n")
-                for file_ in to_be_removed:
-                    f.write("\t\t\tremove {}\n".format(file_))
+                #f.write("\t\t\tremove stdout and stderr files\n")
+                #for file_ in to_be_removed:
+                #    f.write("\t\t\tremove {}\n".format(file_))
                 f.write("\t\t\t__killed__ --> __ready__\n")
             
         else:
