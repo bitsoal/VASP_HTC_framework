@@ -132,13 +132,14 @@ def update_running_jobs_status(running_jobs_list, workflow):
 
 
 def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=3):
+def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
     """
     Update killed jobs's status. If the error in __killed__ can be fixed, fix it and __killed__ --> __ready__; 
         Ohterwise __killed__ --> __manual__
     input arguments:
         - killed_jobs_list (list): a list of absolute pathes of killed jobs.
         - workflow:  the output of func Parse_calculation_workflow.parse_calculation_workflow
-        - max_error_times (int): the maximum error times. Beyond this value, __killed__ --> __manual__
+        - max_error_times (int): the maximum error times. Beyond this value, __killed__ --> __manual__. Default: 5
     """
     
     #Error_type_dict = ["__unfinished_OUTCAR__", "__electronic_divergence__", 
@@ -152,18 +153,18 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=3):
         error_type = Write_and_read_error_tag(killed_job).read_error_tag("__killed__")
         error_checker = Vasp_Error_checker(cal_loc=killed_job, error_type=error_type, workflow=workflow)
         log_txt_loc, firework_name = os.path.split(killed_job)
-        if Vasp_Error_Saver(cal_loc=killed_job, workflow=workflow).find_error_times() > max_error_times:
+        if Vasp_Error_Saver(cal_loc=killed_job, workflow=workflow).find_error_times() >= max_error_times:
             os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
             with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
                 f.write("{} Killed: {}\n".format(get_time_str(), killed_job))
-                f.write("\t\t\tThe error times hit the max_error_times({})\n".format(max_error_times))
+                f.write("\t\t\tThe error times hit the max_error_times ({})\n".format(max_error_times))
                 f.write("\t\t\t__killed__ -> __manual__\n")
         elif error_checker.correct():
-            Queue_std_files(cal_loc=killed_job, workflow=workflow).remove_std_files()
-            to_be_removed = ["OUTCAR", "OSZICAR", workflow[0]["vasp.out"]]
-            for file_ in to_be_removed:
-                if os.path.isfile(os.path.join(killed_job, file_)):
-                    os.remove(os.path.join(killed_job, file_))
+            #Queue_std_files(cal_loc=killed_job, workflow=workflow).remove_std_files()
+            #to_be_removed = ["OUTCAR", "OSZICAR", workflow[0]["vasp.out"]]
+            #for file_ in to_be_removed:
+            #    if os.path.isfile(os.path.join(killed_job, file_)):
+            #        os.remove(os.path.join(killed_job, file_))
                     
             os.remove(os.path.join(killed_job, "__killed__"))
             open(os.path.join(killed_job, "__ready__"), "w").close()
