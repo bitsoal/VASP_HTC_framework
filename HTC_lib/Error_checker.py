@@ -47,11 +47,12 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__invgrp__": Vasp_out_invgrp, 
                           "__too_few_bands__": Vasp_out_too_few_bands, 
                           "__too_few_kpoints__":Vasp_out_too_few_kpoints, 
-                          "__rhosyg__":Vasp_out_rhosyg}
+                          "__rhosyg__":Vasp_out_rhosyg, 
+                          "__edddav__":Vasp_out_edddav}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__positive_energy__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
-    after_cal += ["__too_few_kpoints__", "__rhosyg__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
+    after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
     
     if isinstance(error_type, str):  
         if error_type in error_checker_dict:
@@ -328,7 +329,7 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
             f.write("\t\t\t write {} into __error__\n".format(error_type))
             super(Vasp_Error_Checker_Logger, self).write_error_tag(error_type)
             
-    def write_correction_log(self, new_incar_tags={}, comment_incar_tags=[], remove_incar_tags=[], new_filenames={}):
+    def write_correction_log(self, new_incar_tags={}, comment_incar_tags=[], remove_incar_tags=[], new_filenames={}, remove_files=[]):
         """
         write the correction log
         input arguments:
@@ -336,6 +337,7 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
             comment_incar_tags (list): a list of INCAR tags. Default: empty list
             remove_incar_tags (list): a list of INCAR tags. Default: empty list
             new_filenames (dict): key-old filename, value-new filename. Default: empty dictionary
+            remove_files (list): file list that will be removed
         """
         with open(self.log_txt, "a") as f:
             f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
@@ -357,6 +359,14 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
                 f.write("\t\trename files:\n")
                 for old_name, new_name in new_filenames.items():
                     f.write("\t\t\t{} --> {}\n".format(old_name, new_name))
+            if remove_files:
+                f.write("t\t\tremove files below:\n")
+                for file in remove_files:
+                    if os.path.isfile(os.path.join(self.cal_loc, file)):
+                        os.remove(os.path.join(self.cal_loc, file))
+                        f.write("\t\t\t{}\n".format(file))
+                    else:
+                        f.write("\t\t\t{} isn't present --> no need to remove\n".format(file))
 
 
 # # For all error checkers, the check method will return False if an error is found. Otherwise return True
@@ -405,7 +415,9 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
             super(OUTCAR_status, self).write_error_tag("__unfinished_OUTCAR__")
             
     def write_error_log(self):
-        super(OUTCAR_status, self).write_error_log(target_error_str=self.target_str, error_type="__unfinished_OUTCAR__")
+        target_str_list = ["\t\tcannot find the critical line in OUTCAR, which indicates the job successfully finished:"]
+        target_str_list.append(self.target_str)
+        super(OUTCAR_status, self).write_error_log(target_error_str=target_str_list, error_type="__unfinished_OUTCAR__")
     
     def correct(self):
         return False
@@ -991,6 +1003,67 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 # In[18]:
 
 
+class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "Error EDDDAV: Call to ZHEGV failed"
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    correct method: if ICHARG < 10, remove CHGCAR; 
+                    if ALGO != All, set it to All and return True;
+                    if ALGO == All, return False
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str = "Error EDDDAV: Call to ZHEGV failed"
+        
+        
+        
+    def check(self):
+        #this method is not active until the job is done
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+        
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+            self.write_error_log()
+            return False
+        else:
+            return True
+            
+            
+    def write_error_log(self):
+        super(Vasp_out_edddav, self).write_error_log(target_error_str=self.target_str, error_type="__edddav__")
+    
+    def correct(self):
+        ICHARG = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="ICHARG")
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        ALGO = incar_dict.get("ALGO", "Normal").lower()
+        
+        if ICHARG < 10:
+            if os.path.isfile(os.path.join(self.cal_loc, "CHGCAR")):
+                os.remove(os.path.join(self.cal_loc, "CHGCAR"))
+        if ALGO != "all":
+            super(Vasp_out_edddav, self).backup()
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"})
+            super(Vasp_out_edddav, self).write_correction_log(new_incar_tags={"ALGO": "All"}, remove_files=["CHGCAR"])
+            return True
+        
+        return False                       
+
+
+# In[19]:
+
+
 class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     """
     Error checking type: on the fly & after the calculation.
@@ -1049,6 +1122,7 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             2nd choice: AMIX=0.1, BMIX = 0.01, ICHARG = 2
             3rd choice: AMIN=0.01, BMIX=3.0, ICHARG =2
             4th choice: return False <-- fail to automatically recover.
+            Note that for the first three options, if EDIFF*5 <= 1.0E-4, we also set EDIFF = EDIFF*5
             
         """
         NELM = find_incar_tag_from_OUTCAR(tag="NELM", cal_loc=self.cal_loc)
@@ -1059,13 +1133,13 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         BMIX = float(incar.get("BMIX", 1.0))
         AMIN = float(incar.get("AMIN", 0.1))
         
+        if float(EDIFF)*5 <= 1.0E-4:
+            EDIFF_ = 5*EDIFF
+        else:
+            EDIFF_ = EDIFF
+        
         if IALGO != 38:
-            if float(EDIFF)*0.1 <= 1.0E-4:
-                EDIFF_ = 0.1 * EDIFF
-            elif float(EDIFF)*0.5 <= 1.0E-4:
-                EDIFF_ *= 0.5 * EDIFF
-            
-            
+                        
             super(Electronic_divergence, self).backup()
             NELM_ = NELM if NELM > 100 else 100
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal", "NELM": NELM_, "EDIFF": EDIFF_}, 
@@ -1086,7 +1160,7 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if AMIX > 0.1 and BMIX > 0.01:
             super(Electronic_divergence, self).backup()
             NELM_ = 150 if NELM < 150 else NELM
-            new_tags = {"AMIX": 0.1, "BMIX": 0.01, "ICHARG": 2, "NELM": NELM_}
+            new_tags = {"AMIX": 0.1, "BMIX": 0.01, "ICHARG": 2, "NELM": NELM_, "EDIFF": EDIFF_}
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
             super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags)
             #with open(self.log_txt, "a") as f:
@@ -1101,7 +1175,7 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if BMIX < 3.0 and AMIN > 0.01:
             super(Electronic_divergence, self).backup()
             NELM_ = 200 if 200 > NELM else NELM
-            new_tags = {"AMIN": 0.01, "BMIX": 3.0, "ICHARG": 2, "NELM": NELM_}
+            new_tags = {"AMIN": 0.01, "BMIX": 3.0, "ICHARG": 2, "NELM": NELM_, "EDIFF": EDIFF_}
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, remove_tags=["AMIX"], rename_old_incar=False)
             super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags, remove_incar_tags=["AMIX"])
             #with open(self.log_txt, "a") as f:
@@ -1117,7 +1191,7 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
 
 
-# In[19]:
+# In[20]:
 
 
 class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1198,7 +1272,7 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[20]:
+# In[21]:
 
 
 class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1260,7 +1334,7 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False
 
 
-# In[21]:
+# In[22]:
 
 
 class Null_error_checker(object):

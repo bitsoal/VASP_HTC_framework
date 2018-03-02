@@ -290,7 +290,7 @@ def find_NELM_from_OUTCAR(cal_loc="."):
             
 
 
-# In[2]:
+# In[14]:
 
 
 def find_NBANDS_from_OUTCAR(cal_loc="."):
@@ -310,7 +310,7 @@ def find_NBANDS_from_OUTCAR(cal_loc="."):
             
 
 
-# In[14]:
+# In[15]:
 
 
 def find_NSW_from_OUTCAR(cal_loc="."):
@@ -329,7 +329,7 @@ def find_NSW_from_OUTCAR(cal_loc="."):
     return None     
 
 
-# In[15]:
+# In[16]:
 
 
 def find_IBRION_from_OUTCAR(cal_loc="."):
@@ -348,7 +348,7 @@ def find_IBRION_from_OUTCAR(cal_loc="."):
     return None     
 
 
-# In[16]:
+# In[17]:
 
 
 def find_EDIFF_from_OUTCAR(cal_loc="."):
@@ -366,7 +366,7 @@ def find_EDIFF_from_OUTCAR(cal_loc="."):
     return None     
 
 
-# In[17]:
+# In[18]:
 
 
 def find_EDIFFG_from_OUTCAR(cal_loc="."):
@@ -384,7 +384,7 @@ def find_EDIFFG_from_OUTCAR(cal_loc="."):
     return None     
 
 
-# In[21]:
+# In[19]:
 
 
 def find_IALGO_from_OUTCAR(cal_loc="."):
@@ -402,7 +402,7 @@ def find_IALGO_from_OUTCAR(cal_loc="."):
     return False
 
 
-# In[21]:
+# In[20]:
 
 
 def find_AMIX_from_OUTCAR(cal_loc="."):
@@ -423,6 +423,24 @@ def find_AMIX_from_OUTCAR(cal_loc="."):
 # In[22]:
 
 
+def find_ICHARG_from_OUTCAR(cal_loc="."):
+    """
+    Find ICHARG from OUTCAR.
+    input arguments:
+        -cal_loc (str): the location of the calculation. Default: "."
+    return the corresponding value if found; otherwise, return None
+    """
+    
+    with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
+        for line in f:
+            if "ICHARG" in line and "=" in line:
+                return int(line.split()[2])
+    return False
+
+
+# In[21]:
+
+
 def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
     """
     Find incar tag from OUTCAR.
@@ -441,7 +459,8 @@ def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
                       "LORBIT": find_LORBIT_from_OUTCAR, 
                       "LSORBIT":find_LSORBIT_from_OUTCAR,
                       "IALGO": find_IALGO_from_OUTCAR,
-                      "NBANDS": find_NBANDS_from_OUTCAR
+                      "NBANDS": find_NBANDS_from_OUTCAR, 
+                      "ICHARG": find_ICHARG_from_OUTCAR
                      }
     tag = tag.upper()
     assert tag in find_func_dict.keys(), "Error: currently don't support the search for {} in OUTCAR".format(tag)
@@ -449,37 +468,33 @@ def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
         
 
 
-# In[19]:
-
-
-if __name__ == "__main__":
-    print(find_lattice_vectors_from_OUTCAR())
-    print(find_recp_lattice_vectors_from_OUTCAR())
-    print(find_Efermi_from_OUTCAR())
-    print(find_incar_tag_from_OUTCAR("LSORBIT"))
-    print(find_LSORBIT_from_OUTCAR())
-    print(find_incar_tag_from_OUTCAR("LORBIT"))
-    print(find_LORBIT_from_OUTCAR())
-    print(find_incar_tag_from_OUTCAR("ISPIN"))
-    print(find_ISPIN_from_OUTCAR())
-    print(find_ion_types_from_OUTCAR())
-    print(find_all_ion_indexes_of(target_ion_type="S"))
-    print(find_all_ion_indexes_of(target_ion_type="Se"))
-    print(find_all_ion_indexes_of(target_ion_type="Mo"))
-    print(find_all_ion_indexes_of(target_ion_type=['We', 'S', 'Mo', "We"]))
-    print(find_incar_tag_from_OUTCAR("NELM"))
-    print(find_NELM_from_OUTCAR())
-    print(find_incar_tag_from_OUTCAR("NSW"))
-    print(find_NSW_from_OUTCAR())
-    print(find_incar_tag_from_OUTCAR("EDIFF"))
-    print(find_EDIFF_from_OUTCAR())
-    print(find_incar_tag_from_OUTCAR("EDIFFG"))
-    print(find_EDIFFG_from_OUTCAR())
-    print(find_incar_tag_from_OUTCAR("IBRION"))
-    print(find_IBRION_from_OUTCAR())
-    #print(find_incar_tag_from_OUTCAR("NSW"))
-    #import pprint
-    #pprint.pprint(find_cart_coords_from_OUTCAR())
-    #pprint.pprint(find_frac_coords_from_OUTCAR())
-    #pprint.pprint(find_vector_kpoints_from_OUTCAR())
-
+# if __name__ == "__main__":
+#     print(find_lattice_vectors_from_OUTCAR())
+#     print(find_recp_lattice_vectors_from_OUTCAR())
+#     print(find_Efermi_from_OUTCAR())
+#     print(find_incar_tag_from_OUTCAR("LSORBIT"))
+#     print(find_LSORBIT_from_OUTCAR())
+#     print(find_incar_tag_from_OUTCAR("LORBIT"))
+#     print(find_LORBIT_from_OUTCAR())
+#     print(find_incar_tag_from_OUTCAR("ISPIN"))
+#     print(find_ISPIN_from_OUTCAR())
+#     print(find_ion_types_from_OUTCAR())
+#     print(find_all_ion_indexes_of(target_ion_type="S"))
+#     print(find_all_ion_indexes_of(target_ion_type="Se"))
+#     print(find_all_ion_indexes_of(target_ion_type="Mo"))
+#     print(find_all_ion_indexes_of(target_ion_type=['We', 'S', 'Mo', "We"]))
+#     print(find_incar_tag_from_OUTCAR("NELM"))
+#     print(find_NELM_from_OUTCAR())
+#     print(find_incar_tag_from_OUTCAR("NSW"))
+#     print(find_NSW_from_OUTCAR())
+#     print(find_incar_tag_from_OUTCAR("EDIFF"))
+#     print(find_EDIFF_from_OUTCAR())
+#     print(find_incar_tag_from_OUTCAR("EDIFFG"))
+#     print(find_EDIFFG_from_OUTCAR())
+#     print(find_incar_tag_from_OUTCAR("IBRION"))
+#     print(find_IBRION_from_OUTCAR())
+#     #print(find_incar_tag_from_OUTCAR("NSW"))
+#     #import pprint
+#     #pprint.pprint(find_cart_coords_from_OUTCAR())
+#     #pprint.pprint(find_frac_coords_from_OUTCAR())
+#     #pprint.pprint(find_vector_kpoints_from_OUTCAR())
