@@ -109,17 +109,6 @@ def update_running_jobs_status(running_jobs_list, workflow):
         return None
     
     for job_path in running_jobs_list:
-        queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
-        if queue_id not in job_status_str:
-            log_txt_loc, firework_name = os.path.split(job_path)
-            with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-                f.write("{} Queue Error: {}\n".format(get_time_str(), job_path))
-                f.write("\t\t\tThe running job is not found in queue.\n")
-                f.write("\t\t\t__running__ --> __manual__\n")
-                f.write("\t\t\tCreate file __running_job_not_in_queue__.\n")
-                open(os.path.join(job_path, "__running_job_not_in_queue__"), "w").close()
-                os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))
-            continue
         
         find_error = False
         if Queue_std_files(cal_loc=job_path, workflow=workflow).find_std_files() != [None, None]:
@@ -147,7 +136,18 @@ def update_running_jobs_status(running_jobs_list, workflow):
             #If found, __running__ --> __error__ and the error info will be written into __error__ and return False
             #If not found, return True
             Vasp_Error_checker(error_type=["on_the_fly"], cal_loc=job_path, workflow=workflow)
-                            
+            
+        if os.path.isfile(os.path.join(job_path, "__running__")):
+            queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
+            if queue_id not in job_status_str:
+                log_txt_loc, firework_name = os.path.split(job_path)
+                with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
+                    f.write("{} Queue Error: {}\n".format(get_time_str(), job_path))
+                    f.write("\t\t\tThe running job is not found in queue.\n")
+                    f.write("\t\t\t__running__ --> __manual__\n")
+                    f.write("\t\t\tCreate file __running_job_not_in_queue__.\n")
+                    open(os.path.join(job_path, "__running_job_not_in_queue__"), "w").close()
+                    os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))                
 
 
 # In[4]:
