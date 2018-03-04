@@ -3,13 +3,15 @@
 
 # # created on Feb 18 2018
 
-# In[1]:
+# In[5]:
 
 
 import os
 
 
 from Utilities import get_time_str
+
+from Submit_and_Kill_job import Job_management
 
 from Error_checker import Write_and_read_error_tag
 from Error_checker import Vasp_Error_Saver
@@ -84,7 +86,7 @@ def check_calculations_status(cal_folder):
     }
 
 
-# In[3]:
+# In[6]:
 
 
 def update_running_jobs_status(running_jobs_list, workflow):
@@ -98,7 +100,27 @@ def update_running_jobs_status(running_jobs_list, workflow):
     #Check_after_cal = ["__electronic_divergence__", "__positive_energy__", "__ionic_divergence__"]
     #Check_on_the_fly = ["__electronic_divergence__", "__positive_energy__"]
     
+    job_status_list = Job_management.check_jobs_in_queue_system(workflow=workflow)
+    if job_status_list:
+        job_status_str = job_status_list[0]
+        for i in range(1, len(job_status_list)):
+            job_status_str += job_status_list[i]
+    else:
+        return None
+    
     for job_path in running_jobs_list:
+        queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
+        if queue_id not in job_status_str:
+            log_txt_loc, firework_name = os.path.split(job_path)
+            with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
+                f.write("{} Queue Error: {}\n".format(get_time_str(), job_path))
+                f.write("\t\t\tThe running job is not found in queue.\n")
+                f.write("\t\t\t__running__ --> __manual__\n")
+                f.write("\t\t\tCreate file __running_job_not_in_queue__.\n")
+                open(os.path.join(job_path, "__running_job_not_in_queue__"), "w").close()
+                os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))
+            continue
+        
         find_error = False
         if Queue_std_files(cal_loc=job_path, workflow=workflow).find_std_files() != [None, None]:
             #if not Check_positive_energy(cal_loc=job_path, workflow=workflow).check():
