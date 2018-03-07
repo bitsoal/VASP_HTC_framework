@@ -33,7 +33,6 @@ from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 if __name__ == "__main__":
     workflow = parse_calculation_workflow(HTC_calculation_setup_file)
 
-
     while True:
         cif_file_list = os.listdir(cif_file_folder)
         for cif_file in cif_file_list:
@@ -58,6 +57,5 @@ if __name__ == "__main__":
 
         print("\n{}".format(get_time_str()))
         pprint.pprint(cal_status)
-        
         time.sleep(60)
 

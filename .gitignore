@@ -85,6 +85,10 @@ env/
 venv/
 ENV/
 
+# IntelliJ IDEA
+.idea/
+*.iml
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -97,3 +101,5 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+
