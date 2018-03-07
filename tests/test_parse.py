@@ -12,7 +12,6 @@ if ROOT not in sys.path:
 if LIB not in sys.path:
     sys.path.append(LIB)
 
-
 from HTC_lib.Parse_calculation_workflow import parse_calculation_workflow
 
 if __name__ == "__main__":
