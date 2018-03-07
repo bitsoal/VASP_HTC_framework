@@ -406,13 +406,6 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
             self.write_error_log()
             return False
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: The calculation fails to complete at {}\n".format(get_time_str(), self.firework_name))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __unfinished_OUTCAR__ into __error__\n")
-            super(OUTCAR_status, self).write_error_tag("__unfinished_OUTCAR__")
             
     def write_error_log(self):
         target_str_list = ["\t\tcannot find the critical line in OUTCAR, which indicates the job successfully finished:"]
@@ -460,15 +453,7 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return False
         else:
             return True
-    
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-            f.write("\t\t{}\n".format(self.target_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __pricel__ into __error__\n")
-            super(Vasp_out_pricel, self).write_error_tag("__pricel__")
+
             
     def write_error_log(self):
         super(Vasp_out_pricel, self).write_error_log(target_error_str=self.target_str, error_type="__pricel__")
@@ -529,14 +514,6 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         else:
             return True
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-            f.write("\t\t{}\n".format(self.target_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __too_few_bands__ into __error__\n")
-            super(Vasp_out_too_few_bands, self).write_error_tag("__too_few_bands__")
     
     def write_error_log(self):
         super(Vasp_out_too_few_bands, self).write_error_log(target_error_str=self.target_str, error_type="__too_few_bands__")
@@ -594,14 +571,6 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         else:
             return True
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-            f.write("\t\t{}\n".format(self.target_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __too_few_kpoints__ into __error__\n")
-            super(Vasp_out_too_few_kpoints, self).write_error_tag("__too_few_kpoints__")
             
     def write_error_log(self):
         super(Vasp_out_too_few_kpoints, self).write_error_log(target_error_str=self.target_str, error_type="__too_few_kpoints__")
@@ -663,14 +632,6 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         else:
             return True
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-            f.write("\t\t{}\n".format(self.target_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __posmap__ into __error__\n")
-            super(Vasp_out_posmap, self).write_error_tag("__posmap__")
             
     def write_error_log(self):
         super(Vasp_out_posmap, self).write_error_log(target_error_str=self.target_str, error_type="__posmap__")
@@ -727,15 +688,6 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
         else:
             return True
             
-    
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-            f.write("\t\t{}\n".format(self.target_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __bad_termination__ into __error__\n")
-            super(Vasp_out_bad_termination, self).write_error_tag("__bad_termination__")
             
     def write_error_log(self):
         super(Vasp_out_bad_termination, self).write_error_log(target_error_str=self.target_str, error_type="__bad_termination__")
@@ -804,16 +756,8 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         else:
             self.write_error_log()
             return False
+
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-            for target_str in self.target_str_list:
-                f.write("\t\t{}\n".format(target_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __invgrp__ into __error__\n")
-            super(Vasp_out_invgrp, self).write_error_tag("__invgrp__")
             
     def write_error_log(self):
         super(Vasp_out_invgrp, self).write_error_log(target_error_str=self.target_str_list, error_type="__invgrp__")
@@ -884,15 +828,6 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             self.write_error_log()
             return False
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-            for target_str in self.target_str_list:
-                f.write("\t\t{}\n".format(target_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __zbrent__ into __error__\n")
-            super(Vasp_out_zbrent, self).write_error_tag("__zbrent__")
             
     def write_error_log(self):
         super(Vasp_out_zbrent, self).write_error_log(target_error_str=self.target_str_list, error_type="__zbrent__")
@@ -961,16 +896,6 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         else:
             return True
             
-    
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
-            for target_str in self.target_str_list:
-                f.write("\t\t{}\n".format(target_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\t write __rhosyg__ into __error__\n")
-            super(Vasp_out_rhosyg, self).write_error_tag("__rhosyg__")
             
     def write_error_log(self):
         super(Vasp_out_rhosyg, self).write_error_log(target_error_str=self.target_str, error_type="__rhosyg__")
@@ -1102,13 +1027,6 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                     return False
         return True
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: Electronic divergence happens at {}\n".format(get_time_str(), self.firework_name))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\twrite __electronic_divergence__ into __error__\n")
-            super(Electronic_divergence, self).write_error_tag("__electronic_divergence__")
             
     def write_error_log(self):
         error_str = "Electronic divergence happens"
@@ -1119,8 +1037,8 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         """
         Orders of corrections:
             1st choice: if ALGO != Normal, set ALGO = Normal and NELM = 100 if original NELM < 100.
-            2nd choice: AMIX=0.1, BMIX = 0.01, ICHARG = 2
-            3rd choice: AMIN=0.01, BMIX=3.0, ICHARG =2
+            2nd choice: AMIX=0.1, BMIX = 0.01, ICHARG = 2 and NELM = 150 if original NELM < 150
+            3rd choice: AMIN=0.01, BMIX=3.0, ICHARG =2 and NELM = 200 if original NELM < 200
             4th choice: return False <-- fail to automatically recover.
             Note that for the first three options, if EDIFF*5 <= 1.0E-4, we also set EDIFF = EDIFF*5
             
@@ -1238,13 +1156,6 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         self.write_error_log()
         return False
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: Ionic divergence happens at {}\n".format(get_time_str(), self.firework_name))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\t__running__ --> __error__\n")
-            f.write("\t\t\twrite __ionic_divergence__ into __error__\n")
-            super(Ionic_divergence, self).write_error_tag("__ionic_divergence__")
             
     def write_error_log(self):
         error_str = "Ionic divergence happens"
@@ -1307,13 +1218,6 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 return False
         return True
     
-    def write_error_log_(self):
-        with open(self.log_txt, "a") as f:
-            f.write("{} Error: Positive energy has been found at {}\n".format(get_time_str(), self.firework_name))
-            f.write("\t\t\t__running__ --> __error__\n")
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            f.write("\t\t\twrite __positive_energy__ into __error__\n")
-            super(Positive_energy, self).write_error_tag("__positive_energy__")
             
     def write_error_log(self):
         error_str = "Positive energy has been found"
