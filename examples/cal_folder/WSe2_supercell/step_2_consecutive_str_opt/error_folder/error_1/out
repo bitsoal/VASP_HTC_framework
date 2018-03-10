@@ -1,0 +1,58 @@
+ running on   16 total cores
+ distrk:  each k-point on   16 cores,    1 groups
+ distr:  one band on    4 cores,    4 groups
+ using from now: INCAR     
+ vasp.5.4.4.18Apr17-6-g9f103f2a35 (build Feb 26 2018 15:04:24) complex          
+  
+ POSCAR found type information on POSCAR  W  Se
+ POSCAR found :  2 types and      36 ions
+ scaLAPACK will be used
+ LDA part: xc-table for Pade appr. of Perdew
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.
+
+ POSMAP internal error: symmetry equivalent atom not found,
+   you might try decreasing or increasing SYMPREC by an order of magnitude.

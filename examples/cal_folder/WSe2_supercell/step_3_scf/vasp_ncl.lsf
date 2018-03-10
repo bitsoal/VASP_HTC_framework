@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Queue (hour, day, week)
+#BSUB -q day
+
+# Number of slots
+#BSUB -n  16
+
+# Slots per node (32 = fat nodes)
+#BSUB -R "span[ptile=4]"
+
+# Shared memory in MB 
+#BSUB -R "rusage[mem=15000]"      
+
+# Uncomment (remove one #) to request exclusive acccess to a node 
+##BSUB -x 
+
+# Use openmpi
+#BSUB -a openmpi
+
+# Job duration in hours
+#BSUB -W 24:00
+
+
+# Job output file
+#BSUB -o lsf%J.o
+
+# Job error file
+#BSUB -e lsf%J.e
+
+
+# Load environment module (new system)
+module load VASP
+
+
+# Now run the program
+#mpirun -np 16 vasp # pre 5.4.1
+mpirun -np 16 vasp_ncl > out
+
