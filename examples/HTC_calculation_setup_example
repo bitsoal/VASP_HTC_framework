@@ -1,4 +1,4 @@
-#This is testing workflow
+#This is a example workflow: structure optimization --> add dipole correction --> static calculation --> band structure calculation
 
 **start
 step_no = 1
@@ -110,25 +110,3 @@ job_submission_command = bsub < vasp_ncl.lsf > job_id
 **end
 
 
-**start
-step_no = 5
-cal_name = dos
-
-copy_from_prev_cal = INCAR, POSCAR, CHGCAR, POTCAR
-copy_which_step = 3
-
-kpoints_type = MPStaticSet
-denser_kpoints = 2
-
-
-*begin(add_new_incar_tags)
-NEDOS = 601
-ICHARG = 11
-LORBIT = 11
-ISMEAR = 0
-LCHARG = .FALSE.
-*end(add_new_incar_tags)
-
-job_submission_script = /xxx/vasp_ncl.lsf
-job_submission_command = bsub < vasp_ncl.lsf > job_id
-**end
