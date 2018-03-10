@@ -1,0 +1,25 @@
+------------------------------------------------------------
+
+Successfully completed.
+
+Resource usage summary:
+
+    CPU time :               33848.21 sec.
+    Max Memory :             3977 MB
+    Average Memory :         3521.78 MB
+    Total Requested Memory : 60000.00 MB
+    Delta Memory :           56023.00 MB
+    (Delta: the difference between total requested memory and actual max usage.)
+    Max Swap :               10855 MB
+
+    Max Processes :          28
+    Max Threads :            45
+
+The output (if any) follows:
+
+
+
+PS:
+
+Read file <lsf524794.e> for stderr output of this job.
+

@@ -1,0 +1,27 @@
+ 
+ total amount of memory used by VASP MPI-rank0  5083896. kBytes
+=======================================================================
+
+   base      :      30000. kBytes
+   nonlr-proj:      12437. kBytes
+   fftplans  :      79331. kBytes
+   grid      :     291594. kBytes
+   one-center:        559. kBytes
+   wavefun   :    4669975. kBytes
+ 
+  
+  
+ General timing and accounting informations for this job:
+ ========================================================
+  
+                  Total CPU time used (sec):    39530.996
+                            User time (sec):    38249.574
+                          System time (sec):     1281.423
+                         Elapsed time (sec):    40171.024
+  
+                   Maximum memory used (kb):     5353148.
+                   Average memory used (kb):           0.
+  
+                          Minor page faults:      1491697
+                          Major page faults:            5
+                 Voluntary context switches:      7353368
