@@ -169,12 +169,12 @@ Tag list:
 	This tag is only valid for the first firework.
 	Note that this tag functions right only when the structure is given in the format of POSCAR, not cif.
 	Yes: Sort sites by the electronegativity of the atomic species.
-	No: After pymatgen.io.vasp.sets.MPRelaxSet write the vasp input files for the first firework, POSCAR
+	No: After pymatgen.io.vasp.sets.MPRelaxSet writes the vasp input files for the first firework, POSCAR
 		will be overwritten by copying the given structure to the current firework folder.
 	Default: Yes
 	Why we need this tag?
 		In some cases, the atomic sites may be ordered carefully for some specific purposes.
-		So you may not want to change the atomic sites.
+		So you may not want to change the atomic sites by pymatgen
 
 	
 
