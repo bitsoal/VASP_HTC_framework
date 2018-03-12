@@ -929,7 +929,7 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         -cal_loc: the location of the to-be-checked calculation
         -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
     check method: return True, if not found; return False and write error logs otherwise.
-    correct method: decrease POTIM and switch off symmetry.
+    correct method: decrease POTIM and switch off symmetry. The lower bound for POTIM is 0.05
     """
     def __init__(self, cal_loc, workflow):
         Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
