@@ -49,20 +49,21 @@ if __name__ == "__main__":
         kill_error_jobs(error_jobs=cal_status["error_folder_list"], workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
         
-        import pprint
-        print("\n")
-        print(get_time_str())
-        pprint.pprint(cal_status)
         
         
         
-        to_be_solved_folders = []
+        
+        to_be_cal_folders = []
         for folder_name, folder_list in cal_status.items():
             if folder_name != "done_folder_list":
-                to_be_solved_folders += folder_list
-        if to_be_solved_folders == []:
+                to_be_cal_folders += folder_list
+        if to_be_cal_folders == []:
             print("All calculations have finished --> Stop this program.")
             break
         else:
+            import pprint
+            print("\n")
+            print(get_time_str())
+            pprint.pprint(cal_status)
             time.sleep(60)
 
