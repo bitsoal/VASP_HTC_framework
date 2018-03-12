@@ -11,6 +11,7 @@ import re
 import subprocess
 
 from pymatgen.io.vasp.outputs import Oszicar, Vasprun
+from pymatgen import Structure
 
 import numpy as np
 
@@ -48,11 +49,13 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__too_few_bands__": Vasp_out_too_few_bands, 
                           "__too_few_kpoints__":Vasp_out_too_few_kpoints, 
                           "__rhosyg__":Vasp_out_rhosyg, 
-                          "__edddav__":Vasp_out_edddav}
+                          "__edddav__":Vasp_out_edddav, 
+                          "__zpotrf__": Vasp_out_zpotrf}
     
-    on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__positive_energy__"]
+    on_the_fly = ["__too_few_bands__", "__electronic_divergence__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
-    after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
+    after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__"]
+    after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
     
     if isinstance(error_type, str):  
         if error_type in error_checker_dict:
@@ -255,13 +258,6 @@ class Vasp_Error_Saver(object):
             f.write("\t\t\t\t")
             [f.write("{}\t".format(file_)) for file_ in file_list]
             f.write("\n")
-
-            #if stdout:
-            #    os.remove(os.path.join(self.cal_loc, stdout))
-            #    f.write("\t\t\tremove {}\n".format(stdout))
-            #if stderr:
-            #    os.remove(os.path.join(self.cal_loc, stderr))
-            #    f.write("\t\t\tremove {}\n".format(stderr))
                 
             for file in non_existent_file_list:
                 f.write("\t\t\tno {} to backup\n".format(file))
@@ -459,6 +455,10 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         super(Vasp_out_pricel, self).write_error_log(target_error_str=self.target_str, error_type="__pricel__")
     
     def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         SYMPREC = float(incar_dict.get("SYMPREC", 1.0e-5))
         ISYM = int(incar_dict.get("ISYM", 2))
@@ -467,10 +467,6 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             super(Vasp_out_pricel, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1e-8, "ISYM": 0}, rename_old_incar=False)
             super(Vasp_out_pricel, self).write_correction_log(new_incar_tags={"SYMPREC": 1e-8, "ISYM": 0})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
-            #    f.write("\t\t\tSYMPREC: {} --> 1.0e-8\n".format(SYMPREC))
-            #    f.write("\t\t\tISYM: {} --> 0\n".format(ISYM))
             return True
         else:
             return False
@@ -520,16 +516,16 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
     @file_existence_decorator("OUTCAR", true=False)
     def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
         NBANDS = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="NBANDS")
         NBANDS_ = int(NBANDS*1.1)
         
         super(Vasp_out_too_few_bands, self).backup()
         modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"NBANDS": NBANDS_}, rename_old_incar=False)
         super(Vasp_out_too_few_bands, self).write_correction_log(new_incar_tags={"NBANDS": NBANDS_})
-        
-        #with open(self.log_txt, "a") as f:
-        #    f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
-        #    f.write("\t\t\tNBANDS: {} --> {}\n".format(NBANDS, NBANDS_))
         return True
 
 
@@ -584,10 +580,6 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             super(Vasp_out_too_few_kpoints, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISMEAR": 0, "SIGMA":0.05}, rename_old_incar=False)
             super(Vasp_out_too_few_kpoints, self).write_correction_log(new_incar_tags={"ISMEAR": 0, "SIGMA":0.05})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
-            #    f.write("\t\t\tISMEAR: {} --> 0\n".format(ISMEAR))
-            #    f.write("\t\t\tSIGMA: {} --> 0.05\n".format(SIGMA))
             return True
         else:
             return False
@@ -637,6 +629,10 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         super(Vasp_out_posmap, self).write_error_log(target_error_str=self.target_str, error_type="__posmap__")
     
     def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         SYMPREC = float(incar_dict.get("SYMPREC", 1.0e-5))
         
@@ -644,9 +640,6 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             super(Vasp_out_posmap, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC/10.}, rename_old_incar=False)
             super(Vasp_out_posmap, self).write_correction_log(new_incar_tags={"SYMPREC": SYMPREC/10.})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: reset INCAR tags as below at {}\n".format(get_time_str(), self.firework_name))
-            #    f.write("\t\t\tSYMPREC: {} --> {}\n".format(SYMPREC, SYMPREC/10.))
             return True
         else:
             return False
@@ -763,6 +756,10 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         super(Vasp_out_invgrp, self).write_error_log(target_error_str=self.target_str_list, error_type="__invgrp__")
     
     def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         SYMPREC = incar_dict.get("SYMPREC", 1.0e-5)
         SYMPREC_ = SYMPREC * 5
@@ -771,9 +768,6 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             super(Vasp_out_invgrp, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC_}, rename_old_incar=False)
             super(Vasp_out_invgrp, self).write_correction_log(new_incar_tags={"SYMPREC": SYMPREC_})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
-            #    f.write("\t\t\tSYMPREC: {}-->{}\n".format(SYMPREC, SYMPREC_))
             return True
         else:
             with open(self.log_txt, "a") as f:
@@ -834,6 +828,10 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
     
     def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
         EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
         IBRION = find_incar_tag_from_OUTCAR(tag="IBRION", cal_loc=self.cal_loc)
         
@@ -847,11 +845,6 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"EDIFF": EDIFF*0.5}, rename_old_incar=False)
             shutil.copyfile(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
             super(Vasp_out_zbrent, self).write_correction_log(new_incar_tags={"EDIFF": EDIFF*0.5})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
-            #    f.write("\t\t\tEDIFF: {} --> {}\n".format(EDIFF, EDIFF*0.5))
-            #    f.write("\t\t\tIBRION: {} --> 1\n".format(IBRION))
-            #    f.write("\t\t\tCONTCAR --> POSCAR\n")
             return True
                         
 
@@ -901,6 +894,10 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         super(Vasp_out_rhosyg, self).write_error_log(target_error_str=self.target_str, error_type="__rhosyg__")
     
     def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         SYMPREC = float(incar_dict.get("SYMPREC", 1.0e-5))
         ISYM = int(incar_dict.get("ISYM", 2))
@@ -909,23 +906,96 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             super(Vasp_out_rhosyg, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1.0e-4}, rename_old_incar=False)
             super(Vasp_out_rhosyg, self).write_correction_log(new_incar_tags={"SYMPREC": 1.0e-4})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
-            #    f.write("\t\t\tSYMPREC: {} --> 1.0e-4\n".format(SYMPREC))
             return True
         elif ISYM != 0:
             super(Vasp_out_rhosyg, self).backup()
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISYM": 0}, rename_old_incar=False)
             super(Vasp_out_rhosyg, self).write_correction_log(new_incar_tags={"ISYM": 0})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
-            #    f.write("\t\t\tISYM: {} --> 0\n".format(ISYM))
             return True
         else:
             return False                        
 
 
 # In[18]:
+
+
+class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "LAPACK: Routine ZPOTRF failed"
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    correct method: decrease POTIM and switch off symmetry.
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str = "LAPACK: Routine ZPOTRF failed"
+        
+        
+    def check(self):
+        #this method is not active until the job is done
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+        
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+            self.write_error_log()
+            return False
+        else:
+            return True
+            
+            
+    def write_error_log(self):
+        super(Vasp_out_zpotrf, self).write_error_log(target_error_str=self.target_str, error_type="__zpotrf__")
+    
+    @file_existence_decorator(filename="OSZICAR", true=False)
+    def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
+        
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        ISYM = int(incar_dict.get("ISYM", 2))
+        POTIM = float(incar_dict.get("POTIM", 0.5))
+        ICHARG = find_incar_tag_from_OUTCAR(tag="ICHARG", cal_loc=self.cal_loc)
+        NSW = find_incar_tag_from_OUTCAR(tag="NSW", cal_loc=self.cal_loc)
+        IBRION = find_incar_tag_from_OUTCAR(tag="IBRION", cal_loc=self.cal_loc)
+        
+        new_tags = {}
+        if ISYM != 0:
+            new_tags["ISYM"] = 0
+        
+        if NSW != 0 and IBRION != -1:
+            if POTIM*0.5 >= 0.05:
+                new_tags["POTIM"] = POTIM * 0.5
+                
+        if new_tags == {}:
+            return False
+        else:
+            delete_files = []
+            if ICHARG < 10:
+                for file_ in ["WAVECAR", "CHGCAR", "CHG"]:
+                    if os.path.isfile(os.path.join(self.cal_loc, file_)):
+                        os.remove(os.path.join(self.cal_loc, file_))
+                        delete_files.append(file_)
+            super(Vasp_out_zpotrf, self).backup()
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
+            super(Vasp_out_zpotrf, self).write_correction_log(new_incar_tags=new_tags, remove_files=delete_files)
+            return True
+                            
+
+
+# In[19]:
 
 
 class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -970,6 +1040,10 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         super(Vasp_out_edddav, self).write_error_log(target_error_str=self.target_str, error_type="__edddav__")
     
     def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
         ICHARG = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="ICHARG")
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         ALGO = incar_dict.get("ALGO", "Normal").lower()
@@ -986,7 +1060,7 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[19]:
+# In[20]:
 
 
 class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1036,12 +1110,14 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def correct(self):
         """
         Orders of corrections:
-            1st choice: if ALGO != Normal, set ALGO = Normal and NELM = 100 if original NELM < 100.
-            2nd choice: AMIX=0.1, BMIX = 0.01, ICHARG = 2 and NELM = 150 if original NELM < 150
-            3rd choice: AMIN=0.01, BMIX=3.0, ICHARG =2 and NELM = 200 if original NELM < 200
-            4th choice: return False <-- fail to automatically recover.
-            Note that for the first three options, if EDIFF*5 <= 1.0E-4, we also set EDIFF = EDIFF*5
-            
+            1st option: if ALGO != Normal, set ALGO = Normal and NELM = 100 if original NELM < 100.
+            2nd option: if the dipole correction is on, try to set DIPOL if not present.
+            3rd option: AMIX=0.1, BMIX = 0.01, ICHARG = 2 and NELM = 150 if original NELM < 150
+            4th option: AMIN=0.01, BMIX=3.0, ICHARG =2 and NELM = 200 if original NELM < 200
+            5th option: return False <-- fail to automatically recover.
+            Note that for the 1st, 3rd, 4th options, if EDIFF*5 <= 1.0E-4, we also set EDIFF = EDIFF*5
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
         NELM = find_incar_tag_from_OUTCAR(tag="NELM", cal_loc=self.cal_loc)
         EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
@@ -1050,6 +1126,10 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         AMIX = float(incar.get("AMIX", 0.4))
         BMIX = float(incar.get("BMIX", 1.0))
         AMIN = float(incar.get("AMIN", 0.1))
+        #according to vaspwiki, IDIPOL will be switched on if it 1, 2, 3, or 4. 
+        #Here we use 0 to denote the absence of the dipole correction
+        IDIPOL = int(incar.get("IDIPOL", 0)) 
+        DIPOL = incar.get("DIPOL", "")
         
         if float(EDIFF)*5 <= 1.0E-4:
             EDIFF_ = 5*EDIFF
@@ -1070,8 +1150,18 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             #    f.write("\t\t\tNELM = from {} to {}\n".format(NELM, NELM_))
             return True
         
-        #print("AMIX={}, BMIX={}, AMIN={}".format(AMIX, BMIX, AMIN))
-        #print("AMIX > 0.1 ={}, BMIX > 0.01={}".format(AMIX > 0.1, BMIX > 0.01))
+        #For the calculations involved in the dipole correction, set the dipol center.
+        #Note that 0.5 is set along x and y directions, while the geometrical center is adopted along the z direction.
+        if IDIPOL != 0: 
+            if DIPOL == "":
+                super(Electronic_divergence, self).backup()
+                struct = Structure.from_file(os.path.join(self.cal_loc, "POSCAR"))
+                mean_c = np.mean(struct.frac_coords[:, 2])
+                new_tags = {"DIPOL": "0.5 0.5 {:.3}".format(mean_c), "ICHARG":2}
+                modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
+                super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags)
+                return True
+        
         if BMIX == 3.0:
             return False
         
@@ -1081,35 +1171,21 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             new_tags = {"AMIX": 0.1, "BMIX": 0.01, "ICHARG": 2, "NELM": NELM_, "EDIFF": EDIFF_}
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
             super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags)
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: reset INCAR tags\n".format(get_time_str()))
-            #    f.write("\t\t\tAMIX = 0.1\n")
-            #    f.write("\t\t\tBMIX = 0.01\n")
-            #    f.write("\t\t\tICHARG = 2\n")
-            #    f.write("\t\t\tNELM = {}\n".format(NELM_))
             return True
         
-        #print("Second method")
         if BMIX < 3.0 and AMIN > 0.01:
             super(Electronic_divergence, self).backup()
             NELM_ = 200 if 200 > NELM else NELM
             new_tags = {"AMIN": 0.01, "BMIX": 3.0, "ICHARG": 2, "NELM": NELM_, "EDIFF": EDIFF_}
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, remove_tags=["AMIX"], rename_old_incar=False)
             super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags, remove_incar_tags=["AMIX"])
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: reset INCAR tags\n".format(get_time_str()))
-            #    f.write("\t\t\tAMIN = 0.01\n")
-            #    f.write("\t\t\tBMIX = 3.0\n")
-            #    f.write("\t\t\tICHARG = 2\n")
-            #    f.write("\t\t\tNELM = {}\n".format(NELM_))
-            #    f.write("\t\t\tremove AMIX\n")
             return True
         
         return False
     
 
 
-# In[20]:
+# In[21]:
 
 
 class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1183,12 +1259,12 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[21]:
+# In[22]:
 
 
 class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     """
-    Error checking type: on the fly & after the calculation.
+    Error checking type: after the calculation.
     Check if a electronic run has positive energy.
     inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
     input arguments:
@@ -1211,6 +1287,11 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     #has not been generated while calling this method
     @file_existence_decorator("OSZICAR")
     def check(self):
+        
+        #This if statement deactivates the check method until the calculation is done.
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).stdout_file == [None, None]:
+            return True
+        
         oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
         for ionic_step in oszicar.ionic_steps:
             if ionic_step["E0"] > 0:
@@ -1225,6 +1306,10 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
     @file_existence_decorator("OUTCAR", False)
     def correct(self):
+        """
+        This correction is borrowed from custodian and modified.
+        https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
+        """
         IALGO = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="IALGO")
         
         if IALGO != 38:
@@ -1238,7 +1323,7 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False
 
 
-# In[22]:
+# In[23]:
 
 
 class Null_error_checker(object):

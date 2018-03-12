@@ -3,7 +3,7 @@
 
 # # created on Feb 18 2018
 
-# In[2]:
+# In[1]:
 
 
 import os, shutil, subprocess
@@ -13,7 +13,7 @@ from Utilities import get_time_str
 from Error_checker import Queue_std_files
 
 
-# In[ ]:
+# In[2]:
 
 
 def submit_jobs(ready_jobs, workflow, max_jobs_in_queue=30):
@@ -36,7 +36,7 @@ def submit_jobs(ready_jobs, workflow, max_jobs_in_queue=30):
         Job_management(cal_loc, workflow).submit()
 
 
-# In[5]:
+# In[3]:
 
 
 def kill_error_jobs(error_jobs, workflow):
@@ -196,133 +196,30 @@ class Job_management():
                 
         os.system(self.firework["job_submission_command"])
         signal_file = "__ready__" if os.path.isfile("__ready__") else "__prior_ready__"
-        os.rename(signal_file, "__running__")
         os.chdir(dir0)
         with open(self.log_txt, "a") as f:
             f.write("{} INFO: submit job via {}.\n".format(get_time_str(), self.firework["job_submission_command"]))
+            f.write("\t\t\t move back to {}\n".format(dir0))
+            
+        try:
+            self.find_queue_id()
+        except:
+            with open(self.log_txt, "a") as f:
+                f.write("{} Error: {}\n".format(get_time_str(), self.cal_loc))
+                if not os.path.isfile(os.path.join(self.cal_loc, "__fail_job_submission__")):
+                    f.write("\t\t\tfail to submit the job for the first time\n")
+                    f.write("\t\t\tcreate file named __fail_job_submission__\n")
+                    open(os.path.join(self.cal_loc, "__fail_job_submission__"), "w").close()
+                    return False
+                else:
+                    f.write("\t\t\tThis is the second time to fail the job submission\n")
+                    os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__error__"))
+                    f.write("\t\t\t{} --> __error__\n".format(signal_file))
+                    return False
+                
+        os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__running__"))
+        with open(self.log_txt, "a") as f:
+            f.write("\t\t\t under {}\n".format(self.cal_loc))
             f.write("\t\t\t{} --> __running__\n".format(signal_file))
-            f.write("\t\t\t move back to {}\n".format(dir0))        
+                    
 
-
-# def submit_jobs(ready_folder_list, workflow, max_jobs_in_queue=30, check_queue_cmd=["bjobs", "-w"]):
-#     """
-#     Submit jobs.
-#     input arguments:
-#         - ready_folder_list (list): a list of absolute pathes where the calculations are ready.
-#         - max_jobs_in_quene (int): the maximum number of jobs in queue. Default: 30
-#         - workflow: the return of function parse_calculation_workflow, which define a set of DFT calculations and 
-#             related pre- and post- processes
-#         - check_queue_cmd (str): the command to check calculations in the queue system. Default: "bjobs -w"
-#     """
-#     
-#     jobs_in_queue = check_jobs_in_queue_system(check_queue_cmd)
-#     available_submissions = max_jobs_in_queue - len(jobs_in_queue)
-#     if len(ready_folder_list) < available_submissions:
-#         available_submissions = len(ready_folder_list)
-#     
-#     firework_folder_name_list = [firework["firework_folder_name"] for firework in workflow]
-#     dir0 = os.getcwd()
-# 
-#     for job_folder in ready_folder_list[:available_submissions]:
-#         os.chdir(job_folder)
-#         log_txt_loc = os.path.split(job_folder)[0]
-#         with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-#             f.write("{} INFO: move to {}\n".format(get_time_str(), os.path.split(job_folder)[1]))
-#         assert os.path.isfile("INCAR"), "Error: no INCAR under {}".format(job_folder)
-#         assert os.path.isfile("POTCAR"), "Error: no POTCAR under {}".format(job_folder)
-#         assert os.path.isfile("KPOINTS"), "Error: no KPOINTS under {}".format(job_folder)
-#         assert os.path.isfile("POSCAR"), "Error: no POSCAR under {}".format(job_folder)
-#         for firework_ind, firework_folder in enumerate(firework_folder_name_list):
-#             if firework_folder in job_folder:
-#                 break
-#         job_submission_script = workflow[firework_ind]["job_submission_script"]
-#         script_name = os.path.split(job_submission_script)[-1]
-#         if not os.path.isfile(os.path.split(job_submission_script)[1]):
-#             shutil.copyfile(workflow[firework_ind]["job_submission_script"], script_name)
-#         os.system(workflow[firework_ind]["job_submission_command"])
-#         os.rename("__ready__", "__running__")
-#         os.chdir(dir0)
-#         with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-#             #f.write("{} INFO: move to {}\n".format(get_time_str(), job_folder))
-#             f.write("{} INFO: submit job via {}.\n".format(get_time_str(), workflow[firework_ind]["job_submission_command"]))
-#             f.write("\t\t\t__ready__ --> __running__\n".format(get_time_str()))
-#             f.write("{} INFO: move to its parent folder {}\n".format(get_time_str(), dir0))
-# 
-
-# class Kill_a_job(object):
-#         
-#     def __init__(self, cal_loc):
-#         self.cal_loc = cal_loc
-#         self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-#         self.parse_queue_id_fun_dict = {"GRC": self.parse_queue_id_GRC,"NSCC": None}
-#         
-#     def kill(self, parse_queue_id_fun_type="GRC", cmd="bkill ", queue_id_file="job_id", prefix=["ls", "ls"], suffix=[".o", ".e"]):
-#         """
-#         Kill the running VASP job at cal_loc via the input cmd, log the job killing and create file __killed__ under cal_loc.
-#         input arguments:
-#             -cal_loc (str): the location of the calculation.
-#             -parse_queue_id_fun (function): a function to parse queue id from some file under cal_loc.
-#             -cmd: the command to kill the running job. Default: "bkill "
-#             -queue_id_file (str): the file holding the queue id under folder cal_loc. default: "job_id"
-#             -prefix (list): a list of strings
-#             -suffix (list): a list of strings. 
-#             len(prefix) == len(suffix). Remove the files under cal_loc whose prefix and suffix appear 
-#                                         in the prefix list and the suffix list at the same position.
-#         """
-#         queue_id = self.parse_queue_id_fun_dict[parse_queue_id_fun_type](cal_loc, queue_id_file)
-#         
-#         if queue_id == False:
-#             with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-#                 f.write("{} Error: fail to kill the calculation under {}\n".format(get_time_str(), cal_loc))
-#                 f.write("\t\t\t create __fail_to_kill__ under this folder\n")
-#             open(os.path.join(cal_loc, "__fail_to_kill__"), "w").close()
-#             return False
-#     
-#         dir0 = os.getcwd()
-#         os.chdir(cal_loc)
-#         with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-#             f.write("{} Error: move to {}\n".format(get_time_str(), firework_name))
-#         
-#         os.system(cmd + str(queue_id))
-#         
-#         #for prf, suf in enumerate(prefix, suffix)：
-#             #os.remove(search_file(cal_loc=self.cal_loc, prefix=))
-#         
-#     
-#         open(os.path.join(cal_loc, "__killed__"), "w").close()
-#         
-#     
-#         os.chdir(dir0)
-#         with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-#             f.write("\t\t\tkill this calculation by calling {} {}\n".format(cmd, queue_id))
-#             f.write("\t\t\tcreate file __killed__\n")
-#             f.write("\t\tmove back to {}\n".format(dir0))
-#         
-#     def parse_queue_id_GRC(self, cal_loc, queue_id_file="job_id"):
-#         """
-#         parse return the intger queue id in file queue_id_file under folder cal_loc.
-#         input arguments:
-#             -cal_loc (str): the location of the calculation.
-#             -queue_id_file (str): the file holding the queue id under folder cal_loc. default: "job_id"
-#         """
-#         log_txt_loc, firework_name = os.path.split(cal_loc)
-#     
-#         if not os.path.isfile(os.path.join(cal_loc, queue_id_file)):
-#             with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-#                 f.write("{} Error: no {} under {}\n".format(get_time_str(), firework_name))
-#             return False
-#         
-#         queue_id = None
-#         with open(os.path.join(cal_loc, queue_id_file), "r") as f:
-#             for line in f:
-#                 if "<" in line and ">" in line:
-#                     m = re.search("<([0-9]+)>", line)
-#                     if m:
-#                         queue_id = int(m.group(1))
-#                     
-#         if queue_id == None:
-#             with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-#                 f.write("Error: fail to parse queue id from file {} under {}".format(queue_id_file, firework_name))
-#             return False
-#     
-#         return queue_id
