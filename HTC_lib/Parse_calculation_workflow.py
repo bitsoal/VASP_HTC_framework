@@ -126,7 +126,7 @@ def parse_calculation_workflow(filename="Calculation_setup"):
             
             
             if "kpoints_type" not in firework.keys():
-                print("\nYou don't tag kpoints_type for step {}".format(firework["step_no"]))
+                print("\nYou don't set tag kpoints_type for step {}".format(firework["step_no"]))
                 print("kpoints_type option: MPRelaxSet, MPStaticSet, MPNonSCFSet_line, MPNonSCFSet_uniform")
                 print("\t\tFor MPRelaxSet, MPStaticSet, float denser_kpoints (default int 1) can be set to make kpoints denser")
                 print("\t\tFor MPNonSCFSet_line, kpoints_line_density can be set. Default: 40")
