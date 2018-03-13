@@ -94,6 +94,8 @@ def search_file(cal_loc, prefix="", suffix=""):
     return the file name if only one file is found.
     return None if not found.
     """
+    if prefix == "" and suffix == "":
+        return None
     
     file_list = []
     for file in os.listdir(cal_loc):
@@ -109,9 +111,9 @@ def search_file(cal_loc, prefix="", suffix=""):
         target_file_list.append(file)
         
     if len(target_file_list) > 1:
-        print("Error: Given the prefix {} and suffix {}, more than one file are found: ".format(prefix, suffix))
+        print("\nError: Given the prefix {} and suffix {}, more than one file are found: ".format(prefix, suffix))
         print(("{}\t"*len(target_file_list)).format(*target_file_list))
-        print("under {}".format(cal_loc))
+        print("under {}\n".format(cal_loc))
         raise Exception("See error above.")
     elif len(target_file_list) == 1:
         return target_file_list[0]
