@@ -9,7 +9,7 @@
 import os, shutil, subprocess
 import re
 
-from Utilities import get_time_str
+from Utilities import get_time_str, decorated_os_rename
 from Error_checker import Queue_std_files
 
 
@@ -144,7 +144,8 @@ class Job_management():
             dir0 = os.getcwd()
             os.chdir(self.cal_loc)
             os.system(self.job_killing_cmd +" "+ queue_id)
-            os.rename("__error__", "__killed__")
+            decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__killed__")
+            #os.rename("__error__", "__killed__")
             os.chdir(dir0)
             with open(self.log_txt, "a") as f:
                 f.write("{} Kill: move to {}\n".format(get_time_str(), self.firework_name))
@@ -152,7 +153,8 @@ class Job_management():
                 f.write("\t\t\t __error__ --> __killed__\n")
                 f.write("\t\t\tmove back to {}\n".format(dir0))
         else:
-            os.rename(os.path.join(self.cal_loc, "__error__"), os.path.join(self.cal_loc, "__killed__"))
+            decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__killed__")
+            #os.rename(os.path.join(self.cal_loc, "__error__"), os.path.join(self.cal_loc, "__killed__"))
             with open(self.log_txt, "a") as f:
                 f.write("{} Kill: the job has be terminated under {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\t\tSo no need to kill\n")
@@ -213,11 +215,13 @@ class Job_management():
                     return False
                 else:
                     f.write("\t\t\tThis is the second time to fail the job submission\n")
-                    os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__error__"))
+                    decorated_os_rename(loc=self.cal_loc, old_filename=signal_file, new_filename="__error__")
+                    #os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__error__"))
                     f.write("\t\t\t{} --> __error__\n".format(signal_file))
                     return False
-                
-        os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__running__"))
+        
+        decorated_os_rename(loc=self.cal_loc, old_filename=signal_file, new_filename="__running__")
+        #os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__running__"))
         with open(self.log_txt, "a") as f:
             f.write("\t\t\t under {}\n".format(self.cal_loc))
             f.write("\t\t\t{} --> __running__\n".format(signal_file))

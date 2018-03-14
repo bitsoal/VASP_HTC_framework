@@ -3,7 +3,7 @@
 
 # # created on Feb 18 2018
 
-# In[3]:
+# In[1]:
 
 
 import os, time, shutil
@@ -24,7 +24,7 @@ def get_time_suffix():
     return time.strftime("%Y_%m_%d_%H_%M_%S")
 
 
-# In[1]:
+# In[4]:
 
 
 def find_next_name(cal_loc, orig_name="INCAR"):
@@ -39,7 +39,7 @@ def find_next_name(cal_loc, orig_name="INCAR"):
             return {"next_name": next_name, "pref_suf_no": i}
 
 
-# In[2]:
+# In[5]:
 
 
 def construct_name(orig_name, pref_suf_no):
@@ -50,6 +50,36 @@ def construct_name(orig_name, pref_suf_no):
 
 
 # In[6]:
+
+
+def decorated_os_rename(loc, old_filename, new_filename, clear_content=False):
+    """
+    A decorated version of os.rename.
+    Before os.rename:
+        - Check whether old_filname and new_filename exist
+            - if old_filename does not exist, directly create a file named new_filename using open()
+    After os.rename:
+        - if clear_content is True, clear the file.
+    input arguments:
+        - loc (str): a directory
+        - old_filename (str)
+        - new_filename (str)
+        optional
+            - clear_conent (bool): If True, clear the file. Default: False
+    """
+    old_file = os.path.join(loc, old_filename)
+    new_file = os.path.join(loc, new_filename)
+    
+    if os.path.isfile(old_file):
+        os.rename(old_file, new_file)
+    else:
+        open(new_file, "w").close()
+        
+    if clear_content:
+        open(new_file, "w").close()
+
+
+# In[7]:
 
 
 def rename_files(loc, file_list, additional_file_list=[]):
@@ -80,7 +110,7 @@ def rename_files(loc, file_list, additional_file_list=[]):
     return pref_suf_no
 
 
-# In[4]:
+# In[8]:
 
 
 def search_file(cal_loc, prefix="", suffix=""):
@@ -121,7 +151,7 @@ def search_file(cal_loc, prefix="", suffix=""):
         return None
 
 
-# In[5]:
+# In[9]:
 
 
 def copy_and_move_files(src_dir, dst_dir, copy_files=[], move_files=[], contcar_to_poscar=False):
