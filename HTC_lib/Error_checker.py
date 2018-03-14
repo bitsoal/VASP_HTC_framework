@@ -16,7 +16,7 @@ from pymatgen import Structure
 import numpy as np
 
 from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
-from Utilities import get_time_str, search_file
+from Utilities import get_time_str, search_file, decorated_os_rename
 from Preprocess_and_Postprocess import modify_vasp_incar
 
 
@@ -95,12 +95,6 @@ class Write_and_read_error_tag(object):
         self.cal_loc = cal_loc
         
     def write_error_tag(self, error_tag, file="__error__"):
-        """
-        input arguments:
-            -error_tag (str): currently available: 
-                        __unfinished_OUTCAR__, __electronic_divergence__, __ionic_divergence__, __positive_energy__
-            -file (str): the file to write error_tag. Default: __error__
-        """
         with open(os.path.join(self.cal_loc, file), "w") as f:
             f.write(error_tag)
             
@@ -156,33 +150,29 @@ class Queue_std_files():
             os.remove(os.path.join(self.cal_loc, self.stderr_file))
 
 
+# def file_existence_decorator(filename, true=True):
+#     def Func_wrapper(func):
+#         def func_wrapper(*args):
+#             file_loc = args[0].cal_loc
+#             if os.path.isfile(os.path.join(file_loc, filename)):
+#                 return func(*args)
+#             else:
+#                 if true:
+#                     return true_func(*args) #<---decorate method check of Check_xxx classes below.
+#                 else:
+#                     return false_func(*args) #<--- decorate method correct of Check_xxx classes below.
+#             
+#         return func_wrapper
+#         
+#     def true_func(*args):
+#         return True
+#     
+#     def false_func(*args):
+#         return False
+#     
+#     return Func_wrapper
+
 # In[5]:
-
-
-def file_existence_decorator(filename, true=True):
-    def Func_wrapper(func):
-        def func_wrapper(*args):
-            file_loc = args[0].cal_loc
-            if os.path.isfile(os.path.join(file_loc, filename)):
-                return func(*args)
-            else:
-                if true:
-                    return true_func(*args) #<---decorate method check of Check_xxx classes below.
-                else:
-                    return false_func(*args) #<--- decorate method correct of Check_xxx classes below.
-            
-        return func_wrapper
-        
-    def true_func(*args):
-        return True
-    
-    def false_func(*args):
-        return False
-    
-    return Func_wrapper
-
-
-# In[6]:
 
 
 def  find_target_str(cal_loc, target_file, target_str):
@@ -207,7 +197,7 @@ def  find_target_str(cal_loc, target_file, target_str):
     
 
 
-# In[7]:
+# In[6]:
 
 
 class Vasp_Error_Saver(object):
@@ -283,7 +273,7 @@ class Vasp_Error_Saver(object):
                 return "error_"+str(error_times+1)
 
 
-# In[8]:
+# In[7]:
 
 
 class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
@@ -320,10 +310,36 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
             f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
             for error_str in target_error_str_list:
                 f.write("\t\t{}\n".format(error_str))
-            os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write {} into __error__\n".format(error_type))
             super(Vasp_Error_Checker_Logger, self).write_error_tag(error_type)
+    
+    def write_file_absence_log(self, filename_list = [], initial_signal_file="", final_signal_file=""):
+        """
+        Write the log for the absence of files listed in the input filename_list and the name change from initial_signal_file 
+            to final_signal_file if provided.
+        input arguments:
+            filename_list (list of str): a list of filenames. Default: empty list
+            initial_signal_file (str): Default: ""
+            final_signal_file (str): Default: ""
+        Note that the log for the name change of the signal file will be written only when filename_list is not empty. 
+            initial_signal_file and final_signal_file must be provided at the same time.
+        """
+        if filename_list:
+            with open(self.log_txt, "a") as f:
+                f.write("{} File Missing: {}\n".format(get_time_str(), self.firework_name))
+                f.write("\t\t\tThe file(s) listed below is(are) missing.\n\t\t\t\t")
+                for filename in filename_list:
+                    f.write("{}\t".format(filename))
+                f.write("\n")
+                if initial_signal_file != "" and final_signal_file != "":
+                    f.write("\t\t\tchange the signal file name:\n")
+                    f.write("\t\t\t\t{} --> {}\n".format(initial_signal_file, final_signal_file))
+                    
+                
+                
             
     def write_correction_log(self, new_incar_tags={}, comment_incar_tags=[], remove_incar_tags=[], new_filenames={}, remove_files=[]):
         """
@@ -367,7 +383,7 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
 
 # # For all error checkers, the check method will return False if an error is found. Otherwise return True
 
-# In[9]:
+# In[8]:
 
 
 class OUTCAR_status(Vasp_Error_Checker_Logger):
@@ -388,13 +404,21 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
         self.target_str = "General timing and accounting informations for this job:"
         self.target_file = "OUTCAR"
-        
-        
+            
     def check(self):
         
         #This if statement deactivates the check method until the calculation is done.
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow) == [None, None]:
             return True
+        
+        #Since the job is done, OUTCAR must exist.
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(OUTCAR_status, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                              initial_signal_file="__running__", 
+                                                              final_signal_file="__error__")
+            return False
         
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             return True
@@ -413,7 +437,7 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
     
 
 
-# In[10]:
+# In[9]:
 
 
 class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -444,6 +468,16 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
         
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_pricel, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                              initial_signal_file="__running__", 
+                                                              final_signal_file="__error__")
+            return False
+            
+        
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
             return False
@@ -473,7 +507,7 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[11]:
+# In[10]:
 
 
 class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -503,6 +537,15 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         #This method will be active only when the job is done.
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_too_few_bands, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                       initial_signal_file="__running__", 
+                                                                       final_signal_file="__error__")
+            return False
                 
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
@@ -514,12 +557,16 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def write_error_log(self):
         super(Vasp_out_too_few_bands, self).write_error_log(target_error_str=self.target_str, error_type="__too_few_bands__")
     
-    @file_existence_decorator("OUTCAR", true=False)
     def correct(self):
         """
         This correction is borrowed from custodian and modified.
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_correction__"), "w").close()
+            super(Vasp_out_too_few_bands, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+        
         NBANDS = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="NBANDS")
         NBANDS_ = int(NBANDS*1.1)
         
@@ -530,7 +577,7 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[12]:
+# In[11]:
 
 
 class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -560,6 +607,15 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         #This method will be active only when the job is done.
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_too_few_kpoints, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                         initial_signal_file="__running__", 
+                                                                         final_signal_file="__error__")
+            return False
                 
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
@@ -586,7 +642,7 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[13]:
+# In[12]:
 
 
 class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -618,6 +674,15 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
         
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_posmaps, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                 initial_signal_file="__running__", 
+                                                                 final_signal_file="__error__")
+            return False
+        
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
             return False
@@ -646,7 +711,7 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[14]:
+# In[13]:
 
 
 class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
@@ -675,6 +740,15 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
         
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_bad_termination, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                         initial_signal_file="__running__", 
+                                                                         final_signal_file="__error__")
+            return False
+        
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
             return False
@@ -691,7 +765,7 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
                 f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\t\t{}\n".format(self.target_str))
                 f.write("\t\t\tfile __bad_termination__ is detected in this folder\n")
-                f.write("\t\t\tSo this is the second time to encounter such error\n")
+                f.write("\t\t\tThis is the second time to encounter such error\n")
             return False
         else:
             open(os.path.join(self.cal_loc, "__bad_termination__"), "w").close()
@@ -706,7 +780,7 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
 
 
 
-# In[15]:
+# In[14]:
 
 
 class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -739,6 +813,15 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         #this method is not active until the job is done
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_invgrp, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                initial_signal_file="__running__", 
+                                                                final_signal_file="__error__")
+            return False
         
         no_error_list = []
         for target_str in self.target_str_list:
@@ -777,7 +860,7 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         
 
 
-# In[16]:
+# In[15]:
 
 
 class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -812,6 +895,15 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
         
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_zbrent, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                initial_signal_file="__running__", 
+                                                                final_signal_file="__error__")
+            return False
+        
         no_error_list = []
         for target_str in self.target_str_list:
             no_error_list.append(find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str))
@@ -826,12 +918,16 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def write_error_log(self):
         super(Vasp_out_zbrent, self).write_error_log(target_error_str=self.target_str_list, error_type="__zbrent__")
     
-    
     def correct(self):
         """
         This correction is borrowed from custodian and modified.
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
+            super(Vasp_out_zbrent, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+                
         EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
         IBRION = find_incar_tag_from_OUTCAR(tag="IBRION", cal_loc=self.cal_loc)
         
@@ -849,7 +945,7 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         
 
 
-# In[17]:
+# In[16]:
 
 
 class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -882,6 +978,15 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         #this method is not active until the job is done
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_rhosyg, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                initial_signal_file="__running__", 
+                                                                final_signal_file="__error__")
+            return False
         
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
@@ -916,7 +1021,7 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return False                        
 
 
-# In[18]:
+# In[17]:
 
 
 class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -947,6 +1052,15 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
         
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_zpotrf, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                initial_signal_file="__running__", 
+                                                                final_signal_file="__error__")
+            return False
+        
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
             return False
@@ -957,12 +1071,20 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def write_error_log(self):
         super(Vasp_out_zpotrf, self).write_error_log(target_error_str=self.target_str, error_type="__zpotrf__")
     
-    @file_existence_decorator(filename="OSZICAR", true=False)
     def correct(self):
         """
         This correction is borrowed from custodian and modified.
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
+            super(Vasp_out_zpotrf, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+        
+        if not os.path.isfile(os.path.join(self.cal_loc, "OSZICAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OSZICAR_for_corrections__"), "w").close()
+            super(Vasp_out_zpotrf, self).write_file_absence_log(filename_list = ["OSZICAR"])
+            return False
         
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         ISYM = int(incar_dict.get("ISYM", 2))
@@ -995,7 +1117,7 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                             
 
 
-# In[19]:
+# In[18]:
 
 
 class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1029,6 +1151,15 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             return True
         
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_edddav, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                initial_signal_file="__running__", 
+                                                                final_signal_file="__error__")
+            return False
+        
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
             return False
@@ -1039,11 +1170,17 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def write_error_log(self):
         super(Vasp_out_edddav, self).write_error_log(target_error_str=self.target_str, error_type="__edddav__")
     
+    
     def correct(self):
         """
         This correction is borrowed from custodian and modified.
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
+            super(Vasp_out_edddav, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+        
         ICHARG = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="ICHARG")
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         ALGO = incar_dict.get("ALGO", "Normal").lower()
@@ -1060,7 +1197,7 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[20]:
+# In[19]:
 
 
 class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1083,10 +1220,11 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         #super(Electronic_divergence, self).__init__(cal_loc)
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
      
-    #Because method check is called on the fly, this decorator avoids the case where OUTCAR 
-    #has not been generated while calling this method
-    @file_existence_decorator("OUTCAR")
+    
     def check(self):
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")) or not os.path.isfile(os.path.join(self.cal_loc, "OSZICAR")):
+            return True
+        
         NELM = find_incar_tag_from_OUTCAR(tag="NELM", cal_loc=self.cal_loc)
         EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
         #print(NELM, EDIFF)
@@ -1106,7 +1244,6 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         error_str = "Electronic divergence happens"
         super(Electronic_divergence, self).write_error_log(target_error_str=error_str, error_type="__electronic_divergence__")
     
-    @file_existence_decorator("OUTCAR", False)
     def correct(self):
         """
         Orders of corrections:
@@ -1119,6 +1256,11 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         This correction is borrowed from custodian and modified.
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
+            super(Electronic_divergence, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+        
         NELM = find_incar_tag_from_OUTCAR(tag="NELM", cal_loc=self.cal_loc)
         EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
         IALGO = find_incar_tag_from_OUTCAR(tag="IALGO", cal_loc=self.cal_loc) # IALGO=38 <--> ALGO=Normal
@@ -1143,11 +1285,6 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal", "NELM": NELM_, "EDIFF": EDIFF_}, 
                               rename_old_incar=False)
             super(Electronic_divergence, self).write_correction_log(new_incar_tags={"ALGO": "Normal", "NELM": NELM_, "EDIFF": EDIFF_})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: reset INCAR tags\n".format(get_time_str()))
-            #    f.write("\t\t\tALGO = Normal\n\t\t\tNELM = {}\n".format(NELM))
-            #    f.write("\t\t\tEDIFF = from {} to {}\n".format(EDIFF, EDIFF_))
-            #    f.write("\t\t\tNELM = from {} to {}\n".format(NELM, NELM_))
             return True
         
         #For the calculations involved in the dipole correction, set the dipol center.
@@ -1185,7 +1322,7 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
 
 
-# In[21]:
+# In[20]:
 
 
 class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1207,12 +1344,21 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
         
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
-        
+    
     def check(self):
         
         #This if statement deactivates the check method until the calculation is done.
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).stdout_file == [None, None]:
             return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Ionic_divergence, self).write_file_absence_log(filename_list = ["OUTCAR"], 
+                                                                 initial_signal_file="__running__", 
+                                                                 final_signal_file="__error__")
+            return False
         
         NSW = find_incar_tag_from_OUTCAR(tag="NSW", cal_loc=self.cal_loc)
         IBRION = find_incar_tag_from_OUTCAR(tag="IBRION", cal_loc=self.cal_loc)
@@ -1225,10 +1371,6 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if find_target_str(cal_loc=self.cal_loc, target_file="OUTCAR", target_str=target_str):
             return True
          
-        #v = Vasprun(os.path.join(self.cal_loc, "vasprun.xml"))
-        #max_force = max([np.linalg.norm(a) for a in v.ionic_steps[-1]["forces"]])
-        #if max_force
-        
         self.write_error_log()
         return False
     
@@ -1237,9 +1379,16 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         error_str = "Ionic divergence happens"
         super(Ionic_divergence, self).write_error_log(target_error_str=error_str, error_type="__ionic_divergence__")
     
-    @file_existence_decorator("OSZICAR", False)
-    @file_existence_decorator("OUTCAR", False)
     def correct(self):
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
+            super(Ionic_divergence, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+        
+        if not os.path.isfile(os.path.join(self.cal_loc, "OSZICAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OSZICAR_for_corrections__"), "w").close()
+            super(Ionic_divergence, self).write_file_absence_log(filename_list = ["OSZICAR"])
+            return False
         
         EDIFF = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="EDIFF")
         EDIFFG = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="EDIFFG")
@@ -1259,7 +1408,7 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[22]:
+# In[21]:
 
 
 class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1283,20 +1432,28 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         #super(Positive_energy, self).__init__(cal_loc)
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
     
-    #Because method check is called on the fly, this decorator avoids the case where OUTCAR 
-    #has not been generated while calling this method
-    @file_existence_decorator("OSZICAR")
     def check(self):
         
         #This if statement deactivates the check method until the calculation is done.
         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).stdout_file == [None, None]:
             return True
         
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, "OSZICAR")):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Positive_energy, self).write_file_absence_log(filename_list = ["OSZICAR"], 
+                                                                initial_signal_file="__running__", 
+                                                                final_signal_file="__error__")
+            return False
+        
         oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
-        for ionic_step in oszicar.ionic_steps:
-            if ionic_step["E0"] > 0:
+        try:
+            if oszicar.final_energy > 0:
                 self.write_error_log()
                 return False
+        except:
+            pass
         return True
     
             
@@ -1304,12 +1461,16 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         error_str = "Positive energy has been found"
         super(Positive_energy, self).write_error_log(target_error_str=error_str, error_type="__positive_energy__")
     
-    @file_existence_decorator("OUTCAR", False)
     def correct(self):
         """
         This correction is borrowed from custodian and modified.
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
+            super(Positive_energy, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+        
         IALGO = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="IALGO")
         
         if IALGO != 38:
@@ -1323,7 +1484,7 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False
 
 
-# In[23]:
+# In[22]:
 
 
 class Null_error_checker(object):

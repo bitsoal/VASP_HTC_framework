@@ -11,7 +11,7 @@ import os, shutil
 from pymatgen.io.vasp.sets import MPRelaxSet, MPNonSCFSet, MPStaticSet
 from pymatgen import Structure
 
-from Utilities import get_time_str, copy_and_move_files, find_next_name
+from Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename
 
 
 # In[2]:
@@ -270,7 +270,8 @@ def prepare_input_files(cif_filename, mater_cal_folder, current_firework_ind, wo
                     shutil.copyfile(src=file, dst=os.path.join(firework_folder, filename))
                     f.write("\t\t{}\n".format(file))
         
-        os.rename(os.path.join(firework_folder, "__vis__"), os.path.join(firework_folder, "__ready__"))
+        decorated_os_rename(loc=firework_folder, old_filename="__vis__", new_filename="__ready__")
+        #os.rename(os.path.join(firework_folder, "__vis__"), os.path.join(firework_folder, "__ready__"))
         with open(os.path.join(mater_cal_folder, "log.txt"), "a") as f:
             f.write("{} INFO: All VASP input files are ready at {}\n".format(get_time_str(), firework["firework_folder_name"]))
             f.write("\t\t\t__vis__ --> __ready__\n")
@@ -297,7 +298,8 @@ def post_process_after_cal(mater_cal_folder, firework_ind, workflow):
         for file in remove_files:
             if os.path.isfile(os.path.join(firework_folder, file)):
                 os.remove(os.path.join(firework_folder, file))
-        os.rename(os.path.join(firework_folder, "__remove__"), os.path.join(firework_folder, "__removed__"))
+        decorated_os_rename(loc=firework_folder, old_filename="__remove__", new_filename="__removed__")
+        #os.rename(os.path.join(firework_folder, "__remove__"), os.path.join(firework_folder, "__removed__"))
     
 
 
