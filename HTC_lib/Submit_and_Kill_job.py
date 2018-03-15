@@ -245,7 +245,7 @@ class Job_management():
             else:
                 assert 1 == 2, "Error: Cannot find job submission script"
         
-        signal_file = "__ready__" if os.path.isfile("__ready__") else "__prior_ready__"
+        signal_file = "__ready__" if os.path.isfile(os.path.join(self.cal_loc, "__ready__")) else "__prior_ready__"
         exist_status_list, error_list = self._decorated_os_system(cmd=self.firework["job_submission_command"])
         ind_dict = {0: "1st", 1: "2nd", 2: "3rd"}
         ind_dict.update({i: '{}th'.format(i+1) for i in range(3, 10)})
@@ -253,7 +253,7 @@ class Job_management():
             f.write("{} Submit: move to {}\n".format(get_time_str(), self.firework_name))
             f.write("\t\ttry to submit job via cmd {}\n".format(self.firework["job_submission_command"]))
             for ind, exist_status in enumerate(exist_status_list):
-                f.write("\t\t\t{} trial:\n".format(ind_dict[ind]))
+                f.write("\t\t\t{} try:\n".format(ind_dict[ind]))
                 f.write("\t\t\t\t\texist-status: {}\n".format(exist_status))
                 f.write("\t\t\t\t\terror: {}\n".format(error_list[ind]))
             if exist_status_list[-1] == 0:
