@@ -159,7 +159,7 @@ Tag list:
 	This tag is only valid at kpoints_type=MPNonSCFSet_line
 	Default: 40 <-- the default value for atomate's firework NonSCFFW is 20
 
-- froce_gamma, optional.
+- force_gamma, optional.
 	This tag can be set only in the first firework and this setting will be applied to the whole workflow.
 	Yes: force the kpoints to be gamma-cented.
 	No: no such constraint.
