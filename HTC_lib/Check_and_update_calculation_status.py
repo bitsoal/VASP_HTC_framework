@@ -58,8 +58,10 @@ def check_calculations_status(cal_folder):
     for sub_mater_folder in sub_mater_folder_list:
         if not os.path.isdir(sub_mater_folder):
             continue
-            
-        if os.path.isfile(os.path.join(sub_mater_folder, "__vis__")):
+        
+        if os.path.isfile(os.path.join(sub_mater_folder, "__manual__")):
+            manual_folder_list.append(sub_mater_folder)
+        elif os.path.isfile(os.path.join(sub_mater_folder, "__vis__")):
             vis_folder_list.append(sub_mater_folder)
         elif os.path.isfile(os.path.join(sub_mater_folder, "__ready__")):
             ready_folder_list.append(sub_mater_folder)
@@ -73,8 +75,6 @@ def check_calculations_status(cal_folder):
             done_folder_list.append(sub_mater_folder)
         elif os.path.isfile(os.path.join(sub_mater_folder, "__killed__")):
             killed_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__manual__")):
-            manual_folder_list.append(sub_mater_folder)
         else:
             other_folder_list.append(sub_mater_folder)
     return {
