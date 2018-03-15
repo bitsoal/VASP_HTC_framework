@@ -237,9 +237,9 @@ class Job_management():
         
         
         job_submission_script = os.path.split(self.firework["job_submission_script"])[1]
-        if not os.path.isfile(job_submission_script):
+        if not os.path.isfile(os.path.join(self.cal_loc, job_submission_script)):
             if os.path.isfile(self.firework["job_submission_script"]):
-                shutil.copyfile(self.firework["job_submission_script"], job_submission_script)
+                shutil.copyfile(self.firework["job_submission_script"], os.path.join(self.cal_loc, job_submission_script))
                 with open(self.log_txt, "a") as f:
                     f.write("{} INFO: copy {} from {}\n".format(get_time_str(), job_submission_script, self.firework["job_submission_script"]))
             else:
