@@ -17,11 +17,6 @@ from Error_checker import Write_and_read_error_tag
 from Error_checker import Vasp_Error_Saver
 from Error_checker import Queue_std_files
 from Error_checker import Vasp_Error_checker
-#from Error_checker import Check_OUTCAR_status
-#from Error_checker import Check_electronic_divergence
-#from Error_checker import Check_ionic_divergence
-#from Error_checker import Check_positive_energy
-#from Error_checker import Check_vasp_out_pricel
 
 
 # In[2]:
@@ -101,12 +96,10 @@ def update_running_jobs_status(running_jobs_list, workflow):
     #Check_on_the_fly = ["__electronic_divergence__", "__positive_energy__"]
     
     job_status_list = Job_management.check_jobs_in_queue_system(workflow=workflow)
+    job_status_str = ""
     if job_status_list:
-        job_status_str = job_status_list[0]
         for i in range(1, len(job_status_list)):
             job_status_str += job_status_list[i]
-    else:
-        return None
     
     for job_path in running_jobs_list:
         
@@ -129,6 +122,9 @@ def update_running_jobs_status(running_jobs_list, workflow):
             Vasp_Error_checker(error_type=["on_the_fly"], cal_loc=job_path, workflow=workflow)
             
         if os.path.isfile(os.path.join(job_path, "__running__")):
+            if Queue_std_files(cal_loc=job_path, workflow=workflow).find_std_files() != [None, None]:
+                continue
+                
             queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
             if queue_id not in job_status_str:
                 log_txt_loc, firework_name = os.path.split(job_path)
