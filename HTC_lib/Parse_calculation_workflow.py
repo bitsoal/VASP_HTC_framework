@@ -96,12 +96,12 @@ def parse_calculation_workflow(filename="Calculation_setup"):
                     firework["2d_system"] = False
                     
                 if "sort_structure" in firework.keys():
-                    if "y" in firework["sort_structure"].lower():
-                        firework["sort_structure"] = True
-                    else:
+                    if "n" in firework["sort_structure"].lower():
                         firework["sort_structure"] = False
+                    else:
+                        firework["sort_structure"] = True
                 else:
-                    firework["sort_structure"] = False
+                    firework["sort_structure"] = True
                    
                 
             firework["copy_from_prev_cal"] = firework.get("copy_from_prev_cal", [])
@@ -124,25 +124,20 @@ def parse_calculation_workflow(filename="Calculation_setup"):
             firework["extra_copy"] = firework.get("extra_copy", [])
             firework["final_extra_copy"] = firework.get("final_extra_copy", [])
             
-            if "KPOINTS" not in firework["copy_from_prev_cal"]+firework["move_from_prev_cal"]+firework["extra_copy"]:
-                if firework["step_no"] == 1:
-                    firework["kpoints_type"] = None
-                elif "kpoints_type" not in firework.keys():
-                    print("You don't move or copy KPOINTS from somewhere for step {}".format(firework["step_no"]))
-                    print("So you must specify the kpoints type by tag kpoints_type for this step.")
-                    print("kpoints_type option: MPRelaxSet, MPStaticSet, MPNonSCFSet_line, MPNonSCFSet_uniform")
-                    print("\t\tFor MPRelaxSet, MPStaticSet, float denser_kpoints (default int 1) can be set to make kpoints denser")
-                    print("\t\tFor MPNonSCFSet_line, kpoints_line_density can be set. Default: 40")
-                    print("\t\tFor MPNonSCFSet_uniform, reciprocal_density can be set. Default: 1000")
-                    raise Exception("See above for the error information")
-                elif firework["kpoints_type"] not in ["MPRelaxSet", "MPStaticSet", "MPNonSCFSet_line", "MPNonSCFSet_uniform"]:
-                    raise Exception("kpoints_type must be one of MPRelaxSet, MPStaticSet, MPNonSCFSet_line, MPNonSCFSet_uniform @ step {}".format(firework["step_no"]))
+            
+            if "kpoints_type" not in firework.keys():
+                print("\nYou don't set tag kpoints_type for step {}".format(firework["step_no"]))
+                print("kpoints_type option: MPRelaxSet, MPStaticSet, MPNonSCFSet_line, MPNonSCFSet_uniform")
+                print("\t\tFor MPRelaxSet, MPStaticSet, float denser_kpoints (default int 1) can be set to make kpoints denser")
+                print("\t\tFor MPNonSCFSet_line, kpoints_line_density can be set. Default: 40")
+                print("\t\tFor MPNonSCFSet_uniform, reciprocal_density can be set. Default: 1000\n")
+                raise Exception("See above for the error information")
+            elif firework["kpoints_type"] not in ["MPRelaxSet", "MPStaticSet", "MPNonSCFSet_line", "MPNonSCFSet_uniform"]:
+                raise Exception("kpoints_type must be one of MPRelaxSet, MPStaticSet, MPNonSCFSet_line, MPNonSCFSet_uniform @ step {}".format(firework["step_no"]))
                 
-                firework["reciprocal_density"] = int(firework.get("reciprocal_density", 1000))
-                firework["kpoints_line_density"] = int(firework.get("kpoints_line_density", 40))
-                
-            else:
-                firework["kpoints_type"] = None
+            firework["reciprocal_density"] = int(firework.get("reciprocal_density", 1000))
+            firework["kpoints_line_density"] = int(firework.get("kpoints_line_density", 40))
+            
 
             
             firework["denser_kpoints"] = firework.get("denser_kpoints", 1)

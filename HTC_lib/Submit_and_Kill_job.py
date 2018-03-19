@@ -9,7 +9,7 @@
 import os, shutil, subprocess
 import re
 
-from Utilities import get_time_str
+from Utilities import get_time_str, decorated_os_rename
 from Error_checker import Queue_std_files
 
 
@@ -99,31 +99,28 @@ class Job_management():
                 return firework
     
     @classmethod
-    def check_jobs_in_queue_system(cls, workflow):
+    def check_jobs_in_queue_system(cls, workflow, max_times=10):
         job_query_cmd = workflow[0]["job_query_command"].split("@")
         
-        result = subprocess.check_output(job_query_cmd)
-        lines = [line.strip() for line in result.split("\n") if line.strip()]
-        if len(lines) == 0:
-            return []
+        result_list, error_list = [], []
+        for i in range(max_times):
+            try:
+                result = subprocess.check_output(job_query_cmd)
+            except subprocess.CalledProcessError as err:
+                result_list.append(None)
+                error_list.append(err.message)
+            else:
+                result_list.append(result)
+                error_list.append(None)
+                break
+                
+        if result_list[-1] == None:
+            raise Exception("Fail to check job statuses via '{}' for {} tries.             Make sure this command is correct!".format(job_query_cmd, max_times))
         else:
-            return lines[1:]
-    
-    def find_queue_id(self):
-        #if not os.path.isfile(os.path.join(self.cal_loc, "__running__")):
-        #    with open(self.log_txt, "a") as f:
-        #        f.write("{} Error: no __running__ under {}".format(get_time_str(), self.firework_name))
-        #       f.write(" --> the calculation has not started yet and cannot find queue id")
-        #        f.write("\t\t\t create __error__\n")
-        #        open(os.path.join(self.cal_loc, "__error__"), "w").close()
-        #    return None
-        assert os.path.isfile(self.queue_id_file), "Error: cannot find {} to parse queue id under {}".format(self.queue_id_file, self.cal_loc)
-        with open(self.queue_id_file, "r") as f:
-            for line in f:
-                m = re.findall(self.re_to_queue_id, line)
-                assert len(m)==1, "Error: fail to parse queue ID Given {}".format(self.re_to_queue_id)
-                return m[0]
-        raise Exception("Cannot find queue id in {}".format(self.cal_loc))
+            result = result_list[-1]
+        
+        lines = [line.strip() for line in result.split("\n") if line.strip()]
+        return lines
         
     def is_cal_in_queue(self):
         queue_id = self.find_queue_id()
@@ -132,36 +129,88 @@ class Job_management():
                 return True
         return False
     
+    def find_queue_id(self):
+        assert os.path.isfile(self.queue_id_file), "Error: cannot find {} to parse queue id under {}".format(self.queue_id_file, self.cal_loc)
+        with open(self.queue_id_file, "r") as f:
+            for line in f:
+                m = re.findall(self.re_to_queue_id, line)
+                assert len(m)==1, "Error: fail to parse queue ID Given {}".format(self.re_to_queue_id)
+                return m[0]
+        raise Exception("Cannot find queue id in {}".format(self.cal_loc))
+        
+
+    
     def kill(self):
         queue_id = self.find_queue_id()
         if self.is_cal_in_queue():
             if not os.path.isfile(os.path.join(self.cal_loc, "__error__")):
-                print("Folder: {}".format(self.cal_loc))
-                print("\t\t\tThe job encounters errors.")
-                print("\t\t\tTo kill this running job, __error__ must be present.")
+                print("\n{} Kill: {}".format(get_time_str(), self.cal_loc))
+                print("\t\t\tTo kill this running job, file named __error__ must be present.\n")
                 raise Exception("See error information above.")
                 
-            dir0 = os.getcwd()
-            os.chdir(self.cal_loc)
-            os.system(self.job_killing_cmd +" "+ queue_id)
-            os.rename("__error__", "__killed__")
-            os.chdir(dir0)
+            exist_status_list, error_list = self._decorated_os_system(cmd=self.job_killing_cmd +" "+ queue_id)
+            ind_dict = {0: "1st", 1: "2nd", 2: "3rd"}
+            ind_dict.update({i: '{}th'.format(i+1) for i in range(3, 10)})
             with open(self.log_txt, "a") as f:
                 f.write("{} Kill: move to {}\n".format(get_time_str(), self.firework_name))
-                f.write("\t\t\tkill the job via cmd {}\n".format(self.job_killing_cmd + " " + queue_id))
-                f.write("\t\t\t __error__ --> __killed__\n")
-                f.write("\t\t\tmove back to {}\n".format(dir0))
+                f.write("\t\ttry to kill job via cmd {}\n".format(self.job_killing_cmd + " " + queue_id))
+                for ind, exist_status in enumerate(exist_status_list):
+                    f.write("\t\t\t{} try:\n".format(ind_dict[ind]))
+                    f.write("\t\t\t\t\texist-status: {}\n".format(exist_status))
+                    f.write("\t\t\t\t\terror: {}\n".format(error_list[ind]))
+                if exist_status_list[-1] == 0:
+                    f.write("\t\t\tSuccessfully kill the job.\n")
+                    f.write("\t\t\t__error__ --> __killed__\n")
+                else:
+                    f.write("\t\t\tThe cmd execution hits the maximum times (10)\n")
+                    f.write("\t\t\t__error__ --> __manual__\n")
+                f.write("\t\t\tmove back\n")
+            if exist_status_list[-1] == 0:
+                decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__killed__")
+            else:
+                decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__manual__")
         else:
-            os.rename(os.path.join(self.cal_loc, "__error__"), os.path.join(self.cal_loc, "__killed__"))
+            decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__killed__")
+            #os.rename(os.path.join(self.cal_loc, "__error__"), os.path.join(self.cal_loc, "__killed__"))
             with open(self.log_txt, "a") as f:
                 f.write("{} Kill: the job has be terminated under {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\t\tSo no need to kill\n")
                 f.write("\t\t\t__error__ --> __killed__\n")
                 
+    def _decorated_os_system(self, cmd, max_times=10):
+        """
+        decorated os.system to tackle the cases where the cmd is not successfully executed.
+        input argument:
+            - cmd (str): required.
+            - max_times (int): the maximum times to try to execute cmd. 
+        cmd will be executed continuously until the exist status is 0 (successful).
+        output:
+            a tuple of length 2:
+                - first entry: a list of exist statuses. If error happens, it is None
+                - second entry: a list of error information. If no error, it is None
+        """
+        dir0 = os.getcwd()
+        os.chdir(self.cal_loc)
+        exist_status_list, error_list = [], []
+        for i in range(max_times):
+            try:
+                status = os.system(cmd)
+            except Exception as err:
+                error_list.append(err.message)
+                exist_status_list.append(None)
+            else:
+                error_list.append(None)
+                exist_status_list.append(status)
+                if status == 0:
+                    break
+        os.chdir(dir0)
+        return exist_status_list, error_list
+                
+                
     def submit(self):
         if os.path.isfile(os.path.join(self.cal_loc, self.workflow[0]["where_to_parse_queue_id"])) and self.is_cal_in_queue():
             with open(self.log_txt, "a") as f:
-                f.write("{} INFO: at {}\n".format(get_time_str(), self.firework_name))
+                f.write("{} Submit: at {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\t\tThe job has been found in the queue system. No need to submit again.\n")
             return True
         
@@ -184,42 +233,58 @@ class Job_management():
         assert os.path.isfile("POTCAR"), "Error: no POTCAR under {}".format(job_folder)
         assert os.path.isfile("KPOINTS"), "Error: no KPOINTS under {}".format(job_folder)
         assert os.path.isfile("POSCAR"), "Error: no POSCAR under {}".format(job_folder)
+        os.chdir(dir0)
+        
         
         job_submission_script = os.path.split(self.firework["job_submission_script"])[1]
-        if not os.path.isfile(job_submission_script):
+        if not os.path.isfile(os.path.join(self.cal_loc, job_submission_script)):
             if os.path.isfile(self.firework["job_submission_script"]):
-                shutil.copyfile(self.firework["job_submission_script"], job_submission_script)
+                shutil.copyfile(self.firework["job_submission_script"], os.path.join(self.cal_loc, job_submission_script))
                 with open(self.log_txt, "a") as f:
                     f.write("{} INFO: copy {} from {}\n".format(get_time_str(), job_submission_script, self.firework["job_submission_script"]))
             else:
                 assert 1 == 2, "Error: Cannot find job submission script"
-                
-        os.system(self.firework["job_submission_command"])
-        signal_file = "__ready__" if os.path.isfile("__ready__") else "__prior_ready__"
-        os.chdir(dir0)
+        
+        signal_file = "__ready__" if os.path.isfile(os.path.join(self.cal_loc, "__ready__")) else "__prior_ready__"
+        exist_status_list, error_list = self._decorated_os_system(cmd=self.firework["job_submission_command"])
+        ind_dict = {0: "1st", 1: "2nd", 2: "3rd"}
+        ind_dict.update({i: '{}th'.format(i+1) for i in range(3, 10)})
         with open(self.log_txt, "a") as f:
-            f.write("{} INFO: submit job via {}.\n".format(get_time_str(), self.firework["job_submission_command"]))
-            f.write("\t\t\t move back to {}\n".format(dir0))
+            f.write("{} Submit: move to {}\n".format(get_time_str(), self.firework_name))
+            f.write("\t\ttry to submit job via cmd {}\n".format(self.firework["job_submission_command"]))
+            for ind, exist_status in enumerate(exist_status_list):
+                f.write("\t\t\t{} try:\n".format(ind_dict[ind]))
+                f.write("\t\t\t\t\texist-status: {}\n".format(exist_status))
+                f.write("\t\t\t\t\terror: {}\n".format(error_list[ind]))
+            if exist_status_list[-1] == 0:
+                f.write("\t\t\tSuccessfully submit the job.\n")
+                f.write("\t\t\t{} --> __running__\n".format(signal_file))
+            else:
+                f.write("\t\t\tThe cmd execution hits the maximum times (10)\n")
+                f.write("\t\t\t{} --> __manual__\n".format(signal_file))
+            f.write("\t\t\tmove back\n")
+        if exist_status_list[-1] == 0:
+            decorated_os_rename(loc=self.cal_loc, old_filename=signal_file, new_filename="__running__")
+        else:
+            decorated_os_rename(loc=self.cal_loc, old_filename=signal_file, new_filename="__manual__")
+            return False
             
         try:
             self.find_queue_id()
         except:
             with open(self.log_txt, "a") as f:
                 f.write("{} Error: {}\n".format(get_time_str(), self.cal_loc))
-                if not os.path.isfile(os.path.join(self.cal_loc, "__fail_job_submission__")):
-                    f.write("\t\t\tfail to submit the job for the first time\n")
-                    f.write("\t\t\tcreate file named __fail_job_submission__\n")
-                    open(os.path.join(self.cal_loc, "__fail_job_submission__"), "w").close()
+                if not os.path.isfile(os.path.join(self.cal_loc, "__fail_to_find_job_id__")):
+                    f.write("\t\t\tCannot find job id in {} after the job submission for the first time\n".format(self.workflow[0]["vasp.out"]))
+                    f.write("\t\t\tcreate file named __fail_to_find_job_id__\n")
+                    open(os.path.join(self.cal_loc, "__fail_to_find_job_id__"), "w").close()
                     return False
                 else:
-                    f.write("\t\t\tThis is the second time to fail the job submission\n")
-                    os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__error__"))
-                    f.write("\t\t\t{} --> __error__\n".format(signal_file))
+                    f.write("\t\t\tThis is the second time to fail to dinf the job id in {} after job submissions\n".format(self.workflow[0]["vasp.out"]))
+                    decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+                    #os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__error__"))
+                    f.write("\t\t\t__running__ --> __error__\n".format(signal_file))
                     return False
-                
-        os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__running__"))
-        with open(self.log_txt, "a") as f:
-            f.write("\t\t\t under {}\n".format(self.cal_loc))
-            f.write("\t\t\t{} --> __running__\n".format(signal_file))
+        
                     
 

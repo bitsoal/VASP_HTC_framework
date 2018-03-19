@@ -3,13 +3,13 @@
 
 # # created on Feb 18 2018
 
-# In[5]:
+# In[1]:
 
 
 import os
 
 
-from Utilities import get_time_str
+from Utilities import get_time_str, decorated_os_rename
 
 from Submit_and_Kill_job import Job_management
 
@@ -17,11 +17,6 @@ from Error_checker import Write_and_read_error_tag
 from Error_checker import Vasp_Error_Saver
 from Error_checker import Queue_std_files
 from Error_checker import Vasp_Error_checker
-#from Error_checker import Check_OUTCAR_status
-#from Error_checker import Check_electronic_divergence
-#from Error_checker import Check_ionic_divergence
-#from Error_checker import Check_positive_energy
-#from Error_checker import Check_vasp_out_pricel
 
 
 # In[2]:
@@ -58,8 +53,10 @@ def check_calculations_status(cal_folder):
     for sub_mater_folder in sub_mater_folder_list:
         if not os.path.isdir(sub_mater_folder):
             continue
-            
-        if os.path.isfile(os.path.join(sub_mater_folder, "__vis__")):
+        
+        if os.path.isfile(os.path.join(sub_mater_folder, "__manual__")):
+            manual_folder_list.append(sub_mater_folder)
+        elif os.path.isfile(os.path.join(sub_mater_folder, "__vis__")):
             vis_folder_list.append(sub_mater_folder)
         elif os.path.isfile(os.path.join(sub_mater_folder, "__ready__")):
             ready_folder_list.append(sub_mater_folder)
@@ -73,8 +70,6 @@ def check_calculations_status(cal_folder):
             done_folder_list.append(sub_mater_folder)
         elif os.path.isfile(os.path.join(sub_mater_folder, "__killed__")):
             killed_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__manual__")):
-            manual_folder_list.append(sub_mater_folder)
         else:
             other_folder_list.append(sub_mater_folder)
     return {
@@ -86,7 +81,7 @@ def check_calculations_status(cal_folder):
     }
 
 
-# In[6]:
+# In[3]:
 
 
 def update_running_jobs_status(running_jobs_list, workflow):
@@ -101,27 +96,15 @@ def update_running_jobs_status(running_jobs_list, workflow):
     #Check_on_the_fly = ["__electronic_divergence__", "__positive_energy__"]
     
     job_status_list = Job_management.check_jobs_in_queue_system(workflow=workflow)
+    job_status_str = ""
     if job_status_list:
-        job_status_str = job_status_list[0]
         for i in range(1, len(job_status_list)):
             job_status_str += job_status_list[i]
-    else:
-        return None
     
     for job_path in running_jobs_list:
         
         find_error = False
         if Queue_std_files(cal_loc=job_path, workflow=workflow).find_std_files() != [None, None]:
-            #if not Check_positive_energy(cal_loc=job_path, workflow=workflow).check():
-            #    continue
-            #elif not Check_electronic_divergence(cal_loc=job_path, workflow=workflow).check():
-            #    continue
-            #elif not Check_vasp_out_pricel(cal_loc=job_path, workflow=workflow).check():
-            #    continue
-            #elif not Check_ionic_divergence(cal_loc=job_path, workflow=workflow).check():
-            #    continue
-            #elif not Check_OUTCAR_status(cal_loc=job_path, workflow=workflow).check():
-            #    continue
             #for func Vasp_Error_checker, error_type=["after_cal"] will automatically check errors after cal.
             #If found, __running__ --> __error__ and the error info will be written into __error__ and return False
             #If not found, return True
@@ -130,24 +113,29 @@ def update_running_jobs_status(running_jobs_list, workflow):
                 with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
                     f.write("{} INFO: Calculation successfully finishes at {}\n".format(get_time_str(), firework_name))
                     f.write("\t\t\t__running__ --> __done__\n")
-                    os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__done__"))
+                    decorated_os_rename(loc=job_path, old_filename="__running__", new_filename="__done__")
+                    #os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__done__"))
         else:
             #for func Vasp_Error_checker, error_type=["on_the_fly"] will automatically check errors on the fly.
             #If found, __running__ --> __error__ and the error info will be written into __error__ and return False
             #If not found, return True
             Vasp_Error_checker(error_type=["on_the_fly"], cal_loc=job_path, workflow=workflow)
             
-        #if os.path.isfile(os.path.join(job_path, "__running__")):
-        #    queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
-        #    if queue_id not in job_status_str:
-        #        log_txt_loc, firework_name = os.path.split(job_path)
-        #        with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
-        #            f.write("{} Queue Error: {}\n".format(get_time_str(), job_path))
-        #            f.write("\t\t\tThe running job is not found in queue.\n")
-        #            f.write("\t\t\t__running__ --> __manual__\n")
-        #            f.write("\t\t\tCreate file __running_job_not_in_queue__.\n")
-        #            open(os.path.join(job_path, "__running_job_not_in_queue__"), "w").close()
-        #            os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))                
+        if os.path.isfile(os.path.join(job_path, "__running__")):
+            if Queue_std_files(cal_loc=job_path, workflow=workflow).find_std_files() != [None, None]:
+                continue
+                
+            queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
+            if queue_id not in job_status_str:
+                log_txt_loc, firework_name = os.path.split(job_path)
+                with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
+                    f.write("{} Queue Error: {}\n".format(get_time_str(), job_path))
+                    f.write("\t\t\tThe running job is not found in queue.\n")
+                    f.write("\t\t\t__running__ --> __manual__\n")
+                    f.write("\t\t\tCreate file __running_job_not_in_queue__.\n")
+                    open(os.path.join(job_path, "__running_job_not_in_queue__"), "w").close()
+                    decorated_os_rename(loc=job_path, old_filename="__running__", new_filename="__manual__")
+                    #os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))                
 
 
 # In[4]:
@@ -175,7 +163,8 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
         error_checker = Vasp_Error_checker(cal_loc=killed_job, error_type=error_type, workflow=workflow)
         log_txt_loc, firework_name = os.path.split(killed_job)
         if Vasp_Error_Saver(cal_loc=killed_job, workflow=workflow).find_error_times() >= max_error_times:
-            os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
+            decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
+            #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
             with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
                 f.write("{} Killed: {}\n".format(get_time_str(), killed_job))
                 f.write("\t\t\tThe error times hit the max_error_times ({})\n".format(max_error_times))
@@ -197,7 +186,8 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
                 f.write("\t\t\t__killed__ --> __ready__\n")
             
         else:
-            os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
+            decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
+            #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
             with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
                 f.write("{} Killed: Fail to correct the error {} under {}\n".format(get_time_str(), error_type, firework_name))
                 f.write("\t\t\t__killed__ --> __manual__\n")
