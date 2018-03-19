@@ -136,7 +136,7 @@ class Job_management():
                 m = re.findall(self.re_to_queue_id, line)
                 assert len(m)==1, "Error: fail to parse queue ID Given {}".format(self.re_to_queue_id)
                 return m[0]
-        raise Exception("Cannot find queue id in {}".format(self.cal_loc))
+        raise Exception("Cannot find queue id in {} under {}".format(self.queue_id_file, self.cal_loc))
         
 
     
@@ -208,11 +208,20 @@ class Job_management():
                 
                 
     def submit(self):
-        if os.path.isfile(os.path.join(self.cal_loc, self.workflow[0]["where_to_parse_queue_id"])) and self.is_cal_in_queue():
-            with open(self.log_txt, "a") as f:
-                f.write("{} Submit: at {}\n".format(get_time_str(), self.firework_name))
-                f.write("\t\t\tThe job has been found in the queue system. No need to submit again.\n")
-            return True
+        if os.path.isfile(os.path.join(self.cal_loc, self.workflow[0]["where_to_parse_queue_id"])):
+            try:
+                if self.is_cal_in_queue():
+                    with open(self.log_txt, "a") as f:
+                        f.write("{} Submit: at {}\n".format(get_time_str(), self.firework_name))
+                        f.write("\t\t\tThe job has been found in the queue system. No need to submit again.\n")
+                    return True
+            except Exception as err:
+                with open(self.log_txt, "a") as f:
+                    f.write("{} Submit: at {}\n".format(get_time_str(), self.firework_name))
+                    f.write("\t\t\tAn error raises: {}\n".format(err.message))
+                    f.write("\t\t\tcreate __manual__\n")
+                open(os.path.join(self.cal_loc, "__manual__"), "w").close()
+                return False
         
         error_checking_files = ["OUTCAR", "OSZICAR", self.workflow[0]["vasp.out"]]
         with open(self.log_txt, "a") as f:
