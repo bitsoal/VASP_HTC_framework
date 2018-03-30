@@ -294,7 +294,10 @@ e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is
 
 ##How to control job status
 ###We use signal files to control job submission, job termination, error detection and error correction
-![](figs/signal_file_response.png)
+
+![GitHub Logo](/figs/signal_file_response.png)
+
+
 When the workflow is running, some signal file will be present in every firework folder. The program will respond to these signal files as listed below:
   
 - `__vis__`: The program will prepare the vasp input files according to the workflow. Once it is done, `__vis__` --> `__ready__`
