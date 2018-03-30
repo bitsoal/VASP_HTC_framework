@@ -132,11 +132,12 @@ def parse_calculation_workflow(filename="Calculation_setup"):
                 print("\t\tFor MPNonSCFSet_line, kpoints_line_density can be set. Default: 40")
                 print("\t\tFor MPNonSCFSet_uniform, reciprocal_density can be set. Default: 1000\n")
                 raise Exception("See above for the error information")
-            elif firework["kpoints_type"] not in ["MPRelaxSet", "MPStaticSet", "MPNonSCFSet_line", "MPNonSCFSet_uniform"]:
-                raise Exception("kpoints_type must be one of MPRelaxSet, MPStaticSet, MPNonSCFSet_line, MPNonSCFSet_uniform @ step {}".format(firework["step_no"]))
+            elif firework["kpoints_type"] not in ["MPRelaxSet", "MPStaticSet", "MPNonSCFSet_line", "MPNonSCFSet_uniform", "Line-mode"]:
+                raise Exception("kpoints_type must be one of MPRelaxSet, MPStaticSet, MPNonSCFSet_line, MPNonSCFSet_uniform or Line-mode @ step {}".format(firework["step_no"]))
                 
             firework["reciprocal_density"] = int(firework.get("reciprocal_density", 1000))
             firework["kpoints_line_density"] = int(firework.get("kpoints_line_density", 40))
+            firework["intersections"] = int(firework.get("intersections", 20))
             
 
             
