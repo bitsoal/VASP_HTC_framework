@@ -223,7 +223,12 @@ def prepare_input_files(cif_filename, mater_cal_folder, current_firework_ind, wo
                     f.write("\n")
                         
         if firework["kpoints_type"] and not os.path.isfile(os.path.join(firework_folder, "KPOINTS")):
-            if firework["kpoints_type"] == "MPNonSCFSet_uniform":
+            if firework["kpoints_type"] == "Line-mode":
+                Write_line_mode_KPOINTS(cal_loc=firework_folder, structure_filename=os.path.join(firework_folder, "POSCAR"), 
+                                        intersections=firework["intersections"], twoD_system=workflow[0]["2d_system"])
+                with open(os.path.join(mater_cal_folder, "log.txt"), "a") as f:
+                    f.write("{} INFO: write KPOINTS in the line mode based on                     pymatgen.symmetry.bandstructure.HighSymmKpath".format(get_time_str()))
+            elif firework["kpoints_type"] == "MPNonSCFSet_uniform":
                 Write_NONSCF_KPOINTS(structure_filename=os.path.join(firework_folder, "POSCAR"), 
                                      mode="uniform", reciprocal_density=firework["reciprocal_density"])
                 write_kpoints = True
@@ -237,6 +242,7 @@ def prepare_input_files(cif_filename, mater_cal_folder, current_firework_ind, wo
             elif firework["kpoints_type"] == "MPStaticSet":
                 Write_MPStatic_KPOINTS(structure_filename=os.path.join(firework_folder, "POSCAR"), force_gamma=workflow[0]["force_gamma"])
                 write_kpoints = True
+            
             
         if write_kpoints and workflow[0]["2d_system"]:
             new_name = modify_vasp_kpoints_for_2D(cal_loc=firework_folder, kpoints_type=firework["kpoints_type"], 
@@ -416,6 +422,41 @@ def Write_NONSCF_KPOINTS(structure_filename="./POSCAR", mode='line', nedos=601,
     vis.kpoints.write_file(os.path.join(folder, "KPOINTS"))
 
 
+# In[1]:
+
+
+def Write_line_mode_KPOINTS(cal_loc, structure_filename, intersections, twoD_system=False):
+    """
+    Write a kpath along the high symmetry kpoints in the line mode into KPOINTS under dir cal_loc for the band structure calculation.
+    input arguments:
+        - cal_loc (str): the calculation directory
+        - structure_filename (str): Must be in a format that can be read by pytmatgen.Structure.from_file
+        - intersections (int): For every segment, there are intersections equally spaced kpionts, including the starting and ending high symmetry k-points
+        - twoD_system (bool): If True, the kpath only includes the kpoints whose z component are zero. Default: False
+        see https://cms.mpi.univie.ac.at/vasp/vasp/Strings_k_points_bandstructure_calculations.html
+    Note that the reciprocal coordinates are adopted.
+    Note that if twoD_system is True, the vacuum layer is assumed to be along the Z direction and the lattice vector c must be normal to the surface.
+    """
+    structure = Structure.from_file(structure_filename)
+    high_sym_kpoints, high_sym_kpoint_labels = HighSymmKpath(structure=structure).get_kpoints(line_density=1, 
+                                                                                              coords_are_cartesian=False)
+    starting_kpoints, ending_kpoints = high_sym_kpoints[::2], high_sym_kpoints[1::2]
+    starting_kpoint_labels, ending_kpoint_labels = high_sym_kpoint_labels[::2], high_sym_kpoint_labels[1::2]    
+    
+    with open(os.path.join(cal_loc, "KPOINTS"), "w") as f:
+        f.write("k-points along high symmetry lines\n")
+        f.write("{}\n".format(intersections))
+        f.write("Line-mode\n")
+        f.write("rec\n")
+        for kpath_segment_ind in range(len(starting_kpoints)):
+            if twoD_system and (abs(starting_kpoints[kpath_segment_ind][-1]) + abs(ending_kpoints[kpath_segment_ind][-1]) > 1.0e-5):
+                continue
+            else:
+                f.write("    {}  {}  {}    {}\n".format(*list(starting_kpoints[kpath_segment_ind]), starting_kpoint_labels[kpath_segment_ind]))
+                f.write("    {}  {}  {}    {}\n".format(*list(ending_kpoints[kpath_segment_ind]), ending_kpoint_labels[kpath_segment_ind]))
+                f.write("\n")
+
+
 # In[11]:
 
 
@@ -431,6 +472,8 @@ def modify_vasp_kpoints_for_2D(cal_loc, kpoints_type, denser_kpoints=1, rename_o
                     - 'MPNonSCFSet_line': pymatgen.io.vasp.sets.MPNonSCFSet generates KPOINTS in the line mode for band str
                     - 'automatic': This option indicates that KPOINTS is automatically generated 
                                     based on (gamma-centered) Monkhorst-Pack Scheme <--> 'MPRelaxSet', 'MPStaticSet'
+                    - 'Line-mode': Since function Write_line_mode_KPOINTS can write KPOINTS for either 3D or 2D materials, file
+                                    KPOINTS remains unchanged.
         - denser_kpoints (float): this tag is inactive at kpoints_type='MPNonSCFSet_uniform' or 'MPNonSCFSet_line'. Default: 1
         - rename_old_kpoints (bool or str):
                     - if it is True, rename the old KPOINTS like KPOINTS_0, KPOINTS_1, KPINTS_2, ...
@@ -442,10 +485,12 @@ def modify_vasp_kpoints_for_2D(cal_loc, kpoints_type, denser_kpoints=1, rename_o
                             Default: 1.0e-5
     if old KPOINTS is saved, return the new name of the old KPOINTS.
     """
-    if kpoints_type.strip() not in ["automatic", 'MPRelaxSet', 'MPStaticSet', 'MPNonSCFSet_line', 'MPNonSCFSet_uniform']:
+    if kpoints_type.strip() not in ["automatic", 'MPRelaxSet', 'MPStaticSet', 'MPNonSCFSet_line', 'MPNonSCFSet_uniform', "Line-mode"]:
         print("Error: for func modify_vasp_kpoints_for_2D, the input argument kpoints_tag must be on the those below:")
         print("'MPRelaxSet', 'MPStaticSet', 'MPNonSCFSet_line', 'MPNonSCFSet_uniform', 'automatic'")
         raise Exception("See above for the error information")
+    if kpoints_type == "Line-mode":
+        return True
     
     with open(os.path.join(cal_loc, "KPOINTS"), "r") as f:
         kpoints = [line.strip() for line in f if line.strip()]

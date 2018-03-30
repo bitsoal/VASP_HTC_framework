@@ -42,6 +42,9 @@ def check_calculations_status(cal_folder):
     mater_folder_list = os.listdir(cal_folder)
     sub_mater_folder_list = []
     for mater_folder in mater_folder_list:
+        #in case any file appears in cal_folder.
+        if not os.path.isdir(os.path.join(cal_folder, mater_folder)):
+            continue
         sub_mater_folders = os.listdir(os.path.join(cal_folder, mater_folder))
         abs_sub_mater_folders = [os.path.join(cal_folder, mater_folder, sub_mater_folder) for sub_mater_folder in sub_mater_folders]
         sub_mater_folder_list += abs_sub_mater_folders
