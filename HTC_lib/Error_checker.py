@@ -104,7 +104,8 @@ class Write_and_read_error_tag(object):
             -file (str): the file from which the error_tag is read.
         """
         with open(os.path.join(self.cal_loc, file), "r") as f:
-            return f.read().strip()
+            error_tag = f.read().strip()
+        return error_tag
 
 
 # In[4]:
@@ -186,15 +187,14 @@ def  find_target_str(cal_loc, target_file, target_str):
         - If target_str is not found, return False
     Note that if the target_file is not existent, return False
     """
+    found_target_str = False
     if os.path.isfile(os.path.join(cal_loc, target_file)):
         with open(os.path.join(cal_loc, target_file), "r") as f:
             for line in f:
                 if target_str in line:
-                    return True
-        return False
-    else:
-        return False
-    
+                    found_target_str = True
+                    break
+    return found_target_str
 
 
 # In[6]:
@@ -931,17 +931,20 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
         IBRION = find_incar_tag_from_OUTCAR(tag="IBRION", cal_loc=self.cal_loc)
         
-        if EDIFF <= 1.0e-6:
-            with open(self.log_txt, "a") as f:
-                f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
-                f.write("\t\t\tEDIFF {} is too small\n".format(EDIFF))
-            return False
-        else:
-            super(Vasp_out_zbrent, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"EDIFF": EDIFF*0.5}, rename_old_incar=False)
-            shutil.copyfile(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
-            super(Vasp_out_zbrent, self).write_correction_log(new_incar_tags={"EDIFF": EDIFF*0.5})
-            return True
+        super(Vasp_out_zbrent, self).backup()
+        new_tags = {}
+        if EDIFF * 0.5 >= 1.0e-6:
+            new_tags["EDIFF"] = EDIFF * 0.5
+        if IBRION != 1:
+            new_tags["IBRION"] = 1
+        
+        modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
+        
+        shutil.copyfile(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
+        
+        super(Vasp_out_zbrent, self).write_correction_log(new_incar_tags=new_tags, new_filenames={"CONTCAR": "POSCAR"})
+
+        return True
                         
 
 
