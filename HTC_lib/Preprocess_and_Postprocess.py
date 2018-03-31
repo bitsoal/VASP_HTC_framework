@@ -10,6 +10,7 @@ import os, shutil
 
 from pymatgen.io.vasp.sets import MPRelaxSet, MPNonSCFSet, MPStaticSet
 from pymatgen import Structure
+from pymatgen.symmetry.bandstructure import HighSymmKpath
 
 from Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename
 
@@ -222,12 +223,12 @@ def prepare_input_files(cif_filename, mater_cal_folder, current_firework_ind, wo
                     [f.write("{}\t".format(tag_)) for tag_ in remove_incar_tags]
                     f.write("\n")
                         
-        if firework["kpoints_type"] and not os.path.isfile(os.path.join(firework_folder, "KPOINTS")):
+        if not os.path.isfile(os.path.join(firework_folder, "KPOINTS")):
             if firework["kpoints_type"] == "Line-mode":
                 Write_line_mode_KPOINTS(cal_loc=firework_folder, structure_filename=os.path.join(firework_folder, "POSCAR"), 
                                         intersections=firework["intersections"], twoD_system=workflow[0]["2d_system"])
                 with open(os.path.join(mater_cal_folder, "log.txt"), "a") as f:
-                    f.write("{} INFO: write KPOINTS in the line mode based on                     pymatgen.symmetry.bandstructure.HighSymmKpath".format(get_time_str()))
+                    f.write("{} INFO: write KPOINTS in the line mode based on pymatgen.symmetry.bandstructure.HighSymmKpath\n".format(get_time_str()))
             elif firework["kpoints_type"] == "MPNonSCFSet_uniform":
                 Write_NONSCF_KPOINTS(structure_filename=os.path.join(firework_folder, "POSCAR"), 
                                      mode="uniform", reciprocal_density=firework["reciprocal_density"])
@@ -438,23 +439,27 @@ def Write_line_mode_KPOINTS(cal_loc, structure_filename, intersections, twoD_sys
     Note that if twoD_system is True, the vacuum layer is assumed to be along the Z direction and the lattice vector c must be normal to the surface.
     """
     structure = Structure.from_file(structure_filename)
-    high_sym_kpoints, high_sym_kpoint_labels = HighSymmKpath(structure=structure).get_kpoints(line_density=1, 
-                                                                                              coords_are_cartesian=False)
-    starting_kpoints, ending_kpoints = high_sym_kpoints[::2], high_sym_kpoints[1::2]
-    starting_kpoint_labels, ending_kpoint_labels = high_sym_kpoint_labels[::2], high_sym_kpoint_labels[1::2]    
+    kpath = HighSymmKpath(structure=structure).get_kpoints(line_density=1, coords_are_cartesian=False)
+    kpoints = []
+    for k_, k_label in zip(*kpath):
+        if k_label:
+            kpoints.append(list(k_) + [k_label])
+    
+    starting_kpoints = kpoints[::2]
+    ending_kpoints = kpoints[1::2]
     
     with open(os.path.join(cal_loc, "KPOINTS"), "w") as f:
         f.write("k-points along high symmetry lines\n")
         f.write("{}\n".format(intersections))
         f.write("Line-mode\n")
         f.write("rec\n")
-        for kpath_segment_ind in range(len(starting_kpoints)):
-            if twoD_system and (abs(starting_kpoints[kpath_segment_ind][-1]) + abs(ending_kpoints[kpath_segment_ind][-1]) > 1.0e-5):
+        for start_k, end_k in zip(starting_kpoints, ending_kpoints):
+            if twoD_system and (abs(start_k[2])+abs(end_k[2])) > 1.0e-5:
                 continue
-            else:
-                f.write("    {}  {}  {}    {}\n".format(*list(starting_kpoints[kpath_segment_ind]), starting_kpoint_labels[kpath_segment_ind]))
-                f.write("    {}  {}  {}    {}\n".format(*list(ending_kpoints[kpath_segment_ind]), ending_kpoint_labels[kpath_segment_ind]))
-                f.write("\n")
+                
+            f.write("    {}  {}  {}    {}\n".format(*start_k))
+            f.write("    {}  {}  {}    {}\n".format(*end_k))
+            f.write("\n")
 
 
 # In[11]:
