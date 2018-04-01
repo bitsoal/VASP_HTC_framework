@@ -35,7 +35,7 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
         os.mkdir(cal_folder)
        
     
-    mater_cal_folder = os.path.join(cal_folder, cif_filename)
+    mater_cal_folder = os.path.join(cal_folder, cif_filename.split(".")[0])
     if not os.path.isdir(mater_cal_folder):
         os.mkdir(mater_cal_folder)
         with open(os.path.join(mater_cal_folder, "log.txt"), "w") as f:
