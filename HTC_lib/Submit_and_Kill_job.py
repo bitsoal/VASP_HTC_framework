@@ -141,7 +141,7 @@ class Job_management():
     
     def kill(self):
         queue_id = self.find_queue_id()
-        if self.is_cal_in_queue():
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             if not os.path.isfile(os.path.join(self.cal_loc, "__error__")):
                 print("\n{} Kill: {}".format(get_time_str(), self.cal_loc))
                 print("\t\t\tTo kill this running job, file named __error__ must be present.\n")
@@ -172,7 +172,7 @@ class Job_management():
             decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__killed__")
             #os.rename(os.path.join(self.cal_loc, "__error__"), os.path.join(self.cal_loc, "__killed__"))
             with open(self.log_txt, "a") as f:
-                f.write("{} Kill: the job has be terminated under {}\n".format(get_time_str(), self.firework_name))
+                f.write("{} Kill: the job has been terminated under {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\t\tSo no need to kill\n")
                 f.write("\t\t\t__error__ --> __killed__\n")
                 

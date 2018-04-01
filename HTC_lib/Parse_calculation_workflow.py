@@ -9,7 +9,34 @@
 import os
 
 
-# In[33]:
+# In[2]:
+
+
+class Read_Only_Dict(dict):
+    def __init__(self, *args, **kwargs):
+        super(Read_Only_Dict, self).__init__(*args, **kwargs)
+        
+    def __setitem__(self, key, value):
+        raise Exception("{} instance is read-only and cannot be changed!".format(self.__class__.__name__))
+    
+    def __delitem__(self, key):
+        raise Exception("{} instance is read-only and cannot be changed!".format(self.__class__.__name__))
+    
+    @classmethod
+    def from_dict(cls, dictionary):
+        read_only_dictionary = {}
+        for key, value in dictionary.items():
+            if isinstance(value, list):
+                value = tuple(value)   
+            elif isinstance(value, dict):
+                value = Read_Only_Dict.from_dict(value)
+                
+            read_only_dictionary[key] = value
+            
+        return Read_Only_Dict(**read_only_dictionary)
+
+
+# In[16]:
 
 
 def parse_calculation_workflow(filename="Calculation_setup"):
@@ -141,13 +168,15 @@ def parse_calculation_workflow(filename="Calculation_setup"):
             
 
             
-            firework["denser_kpoints"] = firework.get("denser_kpoints", 1)
+            firework["denser_kpoints"] = firework.get("denser_kpoints", (1, 1, 1))
             if isinstance(firework["denser_kpoints"], str):
-                firework["denser_kpoints"] = float(firework["denser_kpoints"])
+                firework["denser_kpoints"] = [float(k_multiple) for k_multiple in firework["denser_kpoints"].split(",") if k_multiple.strip()]
+                assert len(firework["denser_kpoints"])==3, "Error: tag denser_kpoints must be three float/integer numbers separated by commas at step {}.".format(firework["step_no"])
             
             assert "job_submission_script" in firework.keys(), "Error: must specify job_submission_script for every calculation."
             assert "job_submission_command" in firework.keys(), "Error: must specify how to submit job for every calculation."
             
+            firework = Read_Only_Dict.from_dict(firework)
             workflow.append(firework)
         elif line.startswith("*begin(add_new_incar_tags)"):
             new_incar_tags = {}
@@ -198,6 +227,7 @@ def parse_calculation_workflow(filename="Calculation_setup"):
     return workflow              
 
 
-# workflow = parse_calculation_workflow("Calculation_setup")
+# workflow = parse_calculation_workflow("Calculation_setup_GRC")
+# workflow
 
 # workflow[4]
