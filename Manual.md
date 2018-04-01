@@ -76,7 +76,7 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 <br><br>
 ###Tag list - below are tags that can be set in HTC\_calculation\_setup
 ----------------------
-
+![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_input_file_preparations.png)
 
 
 - **step\_no** (integer), **required for every firework**.  
