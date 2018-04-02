@@ -1,4 +1,4 @@
-##VASP HTC Framework  
+## VASP HTC Framework  
 Yang Tong 
 bitsoal@gmail.com  
 Department of Physics, National University of Singapore
@@ -11,7 +11,7 @@ Department of Physics, National University of Singapore
 version: python2.7  
 Package requirements: pymatgen
 
-####How to run:
+#### How to run:
 1. fill HTC_lib_path, cif_file_folder, cal_folder, HTC_calculation_setup_file in htc_main.py
 2. write a file named, say HTC_calculation_setup according to HTC_manual.txt.
 3. `python htc_main.py` OR `nohup python htc_main.py > log.txt 2>&1 &`
@@ -20,7 +20,7 @@ You may look through the htc example about WSe2 supercell under folder examples
 
 
 
-###Terminologies we used
+### Terminologies we used
 We adopt the terminologies below from pymatgen, atomate:
   
 * firetask - A Firetask is an atomic computing job. For example:
@@ -48,7 +48,7 @@ We adopt the terminologies below from pymatgen, atomate:
 
 You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_workflows.html#creating-workflows) for more detailed definitions.
 
-###organizations
+### organizations
 **Let's assume the HTC workflow setup is saved into a file named HTC\_calculation\_setup and besides cif files, this is the only file you need to specify.What follows is how to setup a workflow by composing HTC\_calculation\_setup**
 
 * HTC_calculation_setup consists of a set of blocks, namely fireworks
@@ -74,7 +74,7 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 
 
 <br><br>
-###Tag list - below are tags that can be set in HTC\_calculation\_setup
+### Tag list - below are tags that can be set in HTC\_calculation\_setup
 ----------------------
 ![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_input_file_preparations.png)
 
@@ -229,7 +229,7 @@ This tag can be set only in the first firework and this setting will be applied 
 In some cases, the atomic sites may be ordered carefully for some specific purposes. So you may not want to change the atomic sites by pymatgen
 
 -----------------------------------------
-####Below are tags related to job managements
+#### Below are tags related to job managements
 -----------------------
 
 - **job\_submission\_script**, **required for every firework**.  
@@ -286,14 +286,14 @@ e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is
 
 
 -------------
-###Tag list ends here
+### Tag list ends here
 
 <br>
 <br>
 <br>
 
-##How to control job status
-###We use signal files to control job submission, job termination, error detection and error correction
+## How to control job status
+### We use signal files to control job submission, job termination, error detection and error correction
 
 ![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/signal_file_response.PNG)
 
