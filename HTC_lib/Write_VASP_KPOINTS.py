@@ -66,7 +66,7 @@ def Write_Vasp_KPOINTS(cal_loc, structure_filename, workflow):
             new_name = vasp_kpoints.modify_vasp_kpoints_for_2D(rename_old_kpoints="KPOINTS.pymatgen_"+kpoints_type)
             with open(vasp_kpoints.log_txt, "a") as f:
                 f.write("\t\t\tKPOINTS is modified for 2D systems\n")
-                f.write("\t\t\told KPOINTS --> {}\n".format(new_name))
+                f.write("\t\t\t\told KPOINTS --> {}\n".format(new_name))
     
     kpoints_type = firework["kpoints_type"]
     #tag denser_kpoints consists of integers by default. If this tag is set, the three numbers are float.
