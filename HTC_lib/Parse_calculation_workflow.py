@@ -3,13 +3,13 @@
 
 # # created on Feb 18 2018
 
-# In[1]:
+# In[16]:
 
 
 import os
 
 
-# In[2]:
+# In[17]:
 
 
 class Read_Only_Dict(dict):
@@ -36,7 +36,7 @@ class Read_Only_Dict(dict):
         return Read_Only_Dict(**read_only_dictionary)
 
 
-# In[16]:
+# In[22]:
 
 
 def parse_calculation_workflow(filename="Calculation_setup"):
@@ -173,6 +173,12 @@ def parse_calculation_workflow(filename="Calculation_setup"):
                 firework["denser_kpoints"] = [float(k_multiple) for k_multiple in firework["denser_kpoints"].split(",") if k_multiple.strip()]
                 assert len(firework["denser_kpoints"])==3, "Error: tag denser_kpoints must be three float/integer numbers separated by commas at step {}.".format(firework["step_no"])
             
+            
+            firework["user_defined_cmd"] = firework.get("user_defined_cmd", [])
+            firework["final_user_defined_cmd"] = firework.get("final_user_defined_cmd", [])
+            firework["user_defined_postprocess_cmd"] = firework.get("user_defined_postprocess_cmd", [])
+        
+            
             assert "job_submission_script" in firework.keys(), "Error: must specify job_submission_script for every calculation."
             assert "job_submission_command" in firework.keys(), "Error: must specify how to submit job for every calculation."
             
@@ -221,6 +227,12 @@ def parse_calculation_workflow(filename="Calculation_setup"):
                 firework["extra_copy"] = files
             elif "kpoints_type" in line:
                 firework["kpoints_type"] = items[1]
+            elif "final_user_defined_cmd" in line:
+                firework["final_user_defined_cmd"] = [cmd_.strip().replace("@", " ") for cmd_ in items[1].split(",") if cmd_.strip()]
+            elif "user_defined_cmd" in line:
+                firework["user_defined_cmd"] = [cmd_.strip().replace("@", " ") for cmd_ in items[1].split(",") if cmd_.strip()]
+            elif "user_defined_postprocess_cmd" in line:
+                firework["user_defined_postprocess_cmd"] = [cmd_.strip().replace("@", " ") for cmd_ in items[1].split(",") if cmd_.strip()]
             else:
                 firework[items[0].lower()] = items[1]
                     
@@ -228,6 +240,6 @@ def parse_calculation_workflow(filename="Calculation_setup"):
 
 
 # workflow = parse_calculation_workflow("Calculation_setup_GRC")
-# workflow
+# workflow[0]["final_user_defined_cmd"]
 
 # workflow[4]

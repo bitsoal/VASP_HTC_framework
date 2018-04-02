@@ -11,6 +11,7 @@ import os, shutil
 from pymatgen import Structure
 
 from Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename
+from Execute_user_defined_cmd import Execute_user_defined_cmd
 
 from Write_VASP_INCAR import Write_Vasp_INCAR
 from Write_VASP_KPOINTS import Write_Vasp_KPOINTS
@@ -113,6 +114,13 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                     f.write("\t\t\tCONTCAR --> POSCAR under dst folder\n")
         assert os.path.isfile(os.path.join(current_cal_loc, "POSCAR")), "Error: POSCAR is missing!"
         
+        
+        input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["user_defined_cmd"],
+                           "where_to_execute": current_cal_loc, "log_txt": log_txt}
+        if not Execute_user_defined_cmd(**input_args_list):
+            return False
+            
+        
         Write_Vasp_INCAR(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
         Write_Vasp_KPOINTS(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
         Write_Vasp_POTCAR(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
@@ -128,7 +136,13 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                 shutil.copyfile(src=file, dst=os.path.join(current_cal_loc, filename))
                 with open(log_txt, "a") as f:
                     f.write("\t\t\t{}\n".format(file))
-            
+        
+        
+        input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["final_user_defined_cmd"],
+                           "where_to_execute": current_cal_loc, "log_txt": log_txt}
+        if not Execute_user_defined_cmd(**input_args_list):
+            return False
+        
         
         decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__ready__")
         with open(os.path.join(mater_cal_folder, "log.txt"), "a") as f:
@@ -158,8 +172,14 @@ def post_process(mater_cal_folder, current_firework, workflow):
         for file in remove_files:
             if os.path.isfile(os.path.join(current_cal_loc, file)):
                 os.remove(os.path.join(current_cal_loc, file))
-        decorated_os_rename(loc=current_cal_loc, old_filename="__post_process__", new_filename="__post_process_done__")
+        
+        
+        input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["user_defined_postprocess_cmd"],
+                           "where_to_execute": current_cal_loc, "log_txt": log_txt}
+        if not Execute_user_defined_cmd(**input_args_list):
+            return False
     
+        decorated_os_rename(loc=current_cal_loc, old_filename="__post_process__", new_filename="__post_process_done__")
 
 
 # In[5]:
