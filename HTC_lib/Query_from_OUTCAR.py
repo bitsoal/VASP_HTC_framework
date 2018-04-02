@@ -98,8 +98,9 @@ def find_Efermi_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "E-fermi" in line:
-                line = line.strip().split()
-                return float(line[2])
+                break
+    line = line.strip().split()
+    return float(line[2])
 
 
 # In[6]:
@@ -112,13 +113,14 @@ def find_LSORBIT_from_OUTCAR(cal_loc="."):
         -cal_loc (str): the location of the calculation. Default: "."
     output: return True if LSORBIT is switched on; return False otherwise
     """
+    status = False
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "LSORBIT" in line:
                 if "T" == line.split("=")[1].strip()[0]:
-                    return True
-                else:
-                    return False
+                    status = True
+                    break
+    return status
 
 
 # In[7]:
@@ -133,8 +135,10 @@ def find_LORBIT_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "LORBIT" in line:
-                m = line.split("=")[1].strip()
-                return int(m.split()[0].strip())
+                break
+                
+    m = line.split("=")[1].strip()
+    return int(m.split()[0].strip())
 
 
 # In[8]:
@@ -149,8 +153,10 @@ def find_ISPIN_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "ISPIN" in line:
-                m = line.split("=")[1].strip()
-                return int(m.split()[0].strip())
+                break
+                
+    m = line.split("=")[1].strip()
+    return int(m.split()[0].strip())
 
 
 # In[9]:
@@ -284,8 +290,11 @@ def find_NELM_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "NELM" in line and "=" in line:
-                return int(line.split(";")[0].split("=")[-1].strip())
-    return None
+                break
+                
+    
+    return int(line.split(";")[0].split("=")[-1].strip())
+    
             
             
 
@@ -304,8 +313,9 @@ def find_NBANDS_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "NBANDS" in line and "=" in line:
-                return int(line.strip().split("=")[-1].strip())
-    return None
+                break
+                
+    return int(line.strip().split("=")[-1].strip())
             
             
 
@@ -324,9 +334,10 @@ def find_NSW_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:    
         for line in f:
             if "NSW" in line and "=" in line:
-                items = [item.strip() for item in line.split(" ") if item.strip()]
-                return int(items[2])
-    return None     
+                break
+                
+    items = [item.strip() for item in line.split(" ") if item.strip()]
+    return int(items[2])  
 
 
 # In[16]:
@@ -343,9 +354,10 @@ def find_IBRION_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:    
         for line in f:
             if "IBRION" in line and "=" in line:
-                items = [item.strip() for item in line.split(" ") if item.strip()]
-                return int(items[2])
-    return None     
+                break
+                
+    items = [item.strip() for item in line.split(" ") if item.strip()]
+    return int(items[2]) 
 
 
 # In[17]:
@@ -362,8 +374,9 @@ def find_EDIFF_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "EDIFF " in line and "=" in line:
-                return float(line.split("=")[1].strip().split()[0])
-    return None     
+                break
+                
+    return float(line.split("=")[1].strip().split()[0])
 
 
 # In[18]:
@@ -380,8 +393,8 @@ def find_EDIFFG_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "EDIFFG" in line and "=" in line:
-                return float(line.split("=")[1].strip().split()[0])
-    return None     
+                break
+    return float(line.split("=")[1].strip().split()[0])
 
 
 # In[19]:
@@ -398,8 +411,8 @@ def find_IALGO_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "IALGO" in line and "=" in line:
-                return int([item for item in line.strip().split()][2])
-    return False
+                break
+    return int([item for item in line.strip().split()][2])
 
 
 # In[20]:
@@ -416,8 +429,9 @@ def find_AMIX_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "AMIX" in line and "=" in line:
-                return int([item for item in line.strip().split()][2])
-    return False
+                break
+                
+    return int([item for item in line.strip().split()][2])
 
 
 # In[22]:
@@ -434,8 +448,8 @@ def find_ICHARG_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "ICHARG" in line and "=" in line:
-                return int(line.split()[2])
-    return False
+                break
+    return int(line.split()[2])
 
 
 # In[ ]:
@@ -452,8 +466,9 @@ def find_FERMI_from_OUTCAR(cal_loc="."):
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
             if "E-fermi" in line:
-                return float(line.split()[2])
-    return False
+                break
+                
+    return float(line.split()[2])
 
 
 # In[21]:

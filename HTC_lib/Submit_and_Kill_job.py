@@ -132,17 +132,16 @@ class Job_management():
     def find_queue_id(self):
         assert os.path.isfile(self.queue_id_file), "Error: cannot find {} to parse queue id under {}".format(self.queue_id_file, self.cal_loc)
         with open(self.queue_id_file, "r") as f:
-            for line in f:
-                m = re.findall(self.re_to_queue_id, line)
-                assert len(m)==1, "Error: fail to parse queue ID Given {}".format(self.re_to_queue_id)
-                return m[0]
-        raise Exception("Cannot find queue id in {} under {}".format(self.queue_id_file, self.cal_loc))
+            line = next(f)
+        m = re.findall(self.re_to_queue_id, line)
+        assert len(m)==1, "Error: {}\n\t\t\tfail to parse queue ID Given {}".format(self.cal_loc, self.re_to_queue_id)
+        return m[0]
         
 
     
     def kill(self):
         queue_id = self.find_queue_id()
-        if self.is_cal_in_queue():
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
             if not os.path.isfile(os.path.join(self.cal_loc, "__error__")):
                 print("\n{} Kill: {}".format(get_time_str(), self.cal_loc))
                 print("\t\t\tTo kill this running job, file named __error__ must be present.\n")
@@ -173,7 +172,7 @@ class Job_management():
             decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__killed__")
             #os.rename(os.path.join(self.cal_loc, "__error__"), os.path.join(self.cal_loc, "__killed__"))
             with open(self.log_txt, "a") as f:
-                f.write("{} Kill: the job has be terminated under {}\n".format(get_time_str(), self.firework_name))
+                f.write("{} Kill: the job has been terminated under {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\t\tSo no need to kill\n")
                 f.write("\t\t\t__error__ --> __killed__\n")
                 
@@ -236,8 +235,6 @@ class Job_management():
         
         dir0 = os.getcwd()
         os.chdir(self.cal_loc)
-        with open(self.log_txt, "a") as f:
-            f.write("{} INFO: move to {}\n".format(get_time_str(), self.firework_name))
         assert os.path.isfile("INCAR"), "Error: no INCAR under {}".format(job_folder)
         assert os.path.isfile("POTCAR"), "Error: no POTCAR under {}".format(job_folder)
         assert os.path.isfile("KPOINTS"), "Error: no KPOINTS under {}".format(job_folder)
@@ -287,13 +284,13 @@ class Job_management():
                     f.write("\t\t\tCannot find job id in {} after the job submission for the first time\n".format(self.workflow[0]["vasp.out"]))
                     f.write("\t\t\tcreate file named __fail_to_find_job_id__\n")
                     open(os.path.join(self.cal_loc, "__fail_to_find_job_id__"), "w").close()
-                    return False
                 else:
                     f.write("\t\t\tThis is the second time to fail to dinf the job id in {} after job submissions\n".format(self.workflow[0]["vasp.out"]))
                     decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
                     #os.rename(os.path.join(self.cal_loc, signal_file), os.path.join(self.cal_loc, "__error__"))
                     f.write("\t\t\t__running__ --> __error__\n".format(signal_file))
-                    return False
+            return False
+                
         
                     
 

@@ -174,7 +174,7 @@ def copy_and_move_files(src_dir, dst_dir, copy_files=[], move_files=[], contcar_
     non_existent_files = {"copy_files": [], "move_files": []}
     
     if contcar_to_poscar:
-        copy_files =copy_files + ["CONTCAR"]
+        copy_files =tuple(list(copy_files) + ["CONTCAR"])
     
     copy_files = set(copy_files)
     move_files = set(move_files)
@@ -204,4 +204,20 @@ def copy_and_move_files(src_dir, dst_dir, copy_files=[], move_files=[], contcar_
         shutil.move(os.path.join(dst_dir, "CONTCAR"), os.path.join(dst_dir, "POSCAR"))
         
     return non_existent_files
+
+
+# In[10]:
+
+
+def get_current_firework_from_cal_loc(cal_loc, workflow):
+    """
+    return the current firework by analyzing cal_loc.
+    input arguments:
+        - cal_loc (str): absolute calculation directory.
+        - workflow
+    """
+    firework_name = os.path.split(cal_loc)[-1]
+    for firework in workflow:
+        if firework_name == firework["firework_folder_name"]:
+            return firework
 
