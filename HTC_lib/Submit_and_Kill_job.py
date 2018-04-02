@@ -235,8 +235,6 @@ class Job_management():
         
         dir0 = os.getcwd()
         os.chdir(self.cal_loc)
-        with open(self.log_txt, "a") as f:
-            f.write("{} INFO: move to {}\n".format(get_time_str(), self.firework_name))
         assert os.path.isfile("INCAR"), "Error: no INCAR under {}".format(job_folder)
         assert os.path.isfile("POTCAR"), "Error: no POTCAR under {}".format(job_folder)
         assert os.path.isfile("KPOINTS"), "Error: no KPOINTS under {}".format(job_folder)
