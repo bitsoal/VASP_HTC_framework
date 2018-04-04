@@ -226,7 +226,7 @@ This tag can be set only in the first firework and *this setting will be applied
 - **sort\_structure**, **optional for the first firework**.  
 **This tag is activated once POSCAR is written for any firework.**
   - `Yes`: Sort sites by the electronegativity of the atomic species.
-  - `No`: If the given structure is POSCAR-formated, just copy the structure as rename it as POSCAR; If not, write POSCAR using `pymatgen.Structure`
+  - `No`: If the given structure is POSCAR-formated, just copy the structure and rename it as POSCAR; If not, write POSCAR using `pymatgen.Structure`
   - Default: `Yes`  
 
 
