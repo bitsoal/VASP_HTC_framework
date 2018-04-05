@@ -71,7 +71,7 @@ if __name__ == "__main__":
                 to_be_cal_folders += folder_list
         if to_be_cal_folders == []:
             print("All calculations have finished --> Stop this program.")
-            with open("htc_job_status.dat", "w") as f:
+            with open("htc_job_status.dat", "a") as f:
                 f.write("\n***All calculations have finished --> Stop this program.***")
             break
             
