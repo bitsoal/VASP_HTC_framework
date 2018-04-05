@@ -225,14 +225,15 @@ This tag can be set only in the first firework and *this setting will be applied
 	
 - **sort\_structure**, **optional for the first firework**.  
 **This tag is activated once POSCAR is written for any firework.**
-  - `Yes`: Sort sites by the electronegativity of the atomic species.
+  - `Yes`: Sort sites by the electronegativity of the atomic species using [`pymatgen.Structure.get_sorted_structure`](http://pymatgen.org/_modules/pymatgen/core/structure.html).
   - `No`: If the given structure is POSCAR-formated, just copy the structure and rename it as POSCAR; If not, write POSCAR using `pymatgen.Structure`
   - Default: `Yes`  
 
 
 ***Why we need this tag?***
   
-  * In some cases, the atomic sites may be ordered carefully for some specific purposes. So you may not want to change the atomic sites by pymatgen
+  * In some cases, the atomic sites may be ordered carefully for some specific purposes. So you may not want to change the order of atoms by pymatgen
+  * The `Yes` state of this tag aims to deal with the given structures whose atoms are not grouped by atomic species. For example, the atoms of the given MoS$_2$ may be arranged like `S  Mo  S` instead of `S S  Mo` or `Mo S S`. Such non-grouped atom arrangements may happen if the to-be-calculated structures are outputs of pymatgen and before exporting from pymatgen, `get_sorted_structure` has not been called to group atoms. In case of non-grouped atomic arrangements, `sort_structure` defaults to `Yes`
   * The `No` state of this tag can facilitate [split-mode CALYPSO](http://www.calypso.cn/) for structure predictions. By applying the particle swarm optimization method, CALYPSO generates certain number of to-be-relaxed structures. *If CALYPSO works in the split mode, users should **manually** relax these structures.* These structures are POSCAR-formated. In order to make those POSCARs valid for both VASP 4 and VASP 5, the line listing atomic species is missing, but `pymatgen.Structure` cannot correctly parse such kind of POSCAR, let alone create correct POSCARs. So we provide this tag `sort_structure` whose `No` mode allows POSCAR to be created by just copying and renaming. With this `No` mode, this VASP HTC framework can be utilized to automatically relax structures predicted by CALYPSO.   
 
 ***The creation of POSCAR:***  
