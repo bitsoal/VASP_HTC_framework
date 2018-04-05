@@ -33,8 +33,13 @@ from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 if __name__ == "__main__":
     workflow = parse_calculation_workflow(HTC_calculation_setup_file)
 
-
+    main_dir = os.getcwd()
     while True:
+        os.chdir(main_dir)
+        if os.path.isfile("__stop__"):
+            print(">>>Detect file __stop__ in {}\n ---->stop this program.".format(main_dir))
+            break
+        
         cif_file_list = os.listdir(cif_file_folder)
         for cif_file in cif_file_list:
             pre_and_post_process(cif_filename=cif_file, cif_folder=cif_file_folder, cal_folder=cal_folder, workflow=workflow)
