@@ -361,4 +361,8 @@ When the workflow is running, some signal file will be present in every firework
 	- All you need to do is to create the signal file `__ready__`. In this case, the program will automatically remove OUTCAR, OSZICAR, vasp.out, queue stdout & stderr files before submitting this job.  
 
 
+### How to stop the program.
+You can stop this program by creating a file named `__stop__` under the same directory where `python htc_main.py` or `nohup python htc_main.py 2>1&` was executed to start this program.
+
+
 
