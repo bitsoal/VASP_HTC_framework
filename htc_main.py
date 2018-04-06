@@ -6,10 +6,7 @@
 
 import os, sys, time, pprint
 
-HTC_lib_path = "/home/e0001020/.HTC"
-cif_file_folder = "/lustre/scratch/e0001020/Z_scheme/my_own_Z_scheme_high_throughput/cif_files"
-cal_folder = "/lustre/scratch/e0001020/Z_scheme/my_own_Z_scheme_high_throughput/cal_folder"
-HTC_calculation_setup_file = "/lustre/scratch/e0001020/Z_scheme/my_own_Z_scheme_high_throughput/Calculation_setup_GRC"
+HTC_lib_path = "/home/users/nus/e0001020/.HTC"
 
 if HTC_lib_path not in sys.path:
     sys.path.append(HTC_lib_path)
@@ -31,7 +28,12 @@ from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 
 
 if __name__ == "__main__":
-    workflow = parse_calculation_workflow(HTC_calculation_setup_file)
+    assert os.path.isfile("HTC_calculation_setup_file"), "Error: No HTC_calculation_setup_file under {}".format(os.getcwd())
+    workflow = parse_calculation_workflow("HTC_calculation_setup_file")
+    
+    cif_file_folder = workflow[0]["structure_folder"]
+    cal_folder = workflow[0]["cal_folder"]
+    max_running_job = workflow[0]["max_running_job"]
 
     main_dir = os.getcwd()
     while True:
@@ -49,7 +51,7 @@ if __name__ == "__main__":
         update_killed_jobs_status(cal_status["killed_folder_list"], workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
         ready_job_list = cal_status["prior_ready_folder_list"] + cal_status["ready_folder_list"]
-        submit_jobs(ready_jobs=ready_job_list, workflow=workflow,max_jobs_in_queue=5)
+        submit_jobs(ready_jobs=ready_job_list, workflow=workflow,max_jobs_in_queue=max_running_job)
         kill_error_jobs(error_jobs=cal_status["error_folder_list"], workflow=workflow)
         
         for cif_file in cif_file_list:

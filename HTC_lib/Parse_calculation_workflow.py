@@ -3,13 +3,13 @@
 
 # # created on Feb 18 2018
 
-# In[16]:
+# In[1]:
 
 
 import os
 
 
-# In[17]:
+# In[2]:
 
 
 class Read_Only_Dict(dict):
@@ -36,7 +36,7 @@ class Read_Only_Dict(dict):
         return Read_Only_Dict(**read_only_dictionary)
 
 
-# In[22]:
+# In[3]:
 
 
 def parse_calculation_workflow(filename="Calculation_setup"):
@@ -129,6 +129,16 @@ def parse_calculation_workflow(filename="Calculation_setup"):
                         firework["sort_structure"] = True
                 else:
                     firework["sort_structure"] = True
+                    
+                #set the calculation folder, structure folder, max_running_job
+                if "cal_folder" not in firework.keys():
+                    firework["cal_folder"] = os.path.join(os.getcwd(), "cal_folder")
+                
+                assert "structure_folder" in firework.keys(), "Error: Must specify tag 'structure_folder' containing to-be-calculated structures in the first firework."
+                assert os.path.isdir(firework["structure_folder"]), "Error: The directory specified by tag 'structure_folder' in the first firework below does not exist:\n\t\t{}".format("structure_folder")
+
+                firework["max_running_job"] = int(firework.get("max_running_job", 30))
+                
                    
                 
             firework["copy_from_prev_cal"] = firework.get("copy_from_prev_cal", [])
@@ -240,6 +250,6 @@ def parse_calculation_workflow(filename="Calculation_setup"):
 
 
 # workflow = parse_calculation_workflow("Calculation_setup_GRC")
-# workflow[0]["final_user_defined_cmd"]
+# workflow[0]
 
 # workflow[4]
