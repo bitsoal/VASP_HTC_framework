@@ -1293,8 +1293,12 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")) or not os.path.isfile(os.path.join(self.cal_loc, "OSZICAR")):
             return True
         
-        NELM = find_incar_tag_from_OUTCAR(tag="NELM", cal_loc=self.cal_loc)
-        EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
+        try:
+            NELM = find_incar_tag_from_OUTCAR(tag="NELM", cal_loc=self.cal_loc)
+            EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
+        except:
+            return True
+        
         #print(NELM, EDIFF)
         oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
         for electronic_steps in oszicar.electronic_steps:
