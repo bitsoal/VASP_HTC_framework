@@ -12,11 +12,9 @@ version: python2.7
 Package requirements: [pymatgen](http://pymatgen.org/index.html)
 
 #### How to run:
-1. fill `HTC_lib_path`, `cif_file_folder`, `cal_folder`, `HTC_calculation_setup_file` in htc_main.py
-2. write a file named, say `HTC_calculation_setup`, according to HTC_manual.txt.
-3. `python htc_main.py` OR `nohup python htc_main.py > log.txt 2>&1 &`
-
-You may look through the htc example about WSe2 supercell under folder examples
+1. specify `HTC_lib_path` at the beginning of htc_main.py, where `HTC_lib_path` is the absolute path of the directory containing this VASP HTC package.
+2. Compose a setup file named `HTC_calculation_setup_file`. See below for the composition of `HTC_calculation_setup_file`
+3. In the directory containing `HTC_calculation_setup_file`, execute `python htc_main.py` OR `nohup python htc_main.py > log.txt 2>&1 &` to start this HTC program.
 
 
 
@@ -78,6 +76,17 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 ----------------------
 ![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_input_file_preparations.png)
 
+
+- **structure\_folder** (str), **required for the first firework**  
+*The absolute path* of the directory containing to-be-calculated structures. Those to-be-calculated structures could be in the cif format, the VASP POSCAR format or other formats that are supported by `pymatgen.Structure.from_file`.
+
+----------------------
+
+- **cal\_folder** (str), optional for the first firework  
+*The absolute path* of the calculation folder. Under this folder, a sub-folder will be created for a to-be-calculated structure. A series of sub-sub-folder will subsequently created for a sequence of VASP calculations.  
+Default: `cal_folder= where the htc_main.py is called + \cal_folder`
+  
+-------------------
 
 - **step\_no** (integer), **required for every firework**.  
 start from 1.  
@@ -283,6 +292,12 @@ e.g. On LSF queue system, suppose the job submission script refered by job\_subm
 
 --------------------------------
 
+- **max\_running\_job** (integer), optional for the first firework  
+The maximum number of running/pending jobs in queue. Note that this number is the **total** number of jobs in queue. For example, if `max_running_job=10` and there are already 3 running/pending jobs in queue, then 7 jobs at most can be submitted.  
+Default: `max_running_job=30`
+
+--------------------
+
 - **where\_to\_parse\_queue\_id**, **required only for the first firework**.  
 a file from which the queue id will be parsed.  
 e.g. If the job submission cmd is `bsub < vasp.lsf > job_id`, then `where_to_parse_queue_id=job_id`
@@ -323,6 +338,7 @@ The two files are useful for their presence indicates that the job is done. If n
 - **vasp.out**, **required only for the first firework**.  
 e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std > out`, then **vasp.out** is `out`  
 e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is `vasp.out`
+
 
 
 -------------
