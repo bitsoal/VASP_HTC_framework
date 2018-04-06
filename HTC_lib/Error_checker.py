@@ -3,7 +3,7 @@
 
 # # created on Feb 18 2018
 
-# In[1]:
+# In[23]:
 
 
 import os, time, shutil
@@ -17,7 +17,7 @@ import numpy as np
 
 from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
 from Utilities import get_time_str, search_file, decorated_os_rename
-from Preprocess_and_Postprocess import modify_vasp_incar
+from Write_VASP_INCAR import modify_vasp_incar
 
 
 # In[2]:
@@ -50,11 +50,12 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__too_few_kpoints__":Vasp_out_too_few_kpoints, 
                           "__rhosyg__":Vasp_out_rhosyg, 
                           "__edddav__":Vasp_out_edddav, 
-                          "__zpotrf__": Vasp_out_zpotrf}
+                          "__zpotrf__": Vasp_out_zpotrf, 
+                          "__real_optlay__": Vasp_out_real_optlay}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
-    after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__"]
+    after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
     after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
     
     if isinstance(error_type, str):  
@@ -314,7 +315,7 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
             #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
             f.write("\t\t\t__running__ --> __error__\n")
             f.write("\t\t\t write {} into __error__\n".format(error_type))
-            super(Vasp_Error_Checker_Logger, self).write_error_tag(error_type)
+        super(Vasp_Error_Checker_Logger, self).write_error_tag(error_type)
     
     def write_file_absence_log(self, filename_list = [], initial_signal_file="", final_signal_file=""):
         """
@@ -1200,6 +1201,70 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
+# In[24]:
+
+
+class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "REAL_OPTLAY: internal error"
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    correct method: if LREAL = .TRUE., reset it to .FALSE. and return True; Otherwise, return False
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str = "REAL_OPTLAY: internal error"
+        
+        
+        
+    def check(self):
+        #this method is not active until the job is done
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_real_optlay, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                     initial_signal_file="__running__", 
+                                                                     final_signal_file="__error__")
+            return False
+        
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+            self.write_error_log()
+            return False
+        else:
+            return True
+            
+            
+    def write_error_log(self):
+        super(Vasp_out_real_optlay, self).write_error_log(target_error_str=self.target_str, error_type="__real_optlay__")
+    
+    
+    def correct(self):
+        target_str = "Therefore set LREAL=.FALSE. in the  INCAR file"
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str):
+            super(Vasp_out_real_optlay, self).backup()
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": ".FALSE."}, rename_old_incar=False)
+            super(Vasp_out_real_optlay, self).write_correction_log(new_incar_tags={"LREAL": ".FALSE."})
+            return True
+        
+        
+        return False                       
+
+
 # In[19]:
 
 
@@ -1399,6 +1464,15 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         oszicar = Oszicar(filename=os.path.join(self.cal_loc, "OSZICAR"))
         if len(oszicar.electronic_steps) < NSW:
+            #check if CONTCAR is empty.
+            with open(os.path.join(self.cal_loc, "CONTCAR"), "r") as f:
+                lines = [line for line in f if line.strip()]
+            if lines == []:
+                with open(self.log_txt, "a") as f:
+                    f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
+                    f.write("\t\t\tCONTCAR is empty, so the error may not be triggered by the limited walltime.\n")
+                return False
+                    
             super(Ionic_divergence, self).backup()
             shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
             with open(self.log_txt, "a") as f:

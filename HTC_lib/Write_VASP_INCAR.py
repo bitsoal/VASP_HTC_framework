@@ -87,7 +87,7 @@ def modify_vasp_incar(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], ren
                                         if rename_old_incar is False, the old INCAR will be overwritten by new INCAR.
                                         if rename_old_incar is a string, rename the old INCAR as the string.
                                         Default: True
-    return the modified INCAR dictionary.
+    return the valid INCAR dictionary if no modification is made.
     """
     
 
