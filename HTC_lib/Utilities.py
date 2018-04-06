@@ -221,3 +221,29 @@ def get_current_firework_from_cal_loc(cal_loc, workflow):
         if firework_name == firework["firework_folder_name"]:
             return firework
 
+
+# In[11]:
+
+
+def decorated_os_system(cmd, where_to_execute):
+    """
+    decorated os.system to tackle the cases where the cmd is not successfully executed.
+    input arguments:
+        - cmd (str): required.
+        - where_to_execute (str): The absolute path
+    cmd will be executed once.
+    If the exist status is 0 (successful), return True; Otherwise, return False.
+    """
+    dir0 = os.getcwd()
+    os.chdir(where_to_execute)
+    try:
+        status = os.system(cmd)
+    except Exception as err:
+        pass
+    else:
+        if status == 0:
+            return True
+    
+    os.chdir(dir0)
+    return False       
+
