@@ -3,7 +3,7 @@
 
 # # created on Feb 18 2018
 
-# In[23]:
+# In[1]:
 
 
 import os, time, shutil
@@ -1201,7 +1201,7 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[24]:
+# In[19]:
 
 
 class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1265,7 +1265,7 @@ class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[19]:
+# In[20]:
 
 
 class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1394,7 +1394,7 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
 
 
-# In[20]:
+# In[21]:
 
 
 class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1465,6 +1465,7 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         EDIFF = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="EDIFF")
         EDIFFG = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="EDIFFG")
         NSW = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="NSW")
+        IBRION = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="IBRION")
         
         oszicar = Oszicar(filename=os.path.join(self.cal_loc, "OSZICAR"))
         if len(oszicar.electronic_steps) < NSW:
@@ -1484,12 +1485,21 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 f.write("\t\t\tThis error may be due to that the walltime is reached.\n")
                 f.write("\t\t\tCONTCAR --> POSCAR\n")
             return True
+        elif IBRION in [2, 3]:
+            super(Ionic_divergence, self).backup()
+            shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False)
+            with open(self.log_txt, "a") as f:
+                f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
+                f.write("\t\t\tThe ionic step reaches the preset maximum step ({})\n".format(NSW))
+                f.write("\t\t\tBut IBRION is {}, not 1. So try one more round.\n".format(IBRION))
+                f.write("\t\t\tIBRION = 1,  CONTCAR --> POSCAR.\n")
         else:
             return False
         
 
 
-# In[21]:
+# In[22]:
 
 
 class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1565,7 +1575,7 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False
 
 
-# In[22]:
+# In[23]:
 
 
 class Null_error_checker(object):
