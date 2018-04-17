@@ -1194,8 +1194,9 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 os.remove(os.path.join(self.cal_loc, "CHGCAR"))
         if ALGO != "all":
             super(Vasp_out_edddav, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"})
-            super(Vasp_out_edddav, self).write_correction_log(new_incar_tags={"ALGO": "All"}, remove_files=["CHGCAR"])
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"}, remove_tags=["AMIX", "BMIX", "AMIN"])
+            super(Vasp_out_edddav, self).write_correction_log(new_incar_tags={"ALGO": "All"}, remove_incar_tags=["AMIX", "BMIX", "AMIN"], 
+                                                              remove_files=["CHGCAR"])
             return True
         
         return False                       
@@ -1319,12 +1320,12 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def correct(self):
         """
         Orders of corrections:
-            1st option: if ALGO != Normal, set ALGO = Normal and NELM = 100 if original NELM < 100.
+            1st option: if ALGO != Normal, set ALGO = Normal and NELM = 200 if original NELM < 200.
             2nd option: if the dipole correction is on, try to set DIPOL if not present.
-            3rd option: AMIX=0.1, BMIX = 0.01, ICHARG = 2 and NELM = 150 if original NELM < 150
-            4th option: AMIN=0.01, BMIX=3.0, ICHARG =2 and NELM = 200 if original NELM < 200
+            3rd option: AMIX=0.1, BMIX = 0.01, ICHARG = 2 and NELM = 300 if original NELM < 300
+            4th option: AMIN=0.01, BMIX=3.0, ICHARG =2 and NELM = 400 if original NELM < 400
             5th option: return False <-- fail to automatically recover.
-            Note that for the 1st, 3rd, 4th options, if EDIFF*5 <= 1.0E-4, we also set EDIFF = EDIFF*5
+            Note that for the 1st, 2nd, 3rd, 4th options, if EDIFF*5 <= 1.0E-4, we also set EDIFF = EDIFF*5
         This correction is borrowed from custodian and modified.
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
@@ -1345,18 +1346,18 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         IDIPOL = int(incar.get("IDIPOL", 0)) 
         DIPOL = incar.get("DIPOL", "")
         
-        if float(EDIFF)*5 <= 1.0E-4:
-            EDIFF_ = 5*EDIFF
-        else:
-            EDIFF_ = EDIFF
+        new_incar_tags = {"LREAL": ".FALSE."}
         
-        if IALGO != 38:
-                        
+        if EDIFF*5 <= 1.0E-4:
+            new_incar_tags["EDIFF"] = EDIFF * 5
+
+        
+        if IALGO != 38:                        
             super(Electronic_divergence, self).backup()
-            NELM_ = NELM if NELM > 100 else 100
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal", "NELM": NELM_, "EDIFF": EDIFF_}, 
-                              rename_old_incar=False)
-            super(Electronic_divergence, self).write_correction_log(new_incar_tags={"ALGO": "Normal", "NELM": NELM_, "EDIFF": EDIFF_})
+            new_incar_tags["ALGO"] = "Normal"
+            new_incar_tags["NELM"] = NELM if NELM > 200 else 200
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
             return True
         
         #For the calculations involved in the dipole correction, set the dipol center.
@@ -1366,9 +1367,10 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 super(Electronic_divergence, self).backup()
                 struct = Structure.from_file(os.path.join(self.cal_loc, "POSCAR"))
                 mean_c = np.mean(struct.frac_coords[:, 2])
-                new_tags = {"DIPOL": "0.5 0.5 {:.3}".format(mean_c), "ICHARG":2}
-                modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
-                super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags)
+                new_incar_tags["DIPOL"] = "0.5 0.5 {:.3}".format(mean_c)
+                new_incar_tags["ICHARG"] = 2
+                modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+                super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
                 return True
         
         if BMIX == 3.0:
@@ -1376,18 +1378,22 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         if AMIX > 0.1 and BMIX > 0.01:
             super(Electronic_divergence, self).backup()
-            NELM_ = 150 if NELM < 150 else NELM
-            new_tags = {"AMIX": 0.1, "BMIX": 0.01, "ICHARG": 2, "NELM": NELM_, "EDIFF": EDIFF_}
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
-            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags)
+            new_incar_tags["NELM"] = NELM if NELM > 300 else 300
+            new_incar_tags["AMIX"] = 0.1
+            new_incar_tags["BMIX"] = 0.01
+            new_incar_tags["ICHARG"] = 2
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
             return True
         
         if BMIX < 3.0 and AMIN > 0.01:
             super(Electronic_divergence, self).backup()
-            NELM_ = 200 if 200 > NELM else NELM
-            new_tags = {"AMIN": 0.01, "BMIX": 3.0, "ICHARG": 2, "NELM": NELM_, "EDIFF": EDIFF_}
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, remove_tags=["AMIX"], rename_old_incar=False)
-            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags, remove_incar_tags=["AMIX"])
+            new_incar_tags["NELM"] = NELM if NELM > 400 else 400
+            new_incar_tags["AMIN"] = 0.01
+            new_incar_tags["BMIX"] = 3.0
+            new_incar_tags["ICHARG"] = 2
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, remove_tags=["AMIX"], rename_old_incar=False)
+            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags, remove_incar_tags=["AMIX"])
             return True
         
         return False

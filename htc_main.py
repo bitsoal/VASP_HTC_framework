@@ -64,7 +64,7 @@ if __name__ == "__main__":
         print(get_time_str())
         pprint.pprint(cal_status)
         
-            
+        os.chdir(main_dir)    
         with open("htc_job_status.dat", "w") as f:
                 f.write("\n{}:".format(get_time_str()))
                 for status, folder_list in cal_status.items():
@@ -78,9 +78,10 @@ if __name__ == "__main__":
                 to_be_cal_folders += folder_list
         if to_be_cal_folders == []:
             print("All calculations have finished --> Stop this program.")
+            os.chdir(main_dir)
             with open("htc_job_status.dat", "a") as f:
                 f.write("\n***All calculations have finished --> Stop this program.***")
             break
             
-        time.sleep(60)
+        time.sleep(600)
 
