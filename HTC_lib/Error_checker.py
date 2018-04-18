@@ -1320,7 +1320,8 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def correct(self):
         """
         Orders of corrections:
-            1st option: if ALGO != Normal, set ALGO = Normal and NELM = 200 if original NELM < 200.
+            1st option: if ALGO != Normal, set ALGO = Normal and NELM = 200 if original NELM < 200; 
+                        If the dipole correction is on, try to set DIPOL if not present
             2nd option: if the dipole correction is on, try to set DIPOL if not present.
             3rd option: AMIX=0.1, BMIX = 0.01, ICHARG = 2 and NELM = 300 if original NELM < 300
             4th option: AMIN=0.01, BMIX=3.0, ICHARG =2 and NELM = 400 if original NELM < 400
@@ -1356,12 +1357,21 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             super(Electronic_divergence, self).backup()
             new_incar_tags["ALGO"] = "Normal"
             new_incar_tags["NELM"] = NELM if NELM > 200 else 200
+            #For the calculations involved in the dipole correction, set the dipol center.
+            #Note that 0.5 is set along x and y directions, while the geometrical center is adopted along the z direction.
+            if IDIPOL != 0:
+                if DIPOL == "":
+                    struct = Structure.from_file(os.path.join(self.cal_loc, "POSCAR"))
+                    mean_c = np.mean(struct.frac_coords[:, 2])
+                    new_incar_tags["DIPOL"] = "0.5 0.5 {:.3}".format(mean_c)
+                    new_incar_tags["ICHARG"] = 2
+                    
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
             super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
             return True
         
         #For the calculations involved in the dipole correction, set the dipol center.
-        #Note that 0.5 is set along x and y directions, while the geometrical center is adopted along the z direction.
+        #Note that 0.5 is set along x and y directions, while the geometrical center is adopted along the z direction.    
         if IDIPOL != 0: 
             if DIPOL == "":
                 super(Electronic_divergence, self).backup()
