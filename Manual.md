@@ -157,7 +157,8 @@ This tag allows you to copy files which are not in any previous firework folders
 
 - **comment\_incar\_tags**, optional.  
 comment VASP INCAR tags  
-*If multiple tags need to be commented, separate them with commas.*    
+*If multiple tags need to be commented, separate them with commas.*  
+**It doesn't make sense that you comment an INCAR tag using `comment_incar_tags` while resetting it in `add_new_incar_tags` sub-block simultaneously. If such a contradiction takes place, an error will be incurred.**    
 Default: empty
 
 --------------------------
@@ -165,6 +166,7 @@ Default: empty
 - **remove\_incar\_tags**, optional.  
 remove VASP INCAR tags.  
 If multiple INCAR tags need to be removed, separate them with commas.  
+**It doesn't make sense that you comment an INCAR tag using `remove_incar_tags` while resetting it in `add_new_incar_tags` sub-block simultaneously. If such a contradiction takes place, an error will be incurred.**  
 Default: empty
 
 -------------------------------
@@ -173,7 +175,11 @@ Default: empty
   - start from the line which starts with `*begin(add_new_incar_tags)`; It ends up with the line which starts with `*end(add_new_incar_tags)`
   - In between the starting line and ending line, just specify INCAR tags as if you are writing INCAR:
      - If an INCAR tag is already in the old INCAR, this tag will be overwritten.
-     - If an INCAR tag is not in the old INCAR, this tag will be added.
+     - If an INCAR tag is not in the old INCAR, this tag will be added.  
+       
+**Note that in this sub-block, the multiple pairs of tag-values separated by `;` in a line is not supported. In this case, only the first pair of tag-value will be parsed as a new INCAR tag, and the value is what is in between the first `=` and the second `=`. This may incur unpredictable errors**  
+
+**It doesn't make sense that you reset an INCAR tag in `add_new_incar_tags` sub-block while simultaneously trying to comment or remove this INCAR tag using `comment_incar_tags` or `remove_incar_tags`. If such a contradiction takes place, an error will be incurred.**
 
 --------------------------------------
 - **kpoints\_type**, **case sensitive**, **required for every firework**  

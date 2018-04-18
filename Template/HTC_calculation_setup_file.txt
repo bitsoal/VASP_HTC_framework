@@ -1,0 +1,143 @@
+#This is testing workflow
+
+**start
+step_no = 1
+cal_name = str opt
+
+kpoints_type = MPRelaxSet
+
+*begin(add_new_incar_tags)
+ISIF = 2
+ISMEAR = 0
+LCHARG = .TRUE.
+NPAR   = 4
+IVDW   = 12
+EDIFF  = 1.0E-4
+EDIFFG = -0.03
+*end(add_new_incar_tags)
+
+
+remove_incar_tags = MAGMOM
+comment_incar_tags = ISPIN, LORBIT
+
+user_defined_cmd = echo@'user_defined_cmd test'@>>__test_file__, date@>>__test_file__      #here '@' represents a whitespace
+final_user_defined_cmd = echo@'final_user_defined_cmd'@>>__test_file__, date@>>__test_file__   ##here '@' represents a whitespace
+
+job_submission_script =    xxxxxx/vasp.lsf         
+job_submission_command =    bsub < vasp.lsf > job_id
+
+###############################################################
+###These parameters are required in the first step.
+force_gamma =          #Yes or No
+2d_system =    #Yes or No
+sort_structure =      #Yes or No
+
+job_query_command = bjobs@w             #here '@' represents a whitespace
+job_killing_command =  bkill          #here '@' represents a whitespace
+where_to_parse_queue_id =  job_id
+re_to_parse_queue_id =           #python's re.findall is adopted to parse the job id from file refered by where_to_parse_queue_id
+queue_stdout_file_prefix =       #At least one of queue_stdout_file_prefix, queue_stderr_file_suffix, queue_stderr_file_prefix, queue_stderr_file_suffix will be set
+queue_stdout_file_suffix = 
+queue_stderr_file_prefix = 
+queue_stderr_file_suffix = 
+vasp.out = 
+
+max_running_job = 50
+structure_folder = 
+cal_folder = 
+##################################################################
+**end
+
+
+
+**start
+step_no = 2
+cal_name = consecutive str opt
+
+copy_from_prev_cal = INCAR, KPOINTS, POSCAR, POTCAR, CONTCAR, vasp.lsf     #vasp.lsf here is the job submission script defined by job_submission_script
+move_from_prev_cal = CHGCAR
+contcar_to_poscar = Yes
+
+kpoints_type = MPRelaxSet
+
+*begin(add_new_incar_tags)
+ICHARG = 1
+EDIFF  = 1.0E-5
+EDIFFG = -0.01
+*end(add_new_incar_tags)
+
+job_submission_script = xxxxxx/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+**start
+step_no = 3
+cal_name = scf
+
+copy_from_prev_cal = INCAR, CONTCAR, POTCAR
+contcar_to_poscar = Yes
+
+kpoints_type = MPStaticSet
+denser_kpoints = 1.5, 1.5, 1
+
+*begin(add_new_incar_tags)
+ICHARG = 2
+ISMEAR = -5
+*end(add_new_incar_tags)
+
+comment_incar_tags = IBRION, ISIF, NSW, EDIFFG
+
+job_submission_script = xxxxxx/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+
+**start
+step_no = 4
+cal_name = band structure
+
+copy_from_prev_cal = INCAR, POSCAR, CHGCAR, POTCAR
+copy_which_step = 3
+
+kpoints_type = Line-mode
+intersections = 20
+
+*begin(add_new_incar_tags)
+ICHARG = 11
+LORBIT = 11
+LCHARG = .FALSE.
+ISMEAR = 0
+LCHARG = .FALSE.
+*end(add_new_incar_tags)
+
+user_defined_cmd = echo@'user_defined_cmd test'@>>__test_file__, date@>>__test_file__          #here '@' represents a whitespace
+final_user_defined_cmd = echo@'final_user_defined_cmd'@>>__test_file__, date@>>__test_file__   #here '@' represents a whitespace
+
+
+job_submission_script = xxxxxx/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+
+
+**start
+step_no = 5
+cal_name = dos
+
+copy_from_prev_cal = INCAR, POSCAR, CHGCAR, POTCAR
+copy_which_step = 3
+
+kpoints_type = MPStaticSet
+denser_kpoints = 2, 3, 1
+
+*begin(add_new_incar_tags)
+ICHARG = 11
+LORBIT = 11
+LCHARG = .FALSE.
+ISMEAR = 0
+LCHARG = .FALSE.
+*end(add_new_incar_tags)
+
+job_submission_script = xxxxxx/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
