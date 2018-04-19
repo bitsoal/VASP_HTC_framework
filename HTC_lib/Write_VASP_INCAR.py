@@ -161,7 +161,7 @@ def modify_vasp_incar(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], ren
             incar.append([key, value])
             
     #import pprint
-    pprint.pprint(incar)
+    #pprint.pprint(incar)
     
     if new_tags == {} and comment_tags ==[] and remove_tags == []:
         return {item[0]: item[1] for item in incar if isinstance(item, list)}
