@@ -79,7 +79,7 @@ def Write_Vasp_KPOINTS(cal_loc, structure_filename, workflow):
     
 
 
-# In[3]:
+# In[4]:
 
 
 class Vasp_Kpoints():
@@ -137,7 +137,17 @@ class Vasp_Kpoints():
         Note that the reciprocal coordinates are adopted.
         Note that if twoD_system is True, the vacuum layer is assumed to be along the Z direction and the lattice vector c must be normal to the surface.
         """
-        kpath = HighSymmKpath(structure=self.structure).get_kpoints(line_density=1, coords_are_cartesian=False)
+        try:
+            kpath = HighSymmKpath(structure=self.structure).get_kpoints(line_density=1, coords_are_cartesian=False)
+        except Exception as e:
+            with open(os.path.join(self.log_txt), "a") as f:
+                f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
+                f.write("\t\tfail to find high-symmetry kpoints using pymatgen's HighSymmKpath\n")
+                f.write("\t\t{}\n".format(e.message))
+                f.write("\t\tcreate __manual__ and __HighSymmKpath__ to it.\n")
+            with open(os.path.join(self.cal_loc, "__manual__"), "w") as f:
+                f.write("__HighSymmKpath__")
+            return False
         kpoints = []
         for k_, k_label in zip(*kpath):
             if k_label:
