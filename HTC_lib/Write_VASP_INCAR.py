@@ -3,7 +3,7 @@
 
 # # created on March 31 2018
 
-# In[5]:
+# In[4]:
 
 
 import os, pprint
@@ -12,9 +12,10 @@ from pymatgen.io.vasp.sets import MPRelaxSet
 from pymatgen import Structure
 
 from Utilities import get_time_str, find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
+from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
 
 
-# In[6]:
+# In[3]:
 
 
 def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
@@ -69,6 +70,24 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
                 f.write("\n")
             if write_INCAR:
                 f.write("\t\told INCAR --> INCAR.pymatgen\n")
+                
+    if firework["bader_charge"]:
+        if firework["step_no"] == 1:
+            with open(log_txt, "a") as f:
+                f.write("{} INFO: in {}\n".format(get_time_str(), firework_name))
+                f.write("\t\t\t'bader_charge' is on\n")
+                f.write("\t\t\tBut this is the first step. Cannot find NGXF, NGYF, NGZF\n")
+                f.write("\t\t\tLet's make a calculation without this INCAR tags first to get the default NGXF, NGYF and NGZF\n")
+        else:
+            prev_cal = os.path.join(os.path.split(cal_loc)[0], workflow[firework["copy_which_step"]-1]["firework_folder_name"])
+            new_incar_tags = get_bader_charge_tags(cal_loc=prev_cal)
+            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge")
+            with open(log_txt, "a") as f:
+                f.write("{} INFO: in {}\n".format(get_time_str(), firework_name))
+                f.write("\t\t\t'bader_charge' is on\n")
+                f.write("\t\t\tretrieve NGXF, NGYF, NGZF from {} and double them\n".format(os.path.split(prev_val)[1]))
+                f.write("\t\tnew incar tags:\n")    
+                [f.write("\t\t\t{}={}\n".format(key_, value_)) for key_, value_ in new_incar_tags.items()]
     
 
 
@@ -184,6 +203,30 @@ def modify_vasp_incar(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], ren
                 incar_f.write("{} = {}\n".format(line[0], line[1]))
             elif isinstance(line, str):
                 incar_f.write(line+"\n")
+
+
+# In[18]:
+
+
+def get_bader_charge_tags(cal_loc):
+    """
+    Find INCAR tags relevant to Bader Charge Calculations. 
+    NGXF, NGYF and NGZF are retrieved from the OUTCAR under cal_loc and doubled
+    input argument:
+        cal_loc (str): the absolute path under which OUTCAR offers the default NGXF, NGYF, NGZF
+    output - a dictionary of INCAR tags:
+            LCHARG = .TRUE.
+            LAECHG = .TRUE.
+            NGXF   = 2 * default value
+            NGYF   = 2 * default value
+            NGZF   = 2 * default value
+    """
+    NGXF, NGYF, NGZF = find_incar_tag_from_OUTCAR(cal_loc=cal_loc, tag="NG_X_Y_Z_F")
+    return {"LCHARG": ".TRUE.", 
+            "LAECHG": ".TRUE.", 
+            "NGXF": 2* NGXF, 
+            "NGYF":2*NGYF, 
+            "NGZF": 2*NGZF}
 
 
 # modify_vasp_incar(".", new_tags={"ISMEAR": 5}) #, remove_tags=["ISYM", "EDIFF", "ISMEARy"], comment_tags=["LWAVE", "IBRION"])

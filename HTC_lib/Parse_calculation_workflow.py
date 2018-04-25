@@ -161,6 +161,13 @@ def parse_calculation_workflow(filename="Calculation_setup"):
             firework["extra_copy"] = firework.get("extra_copy", [])
             firework["final_extra_copy"] = firework.get("final_extra_copy", [])
             
+            if "bader_charge" not in firework.keys():
+                firework["bader_charge"] = False
+            else:
+                if "y" in firework["bader_charge"].lower():
+                    firework["bader_charge"] = True
+                else:
+                    firework["bader_charge"] = False
             
             if "kpoints_type" not in firework.keys():
                 print("\nYou don't set tag kpoints_type for step {}".format(firework["step_no"]))
