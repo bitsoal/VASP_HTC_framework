@@ -471,6 +471,43 @@ def find_FERMI_from_OUTCAR(cal_loc="."):
     return float(line.split()[2])
 
 
+# In[ ]:
+
+
+def find_LREAL_from_OUTCAR(cal_loc="."):
+    """
+    Find LREAL from OUTCAR.
+    input arguments:
+        -cal_loc (str): the location of the calculation. Default: "."
+    return the corresponding value if found; otherwise, return None
+    """
+    
+    with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
+        for line in f:
+            if line.strip().startswith("LREAL  ="):
+                break
+                
+    return float(line.split()[2])
+
+
+# In[ ]:
+
+
+def find_NGXF_NGYF_NGZF_from_OUTCAR(cal_loc="."):
+    """
+    Find NGXF, NGYF and NGZF from OUTCAR.
+    input arguments:
+        -cal_loc (str): the location of the calculation. Default: "."
+    return the corresponding value if found; otherwise, return None
+    """
+    with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
+        for line in f:
+            if "dimension x,y,z NGXF=" in line:
+                break
+                
+    return [int(value) for value in re.findall("[0-9]+", line)]
+
+
 # In[21]:
 
 
@@ -494,7 +531,9 @@ def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
                       "IALGO": find_IALGO_from_OUTCAR,
                       "NBANDS": find_NBANDS_from_OUTCAR, 
                       "ICHARG": find_ICHARG_from_OUTCAR,
-                      "FERMI": find_FERMI_from_OUTCAR
+                      "FERMI": find_FERMI_from_OUTCAR, 
+                      "LREAL": find_LREAL_from_OUTCAR, 
+                      "NG_X_Y_Z_F": find_NGXF_NGYF_NGZF_from_OUTCAR
                      }
     tag = tag.upper()
     assert tag in find_func_dict.keys(), "Error: currently don't support the search for {} in OUTCAR".format(tag)

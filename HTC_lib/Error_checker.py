@@ -3,7 +3,7 @@
 
 # # created on Feb 18 2018
 
-# In[1]:
+# In[3]:
 
 
 import os, time, shutil
@@ -17,10 +17,10 @@ import numpy as np
 
 from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
 from Utilities import get_time_str, search_file, decorated_os_rename
-from Write_VASP_INCAR import modify_vasp_incar
+from Write_VASP_INCAR import modify_vasp_incar, get_current_firework_from_cal_loc, get_bader_charge_tags
 
 
-# In[2]:
+# In[4]:
 
 
 def Vasp_Error_checker(error_type, cal_loc, workflow):  
@@ -51,9 +51,10 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__rhosyg__":Vasp_out_rhosyg, 
                           "__edddav__":Vasp_out_edddav, 
                           "__zpotrf__": Vasp_out_zpotrf, 
-                          "__real_optlay__": Vasp_out_real_optlay}
+                          "__real_optlay__": Vasp_out_real_optlay, 
+                          "__bader_charge__": Bader_Charge}
     
-    on_the_fly = ["__too_few_bands__", "__electronic_divergence__"]
+    on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__bader_charge__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
     after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
     after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
@@ -82,7 +83,7 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
         return True
 
 
-# In[3]:
+# In[5]:
 
 
 class Write_and_read_error_tag(object):
@@ -109,7 +110,7 @@ class Write_and_read_error_tag(object):
         return error_tag
 
 
-# In[4]:
+# In[6]:
 
 
 class Queue_std_files():
@@ -174,7 +175,7 @@ class Queue_std_files():
 #     
 #     return Func_wrapper
 
-# In[5]:
+# In[7]:
 
 
 def  find_target_str(cal_loc, target_file, target_str):
@@ -198,7 +199,7 @@ def  find_target_str(cal_loc, target_file, target_str):
     return found_target_str
 
 
-# In[6]:
+# In[8]:
 
 
 class Vasp_Error_Saver(object):
@@ -274,7 +275,7 @@ class Vasp_Error_Saver(object):
                 return "error_"+str(error_times+1)
 
 
-# In[7]:
+# In[9]:
 
 
 class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
@@ -384,7 +385,7 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
 
 # # For all error checkers, the check method will return False if an error is found. Otherwise return True
 
-# In[8]:
+# In[10]:
 
 
 class OUTCAR_status(Vasp_Error_Checker_Logger):
@@ -438,7 +439,7 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
     
 
 
-# In[9]:
+# In[11]:
 
 
 class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -508,7 +509,7 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[10]:
+# In[12]:
 
 
 class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -578,7 +579,7 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[11]:
+# In[13]:
 
 
 class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -643,7 +644,7 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[12]:
+# In[14]:
 
 
 class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -712,7 +713,7 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[13]:
+# In[15]:
 
 
 class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
@@ -781,7 +782,7 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
 
 
 
-# In[14]:
+# In[16]:
 
 
 class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -861,7 +862,7 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         
 
 
-# In[15]:
+# In[17]:
 
 
 class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -949,7 +950,7 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         
 
 
-# In[16]:
+# In[18]:
 
 
 class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1025,7 +1026,7 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return False                        
 
 
-# In[17]:
+# In[19]:
 
 
 class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1121,7 +1122,7 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                             
 
 
-# In[18]:
+# In[20]:
 
 
 class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1194,14 +1195,15 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 os.remove(os.path.join(self.cal_loc, "CHGCAR"))
         if ALGO != "all":
             super(Vasp_out_edddav, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"})
-            super(Vasp_out_edddav, self).write_correction_log(new_incar_tags={"ALGO": "All"}, remove_files=["CHGCAR"])
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"}, remove_tags=["AMIX", "BMIX", "AMIN"])
+            super(Vasp_out_edddav, self).write_correction_log(new_incar_tags={"ALGO": "All"}, remove_incar_tags=["AMIX", "BMIX", "AMIN"], 
+                                                              remove_files=["CHGCAR"])
             return True
         
         return False                       
 
 
-# In[19]:
+# In[21]:
 
 
 class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1265,7 +1267,7 @@ class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[20]:
+# In[22]:
 
 
 class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1319,12 +1321,13 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def correct(self):
         """
         Orders of corrections:
-            1st option: if ALGO != Normal, set ALGO = Normal and NELM = 100 if original NELM < 100.
+            1st option: if ALGO != Normal, set ALGO = Normal and NELM = 200 if original NELM < 200; 
+                        If the dipole correction is on, try to set DIPOL if not present
             2nd option: if the dipole correction is on, try to set DIPOL if not present.
-            3rd option: AMIX=0.1, BMIX = 0.01, ICHARG = 2 and NELM = 150 if original NELM < 150
-            4th option: AMIN=0.01, BMIX=3.0, ICHARG =2 and NELM = 200 if original NELM < 200
+            3rd option: AMIX=0.1, BMIX = 0.01, ICHARG = 2 and NELM = 300 if original NELM < 300
+            4th option: AMIN=0.01, BMIX=3.0, ICHARG =2 and NELM = 400 if original NELM < 400
             5th option: return False <-- fail to automatically recover.
-            Note that for the 1st, 3rd, 4th options, if EDIFF*5 <= 1.0E-4, we also set EDIFF = EDIFF*5
+            Note that for the 1st, 2nd, 3rd, 4th options, if EDIFF*5 <= 1.0E-4, we also set EDIFF = EDIFF*5
         This correction is borrowed from custodian and modified.
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
@@ -1345,30 +1348,40 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         IDIPOL = int(incar.get("IDIPOL", 0)) 
         DIPOL = incar.get("DIPOL", "")
         
-        if float(EDIFF)*5 <= 1.0E-4:
-            EDIFF_ = 5*EDIFF
-        else:
-            EDIFF_ = EDIFF
+        new_incar_tags = {"LREAL": ".FALSE."}
         
-        if IALGO != 38:
-                        
+        if EDIFF*5 <= 1.0E-4:
+            new_incar_tags["EDIFF"] = EDIFF * 5
+
+        
+        if IALGO != 38:                        
             super(Electronic_divergence, self).backup()
-            NELM_ = NELM if NELM > 100 else 100
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal", "NELM": NELM_, "EDIFF": EDIFF_}, 
-                              rename_old_incar=False)
-            super(Electronic_divergence, self).write_correction_log(new_incar_tags={"ALGO": "Normal", "NELM": NELM_, "EDIFF": EDIFF_})
+            new_incar_tags["ALGO"] = "Normal"
+            new_incar_tags["NELM"] = NELM if NELM > 200 else 200
+            #For the calculations involved in the dipole correction, set the dipol center.
+            #Note that 0.5 is set along x and y directions, while the geometrical center is adopted along the z direction.
+            if IDIPOL != 0:
+                if DIPOL == "":
+                    struct = Structure.from_file(os.path.join(self.cal_loc, "POSCAR"))
+                    mean_c = np.mean(struct.frac_coords[:, 2])
+                    new_incar_tags["DIPOL"] = "0.5 0.5 {:.3}".format(mean_c)
+                    new_incar_tags["ICHARG"] = 2
+                    
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
             return True
         
         #For the calculations involved in the dipole correction, set the dipol center.
-        #Note that 0.5 is set along x and y directions, while the geometrical center is adopted along the z direction.
+        #Note that 0.5 is set along x and y directions, while the geometrical center is adopted along the z direction.    
         if IDIPOL != 0: 
             if DIPOL == "":
                 super(Electronic_divergence, self).backup()
                 struct = Structure.from_file(os.path.join(self.cal_loc, "POSCAR"))
                 mean_c = np.mean(struct.frac_coords[:, 2])
-                new_tags = {"DIPOL": "0.5 0.5 {:.3}".format(mean_c), "ICHARG":2}
-                modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
-                super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags)
+                new_incar_tags["DIPOL"] = "0.5 0.5 {:.3}".format(mean_c)
+                new_incar_tags["ICHARG"] = 2
+                modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+                super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
                 return True
         
         if BMIX == 3.0:
@@ -1376,25 +1389,29 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         if AMIX > 0.1 and BMIX > 0.01:
             super(Electronic_divergence, self).backup()
-            NELM_ = 150 if NELM < 150 else NELM
-            new_tags = {"AMIX": 0.1, "BMIX": 0.01, "ICHARG": 2, "NELM": NELM_, "EDIFF": EDIFF_}
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
-            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags)
+            new_incar_tags["NELM"] = NELM if NELM > 300 else 300
+            new_incar_tags["AMIX"] = 0.1
+            new_incar_tags["BMIX"] = 0.01
+            new_incar_tags["ICHARG"] = 2
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
             return True
         
         if BMIX < 3.0 and AMIN > 0.01:
             super(Electronic_divergence, self).backup()
-            NELM_ = 200 if 200 > NELM else NELM
-            new_tags = {"AMIN": 0.01, "BMIX": 3.0, "ICHARG": 2, "NELM": NELM_, "EDIFF": EDIFF_}
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, remove_tags=["AMIX"], rename_old_incar=False)
-            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_tags, remove_incar_tags=["AMIX"])
+            new_incar_tags["NELM"] = NELM if NELM > 400 else 400
+            new_incar_tags["AMIN"] = 0.01
+            new_incar_tags["BMIX"] = 3.0
+            new_incar_tags["ICHARG"] = 2
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, remove_tags=["AMIX"], rename_old_incar=False)
+            super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags, remove_incar_tags=["AMIX"])
             return True
         
         return False
     
 
 
-# In[21]:
+# In[23]:
 
 
 class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1494,12 +1511,13 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 f.write("\t\t\tThe ionic step reaches the preset maximum step ({})\n".format(NSW))
                 f.write("\t\t\tBut IBRION is {}, not 1. So try one more round.\n".format(IBRION))
                 f.write("\t\t\tIBRION = 1,  CONTCAR --> POSCAR.\n")
+            return True
         else:
             return False
         
 
 
-# In[22]:
+# In[24]:
 
 
 class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1575,7 +1593,84 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False
 
 
-# In[23]:
+# In[25]:
+
+
+class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: on the fly.
+    If Bader Charge is going to be calculated (bader_charge tag is on), check LAECHG, NGXF, NGYF, NGZF, LCHARG.
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation.
+        -workflow:  the output of func Parse_calculation_workflow.parse_calculation_workflow
+    check method: if bader_charge is on and any of LAECHG, NGXF, NGYF, NGZF, LCHARG is not set properly, trigger an error named __bader_charge__
+    correction: set LAECHG, NGXF, NGYF, NGZF, LCHARG properly
+    """
+    
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework = get_current_firework_from_cal_loc(cal_loc=cal_loc, workflow=workflow)
+
+    
+    def check(self):
+        if self.firework["bader_charge"] == False:
+            return True
+        
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        all_in = True
+        for tag in ["LAECHG", "NGXF", "NGYF", "NGZF"]:
+            if tag not in incar_dict.keys():
+                all_in = False
+                break
+        
+        if "LCHARG" in incar_dict.keys():
+            if "t" not in incar_dict["LCHARG"].lower():
+                all_in = False
+                
+        if all_in == False:
+            if self.firework["step_no"] == 1:
+                if os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+                    if find_target_str(cal_loc=self.cal_loc, target_file="OUTCAR", target_str="dimension x,y,z NGXF="):
+                        self.write_error_log()
+                        return False
+            else:
+                self.write_error_log()
+                return False
+        return True    
+            
+    def write_error_log(self):
+        error_str = "INCAR tags related to the Bader Charge Calculation are not set properly"
+        super(Bader_Charge, self).write_error_log(target_error_str=error_str, error_type="__bader_charge__")
+    
+    def correct(self):
+        """
+        Please refer to http://theory.cm.utexas.edu/henkelman/code/bader/ for the INCAR tag settings for Bader Charge Analysis
+            LCHARG = .TRUE.
+            LAECHG = .TRUE.
+            NGXF   = 2 * default value
+            NGYF   = 2 * default value
+            NGZF   = 2 * default value
+        """
+        if self.firework["step_no"] == 1:
+            new_incar_tags = get_bader_charge_tags(cal_loc=self.cal_loc)
+        else:
+            prev_cal = os.path.join(os.path.split(self.cal_loc)[0], self.workflow[self.firework["copy_which_step"]-1]["firework_folder_name"])
+            new_incar_tags = get_bader_charge_tags(cal_loc=prev_cal)
+        
+        super(Bader_Charge, self).backup()
+        modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge")
+        super(Bader_Charge, self).write_correction_log(new_incar_tags=new_incar_tags)
+        return True
+        
+
+
+# In[26]:
 
 
 class Null_error_checker(object):

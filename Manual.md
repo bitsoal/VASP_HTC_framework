@@ -157,7 +157,8 @@ This tag allows you to copy files which are not in any previous firework folders
 
 - **comment\_incar\_tags**, optional.  
 comment VASP INCAR tags  
-*If multiple tags need to be commented, separate them with commas.*    
+*If multiple tags need to be commented, separate them with commas.*  
+**It doesn't make sense that you comment an INCAR tag using `comment_incar_tags` while resetting it in `add_new_incar_tags` sub-block simultaneously. If such a contradiction takes place, an error will be incurred.**    
 Default: empty
 
 --------------------------
@@ -165,6 +166,7 @@ Default: empty
 - **remove\_incar\_tags**, optional.  
 remove VASP INCAR tags.  
 If multiple INCAR tags need to be removed, separate them with commas.  
+**It doesn't make sense that you comment an INCAR tag using `remove_incar_tags` while resetting it in `add_new_incar_tags` sub-block simultaneously. If such a contradiction takes place, an error will be incurred.**  
 Default: empty
 
 -------------------------------
@@ -173,7 +175,27 @@ Default: empty
   - start from the line which starts with `*begin(add_new_incar_tags)`; It ends up with the line which starts with `*end(add_new_incar_tags)`
   - In between the starting line and ending line, just specify INCAR tags as if you are writing INCAR:
      - If an INCAR tag is already in the old INCAR, this tag will be overwritten.
-     - If an INCAR tag is not in the old INCAR, this tag will be added.
+     - If an INCAR tag is not in the old INCAR, this tag will be added.  
+       
+**Note that in this sub-block, the multiple pairs of tag-values separated by `;` in a line is not supported. In this case, only the first pair of tag-value will be parsed as a new INCAR tag, and the value is what is in between the first `=` and the second `=`. This may incur unpredictable errors**  
+
+**It doesn't make sense that you reset an INCAR tag in `add_new_incar_tags` sub-block while simultaneously trying to comment or remove this INCAR tag using `comment_incar_tags` or `remove_incar_tags`. If such a contradiction takes place, an error will be incurred.**
+
+----------------
+- **bader\_charge**, optional.
+This bool tag decides whether to calculate the [Bader Charge](http://theory.cm.utexas.edu/henkelman/code/bader/). 
+	- `Yes`: Calculate the Bader Charge. In this case, those tags will be automatically added into INCAR:  
+		- `LCHARG = .TRUE.  
+		- LAECHG=.TRUE.  
+		- NGXF = 2 * default value  
+		- NGYF = 2 * default value  
+		- NGZF = 2 * default value`
+	- `No`: Don't calculate the Bader Charge.  
+Default: `bader_charge=No`  
+  
+**Where to find (NGXF, NGYF, NGZF):**  
+	- if the current firework is the first step (no parent firework), a calculation without these tags will be carried out and then be terminated once the default values of (NGXF, NGYF, NFZF) are found in the OUTCAR. Afterwards, add all of the associated tags into INCAR for the Bader Charge calculation  
+	- if the current firework is not the first step, (NGXF, NGYF, NGZF) will be retrieved from the OUTCAR of the previous calculation which is indicated by `copy_which_step` 
 
 --------------------------------------
 - **kpoints\_type**, **case sensitive**, **required for every firework**  
@@ -239,7 +261,7 @@ This tag can be set only in the first firework and *this setting will be applied
   - Default: `Yes`  
 
 
-***Why we need this tag?***
+***Why do we need this tag?***
   
   * In some cases, the atomic sites may be ordered carefully for some specific purposes. So you may not want to change the order of atoms by pymatgen
   * The `Yes` state of this tag aims to deal with the given structures whose atoms are not grouped by atomic species. For example, the atoms of the given MoS2 may be arranged like `S  Mo  S` instead of `S S  Mo` or `Mo S S`. Such non-grouped atom arrangements may happen if the to-be-calculated structures are outputs of pymatgen and before exporting from pymatgen, `get_sorted_structure` has not been called to group atoms. In case of non-grouped atomic arrangements, `sort_structure` defaults to `Yes`
@@ -342,7 +364,11 @@ e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is
 
 
 -------------
-### Tag list ends here
+### Tag list ends here. You can find a template of `HTC_calculation_setup_file` under folder `Template`
+-------------------------
+
+### Below is a template of `HTC_calculation_setup_file` in which those tags are at least required. You can customize this template by adding new tags based on the properties in your interest:
+
 
 <br>
 <br>

@@ -3,18 +3,19 @@
 
 # # created on March 31 2018
 
-# In[1]:
+# In[4]:
 
 
-import os
+import os, pprint
 
 from pymatgen.io.vasp.sets import MPRelaxSet
 from pymatgen import Structure
 
 from Utilities import get_time_str, find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
+from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
 
 
-# In[2]:
+# In[3]:
 
 
 def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
@@ -69,10 +70,28 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
                 f.write("\n")
             if write_INCAR:
                 f.write("\t\told INCAR --> INCAR.pymatgen\n")
+                
+    if firework["bader_charge"]:
+        if firework["step_no"] == 1:
+            with open(log_txt, "a") as f:
+                f.write("{} INFO: in {}\n".format(get_time_str(), firework_name))
+                f.write("\t\t\t'bader_charge' is on\n")
+                f.write("\t\t\tBut this is the first step. Cannot find NGXF, NGYF, NGZF\n")
+                f.write("\t\t\tLet's make a calculation without this INCAR tags first to get the default NGXF, NGYF and NGZF\n")
+        else:
+            prev_cal = os.path.join(os.path.split(cal_loc)[0], workflow[firework["copy_which_step"]-1]["firework_folder_name"])
+            new_incar_tags = get_bader_charge_tags(cal_loc=prev_cal)
+            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge")
+            with open(log_txt, "a") as f:
+                f.write("{} INFO: in {}\n".format(get_time_str(), firework_name))
+                f.write("\t\t\t'bader_charge' is on\n")
+                f.write("\t\t\tretrieve NGXF, NGYF, NGZF from {} and double them\n".format(os.path.split(prev_val)[1]))
+                f.write("\t\tnew incar tags:\n")    
+                [f.write("\t\t\t{}={}\n".format(key_, value_)) for key_, value_ in new_incar_tags.items()]
     
 
 
-# In[3]:
+# In[18]:
 
 
 def modify_vasp_incar(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], rename_old_incar=True):
@@ -94,38 +113,77 @@ def modify_vasp_incar(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], ren
     new_tags = {key.upper(): value for key, value in new_tags.items()}
     comment_tags = [tag.upper() for tag in comment_tags]
     remove_tags = [tag.upper() for tag in remove_tags]
-
-    Valid_tags, Commented_tags = {}, {}
-    Ordered_tags = []
-    with open(os.path.join(cal_loc, "INCAR"), "r") as incar:
-        for line in incar:
-            items = [item.strip() for item in line.strip().split("=")]
-            if len(items)>=2:
-                if items[0].startswith("#"):
-                    tag = items[0].strip("#").upper().strip()
-                    if tag in remove_tags:
-                        continue
-                    Commented_tags[tag] = items[1]
-                    Ordered_tags.append(tag)
-                else:
-                    tag = items[0].upper()
-                    if tag in remove_tags:
-                        continue
-                    Valid_tags[items[0].upper()] = items[1]
-                    Ordered_tags.append(tag)
-
-    for new_tag, value in new_tags.items():
-        Valid_tags[new_tag] = value
-        if new_tag not in Ordered_tags:
-            Ordered_tags.append(new_tag)
-
-    for comment_tag in comment_tags:
-        if comment_tag in Valid_tags.keys():
-            Commented_tags[comment_tag] = Valid_tags[comment_tag]
-            del Valid_tags[comment_tag]
+    
+    new_incar_tag_name = new_tags.keys()
+    for tag in comment_tags + remove_tags:
+        if tag in new_incar_tag_name:
+            #import pprint
+            print("\n\n**directory: {}".format(cal_loc))
+            print("**new_tags:")
+            pprint.pprint(new_tags)
+            print("**comment_tags:")
+            pprint.pprint(comment_tags)
+            print("**remove_tags:")
+            pprint.pprint(remove_tags)
+            Error_info = "***You are gonna comment of remove an INCAR tag {} via comment_tags/remove_tags.".format(tag)
+            Error_info += "This contradicts the simultaneous attempt to set {} via new_tags**\n\n".format(tag)
+            print(Error_info)
+            raise Exception("See the error information above.")
             
-    if new_tags == {} and comment_tags == [] and remove_tags == []:
-        return Valid_tags
+
+    
+    with open(os.path.join(cal_loc, "INCAR"), "r") as incar_f:
+        lines = []
+        for line in incar_f:
+            if line.strip() == "":
+                continue
+            pairs = line.strip().split("#")[0]
+            pairs = pairs.strip().split("!")[0]
+            #print(pairs, line)
+            if "#" in line:
+                comments = "#" + "#".join(line.strip().split("#")[1:])
+            elif "!" in line:
+                comments = "#" + "!".join(line.strip().split("!")[1:])
+            else:
+                comments = ""
+            for pair in [pair.strip() for pair in pairs.split(";") if pair.strip()]:
+                lines.append(pair)
+            if len(comments.strip()) > 1:
+                lines.append(comments)
+                
+                    
+    incar = []
+    for line in lines:
+        if line.startswith("#"):
+            incar.append(line)
+        else:
+            #print(line)
+            key, value = line.split("=")
+            key = key.strip().upper()
+            value = value.strip()
+            if key in remove_tags:
+                continue
+            elif key in comment_tags:
+                incar.append("#"+line)
+            else:
+                incar.append([key, value])
+                
+    valid_tag_ind_dict = {}
+    for line_ind, line in enumerate(incar):
+        if isinstance(line, list):
+            valid_tag_ind_dict[line[0]] = line_ind
+            
+    for key, value in new_tags.items():
+        if key in valid_tag_ind_dict.keys():
+            incar[valid_tag_ind_dict[key]][1] = value
+        else:
+            incar.append([key, value])
+            
+    #import pprint
+    #pprint.pprint(incar)
+    
+    if new_tags == {} and comment_tags ==[] and remove_tags == []:
+        return {item[0]: item[1] for item in incar if isinstance(item, list)}
 
     if isinstance(rename_old_incar, bool):
         if rename_old_incar:
@@ -139,12 +197,38 @@ def modify_vasp_incar(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], ren
         raise Exception("input argument rename_old_incar of modify_vasp_incar must be either bool or str.")
         
     
-    with open(os.path.join(cal_loc, "INCAR"), "w") as incar:
-        for tag in Ordered_tags:
-            if tag in Valid_tags.keys():
-                incar.write("{} = {}\n".format(tag, Valid_tags[tag]))
-            else:
-                incar.write("#{} = {}\n".format(tag, Commented_tags[tag]))
+    with open(os.path.join(cal_loc, "INCAR"), "w") as incar_f:
+        for line in incar:
+            if isinstance(line, list):
+                incar_f.write("{} = {}\n".format(line[0], line[1]))
+            elif isinstance(line, str):
+                incar_f.write(line+"\n")
 
 
+# In[18]:
 
+
+def get_bader_charge_tags(cal_loc):
+    """
+    Find INCAR tags relevant to Bader Charge Calculations. 
+    NGXF, NGYF and NGZF are retrieved from the OUTCAR under cal_loc and doubled
+    input argument:
+        cal_loc (str): the absolute path under which OUTCAR offers the default NGXF, NGYF, NGZF
+    output - a dictionary of INCAR tags:
+            LCHARG = .TRUE.
+            LAECHG = .TRUE.
+            NGXF   = 2 * default value
+            NGYF   = 2 * default value
+            NGZF   = 2 * default value
+    """
+    NGXF, NGYF, NGZF = find_incar_tag_from_OUTCAR(cal_loc=cal_loc, tag="NG_X_Y_Z_F")
+    return {"LCHARG": ".TRUE.", 
+            "LAECHG": ".TRUE.", 
+            "NGXF": 2* NGXF, 
+            "NGYF":2*NGYF, 
+            "NGZF": 2*NGZF}
+
+
+# modify_vasp_incar(".", new_tags={"ISMEAR": 5}) #, remove_tags=["ISYM", "EDIFF", "ISMEARy"], comment_tags=["LWAVE", "IBRION"])
+
+# help(pprint.pprint)
