@@ -245,7 +245,7 @@ This tag can be set only in the first firework and *this setting will be applied
   - Default: `Yes`  
 
 
-***Why we need this tag?***
+***Why do we need this tag?***
   
   * In some cases, the atomic sites may be ordered carefully for some specific purposes. So you may not want to change the order of atoms by pymatgen
   * The `Yes` state of this tag aims to deal with the given structures whose atoms are not grouped by atomic species. For example, the atoms of the given MoS2 may be arranged like `S  Mo  S` instead of `S S  Mo` or `Mo S S`. Such non-grouped atom arrangements may happen if the to-be-calculated structures are outputs of pymatgen and before exporting from pymatgen, `get_sorted_structure` has not been called to group atoms. In case of non-grouped atomic arrangements, `sort_structure` defaults to `Yes`
@@ -348,7 +348,11 @@ e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is
 
 
 -------------
-### Tag list ends here
+### Tag list ends here. You can find a template of `HTC_calculation_setup_file` under folder `Template`
+-------------------------
+
+### Below is a template of `HTC_calculation_setup_file` in which those tags are at least required. You can customize this template by adding new tags based on the properties in your interest:
+
 
 <br>
 <br>

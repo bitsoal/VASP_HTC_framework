@@ -1510,6 +1510,7 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 f.write("\t\t\tThe ionic step reaches the preset maximum step ({})\n".format(NSW))
                 f.write("\t\t\tBut IBRION is {}, not 1. So try one more round.\n".format(IBRION))
                 f.write("\t\t\tIBRION = 1,  CONTCAR --> POSCAR.\n")
+            return True
         else:
             return False
         
