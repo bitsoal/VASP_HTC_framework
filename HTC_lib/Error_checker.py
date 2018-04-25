@@ -17,7 +17,7 @@ import numpy as np
 
 from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
 from Utilities import get_time_str, search_file, decorated_os_rename
-from Write_VASP_INCAR import modify_vasp_incar
+from Write_VASP_INCAR import modify_vasp_incar, get_current_firework_from_cal_loc, get_bader_charge_tags
 
 
 # In[2]:
@@ -174,7 +174,7 @@ class Queue_std_files():
 #     
 #     return Func_wrapper
 
-# In[5]:
+# In[2]:
 
 
 def  find_target_str(cal_loc, target_file, target_str):
@@ -1590,6 +1590,83 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return True
         
         return False
+
+
+# In[22]:
+
+
+class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: on the fly.
+    If Bader Charge is going to be calculated (bader_charge tag is on), check LAECHG, NGXF, NGYF, NGZF, LCHARG.
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation.
+        -workflow:  the output of func Parse_calculation_workflow.parse_calculation_workflow
+    check method: if bader_charge is on and any of LAECHG, NGXF, NGYF, NGZF, LCHARG is not set properly, trigger an error named __bader_charge__
+    correction: set LAECHG, NGXF, NGYF, NGZF, LCHARG properly
+    """
+    
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework = get_current_firework_from_cal_loc(cal_loc=cal_loc, workflow=workflow)
+
+    
+    def check(self):
+        if self.firework["bader_charge"]:
+            return True
+        
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        all_in = True
+        for tag in ["LAECHG", "NGXF", "NGYF", "NGZF"]:
+            if tag not in incar_dict.keys():
+                all_in = False
+                break
+        
+        if "LCHARG" in incar_dict.keys():
+            if "t" not in incar_dict["LCHARG"].lower():
+                all_in = False
+                
+        if all_in == False:
+            if self.firework["step_no"] == 1:
+                if os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+                    if find_target_str(cal_loc=self.cal_loc, target_file="OUTCAR", target_str="dimension x,y,z NGXF="):
+                        self.write_error_log()
+                        return False
+            else:
+                self.write_error_log()
+                return False
+        return True    
+            
+    def write_error_log(self):
+        error_str = "INCAR tags related to the Bader Charge Calculation are not set properly"
+        super(Bader_Charge, self).write_error_log(target_error_str=error_str, error_type="__bader_charge__")
+    
+    def correct(self):
+        """
+        Please refer to http://theory.cm.utexas.edu/henkelman/code/bader/ for the INCAR tag settings for Bader Charge Analysis
+            LCHARG = .TRUE.
+            LAECHG = .TRUE.
+            NGXF   = 2 * default value
+            NGYF   = 2 * default value
+            NGZF   = 2 * default value
+        """
+        if self.firework["step_no"] == 1:
+            new_incar_tags = get_bader_charge_tags(cal_loc=self.cal_loc)
+        else:
+            prev_cal = os.path.join(os.path.split(self.cal_loc)[0], self.workflow[self.firework["copy_which_step"]-1]["firework_folder_name"])
+            new_incar_tags = get_bader_charge_tags(cal_loc=prev_cal)
+        
+        super(Bader_Charge, self).backup()
+        modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge")
+        super(Bader_Charge, self).write_correction_log(new_incar_tags=new_incar_tags)
+        return True
+        
 
 
 # In[23]:
