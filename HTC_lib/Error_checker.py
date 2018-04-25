@@ -3,7 +3,7 @@
 
 # # created on Feb 18 2018
 
-# In[1]:
+# In[3]:
 
 
 import os, time, shutil
@@ -20,7 +20,7 @@ from Utilities import get_time_str, search_file, decorated_os_rename
 from Write_VASP_INCAR import modify_vasp_incar, get_current_firework_from_cal_loc, get_bader_charge_tags
 
 
-# In[2]:
+# In[4]:
 
 
 def Vasp_Error_checker(error_type, cal_loc, workflow):  
@@ -51,9 +51,10 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__rhosyg__":Vasp_out_rhosyg, 
                           "__edddav__":Vasp_out_edddav, 
                           "__zpotrf__": Vasp_out_zpotrf, 
-                          "__real_optlay__": Vasp_out_real_optlay}
+                          "__real_optlay__": Vasp_out_real_optlay, 
+                          "__bader_charge__": Bader_Charge}
     
-    on_the_fly = ["__too_few_bands__", "__electronic_divergence__"]
+    on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__bader_charge__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
     after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
     after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
@@ -82,7 +83,7 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
         return True
 
 
-# In[3]:
+# In[5]:
 
 
 class Write_and_read_error_tag(object):
@@ -109,7 +110,7 @@ class Write_and_read_error_tag(object):
         return error_tag
 
 
-# In[4]:
+# In[6]:
 
 
 class Queue_std_files():
@@ -174,7 +175,7 @@ class Queue_std_files():
 #     
 #     return Func_wrapper
 
-# In[2]:
+# In[7]:
 
 
 def  find_target_str(cal_loc, target_file, target_str):
@@ -198,7 +199,7 @@ def  find_target_str(cal_loc, target_file, target_str):
     return found_target_str
 
 
-# In[6]:
+# In[8]:
 
 
 class Vasp_Error_Saver(object):
@@ -274,7 +275,7 @@ class Vasp_Error_Saver(object):
                 return "error_"+str(error_times+1)
 
 
-# In[7]:
+# In[9]:
 
 
 class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
@@ -384,7 +385,7 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
 
 # # For all error checkers, the check method will return False if an error is found. Otherwise return True
 
-# In[8]:
+# In[10]:
 
 
 class OUTCAR_status(Vasp_Error_Checker_Logger):
@@ -438,7 +439,7 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
     
 
 
-# In[9]:
+# In[11]:
 
 
 class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -508,7 +509,7 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[10]:
+# In[12]:
 
 
 class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -578,7 +579,7 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[11]:
+# In[13]:
 
 
 class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -643,7 +644,7 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[12]:
+# In[14]:
 
 
 class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -712,7 +713,7 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[13]:
+# In[15]:
 
 
 class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
@@ -781,7 +782,7 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
 
 
 
-# In[14]:
+# In[16]:
 
 
 class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -861,7 +862,7 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         
 
 
-# In[15]:
+# In[17]:
 
 
 class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -949,7 +950,7 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         
 
 
-# In[16]:
+# In[18]:
 
 
 class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1025,7 +1026,7 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return False                        
 
 
-# In[17]:
+# In[19]:
 
 
 class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1121,7 +1122,7 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                             
 
 
-# In[18]:
+# In[20]:
 
 
 class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1202,7 +1203,7 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[19]:
+# In[21]:
 
 
 class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1266,7 +1267,7 @@ class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[20]:
+# In[22]:
 
 
 class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1410,7 +1411,7 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
 
 
-# In[21]:
+# In[23]:
 
 
 class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1516,7 +1517,7 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[22]:
+# In[24]:
 
 
 class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1592,7 +1593,7 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False
 
 
-# In[22]:
+# In[25]:
 
 
 class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1669,7 +1670,7 @@ class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[23]:
+# In[26]:
 
 
 class Null_error_checker(object):
