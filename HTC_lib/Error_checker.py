@@ -1619,7 +1619,7 @@ class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
     
     def check(self):
-        if self.firework["bader_charge"]:
+        if self.firework["bader_charge"] == False:
             return True
         
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
