@@ -181,6 +181,22 @@ Default: empty
 
 **It doesn't make sense that you reset an INCAR tag in `add_new_incar_tags` sub-block while simultaneously trying to comment or remove this INCAR tag using `comment_incar_tags` or `remove_incar_tags`. If such a contradiction takes place, an error will be incurred.**
 
+----------------
+- **bader\_charge**, optional.
+This bool tag decides whether to calculate the [Bader Charge](http://theory.cm.utexas.edu/henkelman/code/bader/). 
+	- `Yes`: Calculate the Bader Charge. In this case, those tags will be automatically added into INCAR:  
+		- `LCHARG = .TRUE.  
+		- LAECHG=.TRUE.  
+		- NGXF = 2 * default value  
+		- NGYF = 2 * default value  
+		- NGZF = 2 * default value`
+	- `No`: Don't calculate the Bader Charge.  
+Default: `bader_charge=No`  
+  
+**Where to find (NGXF, NGYF, NGZF):**  
+	- if the current firework is the first step (no parent firework), a calculation without these tags will be carried out and then be terminated once the default values of (NGXF, NGYF, NFZF) are found in the OUTCAR. Afterwards, add all of the associated tags into INCAR for the Bader Charge calculation  
+	- if the current firework is not the first step, (NGXF, NGYF, NGZF) will be retrieved from the OUTCAR of the previous calculation which is indicated by `copy_which_step` 
+
 --------------------------------------
 - **kpoints\_type**, **case sensitive**, **required for every firework**  
 options - MPRelaxSet, MPStaticSet, MPNonSCFSet\_line, MPNonSCFSet\_uniform, Line-mode:
