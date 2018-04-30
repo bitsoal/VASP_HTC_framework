@@ -85,7 +85,7 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
             with open(log_txt, "a") as f:
                 f.write("{} INFO: in {}\n".format(get_time_str(), firework_name))
                 f.write("\t\t\t'bader_charge' is on\n")
-                f.write("\t\t\tretrieve NGXF, NGYF, NGZF from {} and double them\n".format(os.path.split(prev_val)[1]))
+                f.write("\t\t\tretrieve NGXF, NGYF, NGZF from {} and double them\n".format(os.path.split(prev_cal)[1]))
                 f.write("\t\tnew incar tags:\n")    
                 [f.write("\t\t\t{}={}\n".format(key_, value_)) for key_, value_ in new_incar_tags.items()]
     
