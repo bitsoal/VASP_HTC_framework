@@ -3,9 +3,6 @@ Yang Tong
 bitsoal@gmail.com  
 Department of Physics, National University of Singapore
 
-Luo Yong Zheng  
-luoyzh09@gmail.com  
-Department of Physics, National University of Singapore
 
 ### This is a simple framework designed for high-throughput calculation based on VASP.
 version: python2.7  
