@@ -108,7 +108,7 @@ class Job_management():
                 result = subprocess.check_output(job_query_cmd)
             except subprocess.CalledProcessError as err:
                 result_list.append(None)
-                error_list.append(err.message)
+                error_list.append(err)
             else:
                 result_list.append(result)
                 error_list.append(None)
@@ -195,7 +195,7 @@ class Job_management():
             try:
                 status = os.system(cmd)
             except Exception as err:
-                error_list.append(err.message)
+                error_list.append(err)
                 exist_status_list.append(None)
             else:
                 error_list.append(None)
@@ -217,7 +217,7 @@ class Job_management():
             except Exception as err:
                 with open(self.log_txt, "a") as f:
                     f.write("{} Submit: at {}\n".format(get_time_str(), self.firework_name))
-                    f.write("\t\t\tAn error raises: {}\n".format(err.message))
+                    f.write("\t\t\tAn error raises: {}\n".format(err))
                     f.write("\t\t\tcreate __manual__\n")
                 open(os.path.join(self.cal_loc, "__manual__"), "w").close()
                 return False
