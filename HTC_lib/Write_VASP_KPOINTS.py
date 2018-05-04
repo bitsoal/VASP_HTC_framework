@@ -79,7 +79,7 @@ def Write_Vasp_KPOINTS(cal_loc, structure_filename, workflow):
     
 
 
-# In[4]:
+# In[3]:
 
 
 class Vasp_Kpoints():
@@ -143,7 +143,7 @@ class Vasp_Kpoints():
             with open(os.path.join(self.log_txt), "a") as f:
                 f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\tfail to find high-symmetry kpoints using pymatgen's HighSymmKpath\n")
-                f.write("\t\t{}\n".format(e.message))
+                f.write("\t\t{}\n".format(e))
                 f.write("\t\tcreate __manual__ and __HighSymmKpath__ to it.\n")
             with open(os.path.join(self.cal_loc, "__manual__"), "w") as f:
                 f.write("__HighSymmKpath__")
