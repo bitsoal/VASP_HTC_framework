@@ -51,7 +51,7 @@ def check_calculations_status(cal_folder):
         
     prior_ready_folder_list, vis_folder_list = [], []
     ready_folder_list, error_folder_list, running_folder_list, done_folder_list = [], [], [], []
-    killed_folder_list, manual_folder_list = [], []
+    killed_folder_list, manual_folder_list, skipped_folder_list = [], [], []
     other_folder_list = []
     for sub_mater_folder in sub_mater_folder_list:
         if not os.path.isdir(sub_mater_folder):
@@ -61,6 +61,8 @@ def check_calculations_status(cal_folder):
             manual_folder_list.append(sub_mater_folder)
         elif os.path.isfile(os.path.join(sub_mater_folder, "__vis__")):
             vis_folder_list.append(sub_mater_folder)
+        elif os.path.isfile(os.path.join(sub_mater_folder, "__skipped__")):
+            skipped_folder_list.append(sub_mater_folder)
         elif os.path.isfile(os.path.join(sub_mater_folder, "__ready__")):
             ready_folder_list.append(sub_mater_folder)
         elif os.path.isfile(os.path.join(sub_mater_folder, "__prior_ready__")):
@@ -80,7 +82,7 @@ def check_calculations_status(cal_folder):
         "error_folder_list": error_folder_list, "prior_ready_folder_list": prior_ready_folder_list,
         "running_folder_list":running_folder_list, "done_folder_list": done_folder_list, 
         "killed_folder_list": killed_folder_list, "manual_folder_list": manual_folder_list,
-        "other_folder_list": other_folder_list
+        "other_folder_list": other_folder_list, "skipped_folder_list": skipped_folder_list
     }
 
 
