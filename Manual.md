@@ -390,7 +390,7 @@ When the workflow is running, some signal file will be present in every firework
 - `__bad_termination_`: When the job fails due to the error `=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES` in file vasp.out **for the first time**, the program will **resubmit** the job automatically and create this signal file. When such error happens again, the presence of this signal file tells the program that this is the second time to encounter such error. In this case, the program cannot automatically handle this error anymore, `__killed__` --> `__manual__`.
 - `__skipped__`: The jobs labeled by this signal file will be skipped. Users can simply judge if a job is necessary via tag `user_defined_cmd`/`final_user_defined_cmd`. If the calculation is unnecessary, users can generate this signal file to skip unnecessary calculations.
 
-***Signal file priority:***`__manual__` > `__vis__` > `__skipped__` > `__ready__` > `prior_ready__` > `__error__` > `__running__` > `__done__` > `__killed__`  
+***Signal file priority:*** `__manual__` > `__vis__` > `__skipped__` > `__ready__` > `prior_ready__` > `__error__` > `__running__` > `__done__` > `__killed__`  
 
 
 
