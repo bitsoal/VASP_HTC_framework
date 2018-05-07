@@ -364,7 +364,6 @@ e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is
 ### Tag list ends here. You can find a template of `HTC_calculation_setup_file` under folder `Template`
 -------------------------
 
-### Below is a template of `HTC_calculation_setup_file` in which those tags are at least required. You can customize this template by adding new tags based on the properties in your interest:
 
 
 <br>
