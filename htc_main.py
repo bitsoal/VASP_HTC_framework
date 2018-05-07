@@ -74,7 +74,7 @@ if __name__ == "__main__":
                         
         to_be_cal_folders = []
         for folder_name, folder_list in cal_status.items():
-            if folder_name != "done_folder_list":
+            if folder_name not in ["done_folder_list", "skipped_folder_list"] :
                 to_be_cal_folders += folder_list
         if to_be_cal_folders == []:
             print("All calculations have finished --> Stop this program.")
