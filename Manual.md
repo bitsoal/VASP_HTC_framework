@@ -388,6 +388,11 @@ When the workflow is running, some signal file will be present in every firework
 - queue system's `stdout` and `stderr`: The program will think the job is done and all error checkers will be called to check errors. If any errors are found, `__running__` --> `__error__`; Otherwise, `__running__` --> `__done__`
 - `__manual__`: The program cannot fix the error and the error should be fixed manually.
 - `__bad_termination_`: When the job fails due to the error `=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES` in file vasp.out **for the first time**, the program will **resubmit** the job automatically and create this signal file. When such error happens again, the presence of this signal file tells the program that this is the second time to encounter such error. In this case, the program cannot automatically handle this error anymore, `__killed__` --> `__manual__`.
+- `__skipped__`: The jobs labeled by this signal file will be skipped. Users can simply judge if a job is necessary via tag `user_defined_cmd`/`final_user_defined_cmd`. If the calculation is unnecessary, users can generate this signal file to skip unnecessary calculations.
+
+***Signal file priority:*** `__manual__` > `__vis__` > `__skipped__` > `__ready__` > `prior_ready__` > `__error__` > `__running__` > `__done__` > `__killed__`  
+
+
 
 
 **Note that when you manually fix an error or tune VASP input files under a filework folder, DO remove these signal tags so that the program has nothing to do with this firework folder. After modifications, you have two ways to bring it back to the program scope (_The second way is recommended_):**
