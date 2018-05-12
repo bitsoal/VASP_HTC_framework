@@ -144,7 +144,7 @@ class Vasp_Kpoints():
                 f.write("{} Error: {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\tfail to find high-symmetry kpoints using pymatgen's HighSymmKpath\n")
                 f.write("\t\t{}\n".format(e))
-                f.write("\t\tcreate __manual__ and __HighSymmKpath__ to it.\n")
+                f.write("\t\tcreate __manual__ and write down '__HighSymmKpath__'.\n")
             with open(os.path.join(self.cal_loc, "__manual__"), "w") as f:
                 f.write("__HighSymmKpath__")
             return False

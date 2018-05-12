@@ -3,7 +3,7 @@
 
 # # created on Feb 18 2018
 
-# In[3]:
+# In[1]:
 
 
 import os, time, shutil
@@ -20,7 +20,7 @@ from Utilities import get_time_str, search_file, decorated_os_rename
 from Write_VASP_INCAR import modify_vasp_incar, get_current_firework_from_cal_loc, get_bader_charge_tags
 
 
-# In[4]:
+# In[2]:
 
 
 def Vasp_Error_checker(error_type, cal_loc, workflow):  
@@ -52,11 +52,13 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__edddav__":Vasp_out_edddav, 
                           "__zpotrf__": Vasp_out_zpotrf, 
                           "__real_optlay__": Vasp_out_real_optlay, 
-                          "__bader_charge__": Bader_Charge}
+                          "__bader_charge__": Bader_Charge, 
+                          "__pzunmtr_or_pzstein__": Vasp_out_pzunmtr_or_pzstein}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__bader_charge__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
     after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
+    after_cal += ["__pzunmtr_or_pzstein__"]
     after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
     
     if isinstance(error_type, str):  
@@ -83,7 +85,7 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
         return True
 
 
-# In[5]:
+# In[3]:
 
 
 class Write_and_read_error_tag(object):
@@ -110,7 +112,7 @@ class Write_and_read_error_tag(object):
         return error_tag
 
 
-# In[6]:
+# In[4]:
 
 
 class Queue_std_files():
@@ -175,7 +177,7 @@ class Queue_std_files():
 #     
 #     return Func_wrapper
 
-# In[7]:
+# In[5]:
 
 
 def  find_target_str(cal_loc, target_file, target_str):
@@ -199,7 +201,7 @@ def  find_target_str(cal_loc, target_file, target_str):
     return found_target_str
 
 
-# In[8]:
+# In[6]:
 
 
 class Vasp_Error_Saver(object):
@@ -225,7 +227,7 @@ class Vasp_Error_Saver(object):
             with open(self.log_txt, "a") as f:
                 f.write("{} Backup: Create error_folder under {}\n".format(get_time_str(), self.firework_name))
         
-        file_list = ["INCAR", "POSCAR", "KPOINTS", "XDATCAR", "OUTCAR", "OSZICAR", self.workflow[0]["vasp.out"]]
+        file_list = ["INCAR", "POSCAR", "KPOINTS", "XDATCAR", "OUTCAR", "OSZICAR", self.workflow[0]["vasp.out"], "__killed__"]
         stdout, stderr = Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files()
         for std_file in [stdout, stderr]:
             if std_file:
@@ -275,7 +277,7 @@ class Vasp_Error_Saver(object):
                 return "error_"+str(error_times+1)
 
 
-# In[9]:
+# In[7]:
 
 
 class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
@@ -385,7 +387,7 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
 
 # # For all error checkers, the check method will return False if an error is found. Otherwise return True
 
-# In[10]:
+# In[8]:
 
 
 class OUTCAR_status(Vasp_Error_Checker_Logger):
@@ -439,7 +441,7 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
     
 
 
-# In[11]:
+# In[9]:
 
 
 class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -509,7 +511,7 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[12]:
+# In[10]:
 
 
 class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -579,7 +581,7 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[13]:
+# In[11]:
 
 
 class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -644,7 +646,7 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 
 
-# In[14]:
+# In[12]:
 
 
 class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -713,7 +715,7 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[15]:
+# In[13]:
 
 
 class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
@@ -782,7 +784,7 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
 
 
 
-# In[16]:
+# In[14]:
 
 
 class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -862,7 +864,7 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         
 
 
-# In[17]:
+# In[15]:
 
 
 class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -950,7 +952,7 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         
 
 
-# In[18]:
+# In[16]:
 
 
 class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1026,7 +1028,7 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return False                        
 
 
-# In[19]:
+# In[17]:
 
 
 class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1122,7 +1124,7 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                             
 
 
-# In[20]:
+# In[18]:
 
 
 class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1203,7 +1205,7 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[21]:
+# In[19]:
 
 
 class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1267,7 +1269,72 @@ class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[22]:
+# In[20]:
+
+
+class Vasp_out_pzunmtr_or_pzstein(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "PZUNMTR parameter number" or "PZSTEIN parameter number
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    correct method: if ALGO != Normal, reset it to Normal and return True; Otherwise, return False
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str_list = ["PZUNMTR parameter number", "PZSTEIN parameter number"]
+        
+        
+        
+    def check(self):
+        #this method is not active until the job is done
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_pzunmtr_or_pzstein, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                            initial_signal_file="__running__", 
+                                                                            final_signal_file="__error__")
+            return False
+        
+        for target_str in self.target_str_list:
+            if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str):
+                self.target_str = target_str
+                self.write_error_log()
+                return False
+        else:
+            return True
+            
+            
+    def write_error_log(self):
+        super(Vasp_out_pzunmtr_or_pzstein, self).write_error_log(target_error_str=self.target_str, error_type="__pzunmtr_or_pzstein__")
+    
+    
+    def correct(self):
+        IALGO = find_incar_tag_from_OUTCAR(tag="IALGO", cal_loc=self.cal_loc) # IALGO=38 <--> ALGO=Normal
+        if IALGO != 38:
+            super(Vasp_out_pzunmtr_or_pzstein, self).backup()
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False)
+            super(Vasp_out_pzunmtr_or_pzstein, self).write_correction_log(new_incar_tags={"ALGO": "Normal"})
+            return True
+        
+        return False                       
+
+
+# In[21]:
 
 
 class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1411,7 +1478,7 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
 
 
-# In[23]:
+# In[22]:
 
 
 class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1517,7 +1584,7 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[24]:
+# In[23]:
 
 
 class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1593,7 +1660,7 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False
 
 
-# In[25]:
+# In[24]:
 
 
 class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -1670,7 +1737,7 @@ class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
 
 
-# In[26]:
+# In[25]:
 
 
 class Null_error_checker(object):
