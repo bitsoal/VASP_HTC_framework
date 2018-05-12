@@ -134,6 +134,7 @@ def prepare_input_files(cif_filename, mater_cal_folder, current_firework_ind, wo
             f.write("***************************************************************************************\n")
             f.write("{} INFO: create sub-folder {} under {}\n".format(get_time_str(), 
                                                                     firework["firework_folder_name"], mater_cal_folder))
+            f.write("\t\t\tcreate __vis__ under this sub-folder.\n")
         
     if os.path.isfile(os.path.join(firework_folder, "__vis__")):
         #print(firework_folder)
@@ -277,11 +278,26 @@ def prepare_input_files(cif_filename, mater_cal_folder, current_firework_ind, wo
                     shutil.copyfile(src=file, dst=os.path.join(firework_folder, filename))
                     f.write("\t\t{}\n".format(file))
         
-        decorated_os_rename(loc=firework_folder, old_filename="__vis__", new_filename="__ready__")
-        #os.rename(os.path.join(firework_folder, "__vis__"), os.path.join(firework_folder, "__ready__"))
-        with open(os.path.join(mater_cal_folder, "log.txt"), "a") as f:
-            f.write("{} INFO: All VASP input files are ready at {}\n".format(get_time_str(), firework["firework_folder_name"]))
-            f.write("\t\t\t__vis__ --> __ready__\n")
+        if os.path.isfile(os.path.join(firework_folder, "__manual__")):
+            os.remove(os.path.join(firework_folder, "__vis__"))
+            with open(os.path.join(mater_cal_folder, "log.txt"), "a") as f:
+                f.write("{} INFO: {}\n".format(get_time_str(), firework["firework_folder_name"]))
+                f.write("\t\t\t__manual__ has been created during the preparation of VASP input files.\n")
+                f.write("\t\t\tMust be handled manually.\n")
+                f.write("\t\t\tremove __vis__\n")
+        elif os.path.isfile(os.path.join(firework_folder, "__prior_ready__")):
+            os.remove(os.path.join(firework_folder, "__vis__"))
+            with open(os.path.join(mater_cal_folder, "log.txt"), "a") as f:
+                f.write("{} INFO: {}\n".format(get_time_str(), firework["firework_folder_name"]))
+                f.write("\t\t\tAll VASP input files are ready.\n")
+                f.write("\t\t\t__prior_ready__ has been found. So this calculation will be submitted earlier than those labelled by __ready__\n")
+                f.write("\t\t\tremove __vis__\n")
+        else:
+            decorated_os_rename(loc=firework_folder, old_filename="__vis__", new_filename="__ready__")
+            #os.rename(os.path.join(firework_folder, "__vis__"), os.path.join(firework_folder, "__ready__"))
+            with open(os.path.join(mater_cal_folder, "log.txt"), "a") as f:
+                f.write("{} INFO: All VASP input files are ready at {}\n".format(get_time_str(), firework["firework_folder_name"]))
+                f.write("\t\t\t__vis__ --> __ready__\n")
 
 
 # In[5]:
@@ -423,7 +439,7 @@ def Write_NONSCF_KPOINTS(structure_filename="./POSCAR", mode='line', nedos=601,
     vis.kpoints.write_file(os.path.join(folder, "KPOINTS"))
 
 
-# In[1]:
+# In[11]:
 
 
 def Write_line_mode_KPOINTS(cal_loc, structure_filename, intersections, twoD_system=False):
@@ -462,7 +478,7 @@ def Write_line_mode_KPOINTS(cal_loc, structure_filename, intersections, twoD_sys
             f.write("\n")
 
 
-# In[11]:
+# In[12]:
 
 
 def modify_vasp_kpoints_for_2D(cal_loc, kpoints_type, denser_kpoints=1, rename_old_kpoints=True, tolerance=1.0e-5):

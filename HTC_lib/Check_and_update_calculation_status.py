@@ -160,7 +160,7 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
     #                   "__ionic_divergence__", "__positive_energy__"]
     
     for killed_job in killed_jobs_list:
-        #The killed job won't be processed util the stdout & stderr files of the queue system appear.
+        #The killed job won't be processed until the stdout & stderr files of the queue system appear.
         if Queue_std_files(cal_loc=killed_job, workflow=workflow).find_std_files() == [None, None]:
             continue
         
