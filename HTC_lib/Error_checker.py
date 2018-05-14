@@ -516,7 +516,7 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 
 class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     """
-    Error checking type: after the calculation.
+    Error checking type: on the fly.
     Target file: vasp.out or the one specified by tag vasp.out
     Target error string: "TOO FEW BANDS"
     inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
@@ -539,17 +539,19 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def check(self):
         
         #This method will be active only when the job is done.
-        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+        #if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            #return True
+        if not os.path.isfile(os.path.join(self.cal_loc, self.workflow[0]["vasp.out"])):
             return True
         
-        #Since the job is done, vasp.out must exist
-        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
-            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
-            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            super(Vasp_out_too_few_bands, self).write_file_absence_log(filename_list = [self.target_file], 
-                                                                       initial_signal_file="__running__", 
-                                                                       final_signal_file="__error__")
-            return False
+        ##Since the job is done, vasp.out must exist
+        #if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+        #    decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+        #    #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+        #    super(Vasp_out_too_few_bands, self).write_file_absence_log(filename_list = [self.target_file], 
+        #                                                               initial_signal_file="__running__", 
+        #                                                               final_signal_file="__error__")
+        #    return False
                 
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
             self.write_error_log()
