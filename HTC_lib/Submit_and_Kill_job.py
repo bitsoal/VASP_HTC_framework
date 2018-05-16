@@ -219,9 +219,12 @@ class Job_management():
         if os.path.isfile(os.path.join(self.cal_loc, self.workflow[0]["where_to_parse_queue_id"])):
             try:
                 if self.is_cal_in_queue():
+                    signal_file = "__ready__" if os.path.isfile(os.path.join(self.cal_loc, "__ready__")) else "__prior_ready__"
+                    decorated_os_rename(loc=self.cal_loc, old_filename=signal_file, new_filename="__running__")
                     with open(self.log_txt, "a") as f:
                         f.write("{} Submit: at {}\n".format(get_time_str(), self.firework_name))
                         f.write("\t\t\tThe job has been found in the queue system. No need to submit again.\n")
+                        f.write("\t\t\t{} --> __running__\n".format(signal_file))
                     return True
             except Exception as err:
                 with open(self.log_txt, "a") as f:
