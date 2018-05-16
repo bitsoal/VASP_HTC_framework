@@ -148,6 +148,7 @@ class Job_management():
                 raise Exception("See error information above.")
                 
             exist_status_list, error_list = self._decorated_os_system(cmd=self.job_killing_cmd +" "+ queue_id)
+            stdout_file, stderr_file = Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files()
             ind_dict = {0: "1st", 1: "2nd", 2: "3rd"}
             ind_dict.update({i: '{}th'.format(i+1) for i in range(3, 10)})
             with open(self.log_txt, "a") as f:
@@ -162,9 +163,17 @@ class Job_management():
                     f.write("\t\t\t__error__ --> __killed__\n")
                 else:
                     f.write("\t\t\tThe cmd execution hits the maximum times (10)\n")
-                    f.write("\t\t\t__error__ --> __manual__\n")
+                    if [stdout_file, stderr_file] != [None, None]:
+                        f.write("\t\t\tBut ")
+                        [f.write("{} ".format(f_name)) for f_name in [stdout_file, stderr_file] if f_name != None]
+                        f.write("is\are detected. So the job has been killed somehow...\n")
+                        f.write("\t\t\t__error__ --> __killed__\n")
+                        f.write("***Let's create __manual__ for test purpose***\n")
+                        open(os.path.join(self.cal_loc, "__manual__"), "w").close()
+                    else:
+                        f.write("\t\t\t__error__ --> __manual__\n")
                 f.write("\t\t\tmove back\n")
-            if exist_status_list[-1] == 0:
+            if exist_status_list[-1] == 0 or [stdout_file, stderr_file] != [None, None]:
                 decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__killed__")
             else:
                 decorated_os_rename(loc=self.cal_loc, old_filename="__error__", new_filename="__manual__")
@@ -210,9 +219,12 @@ class Job_management():
         if os.path.isfile(os.path.join(self.cal_loc, self.workflow[0]["where_to_parse_queue_id"])):
             try:
                 if self.is_cal_in_queue():
+                    signal_file = "__ready__" if os.path.isfile(os.path.join(self.cal_loc, "__ready__")) else "__prior_ready__"
+                    decorated_os_rename(loc=self.cal_loc, old_filename=signal_file, new_filename="__running__")
                     with open(self.log_txt, "a") as f:
                         f.write("{} Submit: at {}\n".format(get_time_str(), self.firework_name))
                         f.write("\t\t\tThe job has been found in the queue system. No need to submit again.\n")
+                        f.write("\t\t\t{} --> __running__\n".format(signal_file))
                     return True
             except Exception as err:
                 with open(self.log_txt, "a") as f:
