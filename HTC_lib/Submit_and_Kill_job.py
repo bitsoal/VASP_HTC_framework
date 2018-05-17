@@ -166,7 +166,7 @@ class Job_management():
                     if [stdout_file, stderr_file] != [None, None]:
                         f.write("\t\t\tBut ")
                         [f.write("{} ".format(f_name)) for f_name in [stdout_file, stderr_file] if f_name != None]
-                        f.write("is\are detected. So the job has been killed somehow...\n")
+                        f.write("is|are detected. So the job has been killed somehow...\n")
                         f.write("\t\t\t__error__ --> __killed__\n")
                         f.write("***Let's create __manual__ for test purpose***\n")
                         open(os.path.join(self.cal_loc, "__manual__"), "w").close()
