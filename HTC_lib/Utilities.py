@@ -141,7 +141,7 @@ def search_file(cal_loc, prefix="", suffix=""):
         target_file_list.append(file)
         
     if len(target_file_list) > 1:
-        print("\nError: Given the prefix {} and suffix {}, more than one file are found: ".format(prefix, suffix))
+        print("\nError: Given the prefix {} and suffix {}, more than one files are found: ".format(prefix, suffix))
         print(("{}\t"*len(target_file_list)).format(*target_file_list))
         print("under {}\n".format(cal_loc))
         raise Exception("See error above.")

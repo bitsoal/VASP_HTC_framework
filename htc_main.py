@@ -50,8 +50,8 @@ if __name__ == "__main__":
         update_running_jobs_status(cal_status["running_folder_list"], workflow=workflow)
         update_killed_jobs_status(cal_status["killed_folder_list"], workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
-        ready_job_list = cal_status["prior_ready_folder_list"] + cal_status["ready_folder_list"]
-        submit_jobs(ready_jobs=ready_job_list, workflow=workflow,max_jobs_in_queue=max_running_job)
+        #ready_job_list = cal_status["prior_ready_folder_list"] + cal_status["ready_folder_list"]
+        submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
         kill_error_jobs(error_jobs=cal_status["error_folder_list"], workflow=workflow)
         
         for cif_file in cif_file_list:
