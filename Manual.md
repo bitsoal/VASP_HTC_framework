@@ -80,7 +80,7 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 ----------------------
 
 - **cal\_folder** (str), optional for the first firework  
-*The absolute path* of the calculation folder. Under this folder, a sub-folder will be created for a to-be-calculated structure. A series of sub-sub-folder will subsequently created for a sequence of VASP calculations.  
+*The absolute path* of the calculation folder. Under this folder, a sub-folder will be created for every to-be-calculated structure. A series of sub-sub-folder will subsequently created for a sequence of VASP calculations.  
 Default: `cal_folder= where the htc_main.py is called + \cal_folder`
   
 -------------------
@@ -92,44 +92,47 @@ for the n-th firework, step\_no must be n.
 ------------------------------------------
 
 - **cal\_name** (str), **required for every firework**.  
-numbers, alphabets and underscores are valid symbols. *Note that the space between word will be replaced with an underscore.*  
+numbers, alphabets and underscores are valid symbols. *Note that each white space between words will be replaced with an underscore.*  
 Together with step\_no, a sub-folder named `step_ + step_no + _ + cal_name` will be created. Under this folder, the VASP calculation will be carried out. e.g. if `step_no=4`, `cal_name=band str`, then the folder name is `step_4_band_str`
 
 -----------------------------
 
 - **copy\_from\_prev\_cal**, optional.  
 **This is one way to set up VASP input files.**  
-the right hand side of `=` should one or more than one files that will be copied from the previous calculation.
+One or more than one files that will be copied from the previous calculation.
 *If more than one files are specified, separate them with commas*    
-If copy\_which\_step is not set, the previous calculation means the *nearest* previous calculation.  
+If copy\_which\_step is not set, "the previous calculation" means the *nearest* previous calculation.    
+**Note that there is no "the previous calculation" for the first calculation**  
 Default: empty
 
 ------------------------------
 
 - **move\_from\_prev\_cal**, optional.  
 same as copy\_from\_prev\_cal, but those specified files will be moved instead of being copied from the previous firework specified by copy\_which\_step.  
-If copy\_which\_step is not set, the previous firework is the *nearest* previous firework.  
+If copy\_which\_step is not set, "the previous firework" is the *nearest* previous firework.   
+**Note that there is no "the previous firework" for the first firework**   
 Default: empty
 
 ----------------------
 
 - **contcar\_to\_poscar** (bool), optional.  
-Whether to copy the POSCAR from the firework specified by copy\_which\_step and rename it as POSCAR.  
+Whether to copy the POSCAR from the previous firework specified by copy\_which\_step and rename it as POSCAR.  
 If this tag is `Yes`, the CONTCAR from the previous calculation will be *implicitly* copied and renamed as POSCAR, even though CONTCAR is not in the file list specified by tags copy\_from\_prev\_cal or move\_from\_prev\_cal  
+**Note that there is no "the previous firework" for the first firework**  
 Default: `No`
 
 --------------------------------
 
 - **copy\_which\_step** (integer), optional.  
-This will specify where to copy the files listed in copy\_from\_prev\_cal or move the files listed in move\_from\_prev\_cal.  
-Default: the step\_no of the *nearest* previous calculation.
+This will specify where to copy the files listed in copy\_from\_prev\_cal or move the files listed in move\_from\_prev\_cal.**Note that this tag is meaningless for the first firework**  
+Default: `step_no-1`
 
 ---------------------------------
 
 - **remove\_after\_cal**, optional.  
 *This tag currently is not available*  
-the right hand side of `=` should one or more than one files that will removed after the calculation defined in this firework.  
-*While using this tag, make sure that those specified files will not be needed for later calculations.*    
+One or more than one files that will be removed after the calculation defined in this firework is complete. If more than one files are specified, separate them via commas.    
+***While using this tag, make sure that those specified files will not be needed for later calculations.***    
 Default: empty
 
 ----------------------------------------
@@ -163,7 +166,7 @@ Default: empty
 - **remove\_incar\_tags**, optional.  
 remove VASP INCAR tags.  
 If multiple INCAR tags need to be removed, separate them with commas.  
-**It doesn't make sense that you comment an INCAR tag using `remove_incar_tags` while resetting it in `add_new_incar_tags` sub-block simultaneously. If such a contradiction takes place, an error will be incurred.**  
+**It doesn't make sense that you remove an INCAR tag using `remove_incar_tags` while resetting it in `add_new_incar_tags` sub-block simultaneously. If such a contradiction takes place, an error will be incurred.**  
 Default: empty
 
 -------------------------------
@@ -176,7 +179,8 @@ Default: empty
        
 **Note that in this sub-block, the multiple pairs of tag-values separated by `;` in a line is not supported. In this case, only the first pair of tag-value will be parsed as a new INCAR tag, and the value is what is in between the first `=` and the second `=`. This may incur unpredictable errors**  
 
-**It doesn't make sense that you reset an INCAR tag in `add_new_incar_tags` sub-block while simultaneously trying to comment or remove this INCAR tag using `comment_incar_tags` or `remove_incar_tags`. If such a contradiction takes place, an error will be incurred.**
+**It doesn't make sense that you reset an INCAR tag in `add_new_incar_tags` sub-block while simultaneously trying to comment or remove this INCAR tag using `comment_incar_tags` or `remove_incar_tags`. If such a contradiction takes place, an error will be incurred.**  
+Default: `empty`
 
 ----------------
 - **bader\_charge**, optional.
@@ -190,7 +194,7 @@ This bool tag decides whether to calculate the [Bader Charge](http://theory.cm.u
 	- `No`: Don't calculate the Bader Charge.  
 Default: `bader_charge=No`  
   
-**Where to find (NGXF, NGYF, NGZF):**  
+**Where to find default (NGXF, NGYF, NGZF):**  
 	- if the current firework is the first step (no parent firework), a calculation without these tags will be carried out and then be terminated once the default values of (NGXF, NGYF, NFZF) are found in the OUTCAR. Afterwards, add all of the associated tags into INCAR for the Bader Charge calculation  
 	- if the current firework is not the first step, (NGXF, NGYF, NGZF) will be retrieved from the OUTCAR of the previous calculation which is indicated by `copy_which_step` 
 
@@ -207,7 +211,7 @@ options - MPRelaxSet, MPStaticSet, MPNonSCFSet\_line, MPNonSCFSet\_uniform, Line
 This tag has three functions:
   
    1. After extra\_copy, copy\_from\_prev\_cal or move\_from\_prev\_cal, if there is still no file KPOINTS under the current firework folder, KPOINTS will be created according to kpoints\_type.   
-   2. If tag `2d_system` is `Yes`, the KPOINTS will be modified so that K\_z is zero for all kpoints. *Note that this function will be only invoked if KPOINTS under the current firework folder is created by function. If KPOINTS is created by copying or moving to the current firework folder, KPOINTS is then assumed to have zero K\_z for all kpoints.*  
+   2. If tag `2d_system` is `Yes`, the KPOINTS will be modified so that K\_z is zero for all kpoints. *Note that this function will be only invoked if KPOINTS under the current firework folder is created. If KPOINTS is copied or moved here from any previous calculations, KPOINTS is then assumed to have zero K\_z for all kpoints.*  
    3. Tag `denser_kpoints` is only valid for the KPOINTS generated at kpoints\_type = MPRelaxSet, MPStaticSet.    
 
 --------------------------------------
@@ -245,7 +249,7 @@ This tag can be set only in the first firework and *this setting will be applied
 -----------------
 - **2d\_system**, optional  
 **This tag can be set only in the first firework and this setting will be applied to the whole workflow.**
-  - `Yes`: modify kpoints such that K\_z is zero for all kpoints.
+  - `Yes`: modify kpoints such that K_z is zero for all kpoints.
   - `No`: no such modification on kpoints.
   - Default: `No`
  
@@ -254,26 +258,25 @@ This tag can be set only in the first firework and *this setting will be applied
 - **sort\_structure**, **optional for the first firework**.  
 **This tag is activated once POSCAR is written for any firework.**
   - `Yes`: Sort sites by the electronegativity of the atomic species using [`pymatgen.Structure.get_sorted_structure`](http://pymatgen.org/_modules/pymatgen/core/structure.html).
-  - `No`: If the given structure is POSCAR-formated, just copy the structure and rename it as POSCAR; If not, write POSCAR using `pymatgen.Structure`
+  - `No`: If the given structure is POSCAR-formated, just copy the structure and rename it as POSCAR; If not, write POSCAR using `pymatgen.Structure` without re-ordering atom sites.
   - Default: `Yes`  
 
 
 ***Why do we need this tag?***
   
   * In some cases, the atomic sites may be ordered carefully for some specific purposes. So you may not want to change the order of atoms by pymatgen
-  * The `Yes` state of this tag aims to deal with the given structures whose atoms are not grouped by atomic species. For example, the atoms of the given MoS2 may be arranged like `S  Mo  S` instead of `S S  Mo` or `Mo S S`. Such non-grouped atom arrangements may happen if the to-be-calculated structures are outputs of pymatgen and before exporting from pymatgen, `get_sorted_structure` has not been called to group atoms. In case of non-grouped atomic arrangements, `sort_structure` defaults to `Yes`
-  * The `No` state of this tag can facilitate [split-mode CALYPSO](http://www.calypso.cn/) for structure predictions. By applying the particle swarm optimization method, CALYPSO generates certain number of to-be-relaxed structures. *If CALYPSO works in the split mode, users should **manually** relax these structures.* These structures are POSCAR-formated. In order to make those POSCARs valid for both VASP 4 and VASP 5, the line listing atomic species is missing, but `pymatgen.Structure` cannot correctly parse such kind of POSCAR, let alone create correct POSCARs. So we provide this tag `sort_structure` whose `No` mode allows POSCAR to be created by just copying and renaming. With this `No` mode, this VASP HTC framework can be utilized to automatically relax structures predicted by CALYPSO. *Note that since `pymatgen` cannot write correct POTCAR due to the absence of atomic species line in CALYPSO-generated POSCARs, `POTCAR` should be copied from somewhere. This can be realized via tag `extra_copy` or `final_extra_copy`.*   
+  * The `Yes` state of this tag aims to deal with the given structures whose atoms are not grouped by atomic species. For example, the atoms of the given MoS2 may be arranged like `S  Mo  S` instead of `S S  Mo` or `Mo S S`. Such non-grouped atom arrangements may happen if the to-be-calculated structures are outputs of pymatgen and while exporting from pymatgen, `get_sorted_structure` has not been called to group atoms.  
+  * The `No` state of this tag can facilitate [split-mode CALYPSO](http://www.calypso.cn/) for structure predictions. By applying the particle swarm optimization method, CALYPSO generates certain number of to-be-relaxed structures. *If CALYPSO works in the split mode, users should **manually** relax these structures.* These structures are POSCAR-formated. Taking into account the backward compatibility of VASP, the line listing atomic species in POSCAR is missing, but `pymatgen.Structure` cannot correctly parse such kind of POSCAR, let alone create correct POSCARs. So we provide this tag `sort_structure` whose `No` mode allows POSCAR to be created by just copying and renaming. With this `No` mode, this VASP HTC framework can be utilized to automatically relax structures predicted by CALYPSO. *Note that since `pymatgen` cannot write correct POTCAR due to the absence of atomic species line in CALYPSO-generated POSCARs, `POTCAR` should be copied from somewhere. This can be realized via tag `extra_copy` or `final_extra_copy`.*   
 
 ***The creation of POSCAR:***  
-*For the second or later fireworks, POSCAR can be inherited from previous calculations, while this is not the case for the first firework. By default, for the first firework, the program will retrieve the structure under the folder which is specified by variable `cif_file_folder` in the script `htc_main.py` and where all to-be-calculated structures are stored in the form of cif, POSCAR or others that are supported by `pymatgen.Structure`. Once POSCAR is created according to tag `sort_structure` for the first firework, other VASP input files can be created accordingly and calculations therefore proceed. Of course, you may use tag `user_defined_cmd` to overwrite POSCAR, say cleave surfaces, which is why we let the firetasks defined by `user_defined_cmd` run before the creation of other VASP input files.*
+*For the second or later fireworks, POSCAR can be inherited from previous calculations, while this is not the case for the first firework. By default, for the first firework, the program will retrieve the structure under the folder which is specified by tag `structure_folder` where all to-be-calculated structures are stored in the form of cif, POSCAR or others that are supported by `pymatgen.Structure`. Once POSCAR is created according to tag `sort_structure` for the first firework, other VASP input files can be created accordingly and calculations therefore proceed. Of course, you may use tag `user_defined_cmd` to overwrite POSCAR, say cleave surfaces, which is why we let the firetasks defined by `user_defined_cmd` run before the creation of other VASP input files.*
 
 -------------------------------------------
 **user\_defined\_cmd**, optional,  
 This tag allows users to execute a series of commands to perform user-defined firetasks, say cleave a surface from a bulk structure optimized in the previous firework, introduce dopants/defects *et. al.*  
 *If there are multiple commands, separate them with commas.*  
-e.g. `user_defined_cmd = date@>>__test_file__, echo@'test user_defined_cmd tag'@>>__test_file__`  
-**Note that for this tag, we use `@` to denote a white space**  
-**By default, the commands will be executed in the current firework folder. You can put your commands in a bash script and before executing them, switch to other folders. If your firetasks involve modifications of VASP input files, we suggest you to make a sub-folder under the current firework folder. Just copy required files into this sub-folder, carry out your firetasks and copy results back, e.g. new POSCAR**  
+e.g. `user_defined_cmd = date >>__test_file__, echo 'test user_defined_cmd tag' >>__test_file__`    
+**By default, the commands will be executed in the current firework folder. You can put your commands in a bash script so that before executing them, you can switch to other folders. If your firetasks involve modifications of VASP input files, we suggest you to make a sub-folder under the current firework folder. Just copy required files into this sub-folder, carry out your firetasks and copy results back, e.g. new POSCAR**  
 Default: empty
 
 ------------------------
@@ -281,8 +284,7 @@ Default: empty
 **final\_user\_defined\_cmd**, optional,  
 This tag allows users to execute a series of commands to perform user-defined firetasks.  
 *If there are multiple commands, separate them with commas.*  
-e.g. `final_user_defined_cmd = date@>>__test_file__, echo@'test final_user_defined_cmd tag'@>>__test_file__`  
-**Note that for this tag, we use `@` to denote a white space**  
+e.g. `final_user_defined_cmd = date >>__test_file__, echo 'test final_user_defined_cmd tag' >>__test_file__`    
 **By default, the commands will be executed in the current firework folder. You can put your commands in a bash script so that before executing them, you can switch to other folders. If your firetasks involve modifications of VASP input files, we suggest you to make a sub-folder under the current firework folder. Just copy required files into this sub-folder, carry out your firetasks and copy results back**  
 Default: empty
 
@@ -291,8 +293,7 @@ Default: empty
 **user\_defined\_postprocess\_cmd**, optional,  
 This tag allows users to execute a series of commands to perform user-defined firetasks for post-process. *This tag is currently not available*  
 *If there are multiple commands, separate them with commas.*  
-e.g. `user_defined_postprocess_cmd = date@>>__test_file__, echo@'test user_defined_postprocess_cmd tag'@>>__test_file__`  
-**Note that for this tag, we use `@` to denote a white space**  
+e.g. `user_defined_postprocess_cmd = date >>__test_file__, echo 'test user_defined_postprocess_cmd tag' >>__test_file__`    
 **By default, the commands will be executed in the current firework folder. You can put your commands in a bash script so that before executing them, you can switch to other folders. If your firetasks involve modifications of VASP output files, we suggest you to make a sub-folder under the current firework folder in order to avoid damaging VASP output files. Just copy required files into this sub-folder, carry out your firetasks (and copy results back to the current firework folder)**  
 Default: empty
 
@@ -312,7 +313,7 @@ e.g. On LSF queue system, suppose the job submission script refered by job\_subm
 --------------------------------
 
 - **max\_running\_job** (integer), optional for the first firework  
-The maximum number of running/pending jobs in queue. Note that this number is the **total** number of jobs in queue. For example, if `max_running_job=10` and there are already 3 running/pending jobs in queue, then 7 jobs at most can be submitted.  
+The maximum number of running/pending jobs in queue. **Note that this number is the number of jobs labeled by signal file `__running__`.** For example, if `max_running_job=10` and there are already 3 jobs labeled by `__running__`, then 7 jobs at most will be submitted and labeled by `__running__` automatically.  
 Default: `max_running_job=30`
 
 --------------------
@@ -325,12 +326,12 @@ e.g. If the job submission cmd is `bsub < vasp.lsf > job_id`, then `where_to_par
 
 - **re\_to\_parse\_queue\_id**, **required only for the first firework**.  
 The regular expression pattern passed to python `re.findall` to parse queue id from the file specified by where\_to\_parse\_queue\_id.  
-Just make sure this regular expression is well designed so that no other string in the file where\_to\_parse\_queue\_id can be matched.
+Just make sure this regular expression is well designed such that no other string in the file where\_to\_parse\_queue\_id can be matched.
 
 ----------------------------------
 
 - **job\_query\_command**, **required only for the first firework**.      
-For LSF queue system, it is `bjobs@-w` **where @ is used to denote a white space**.  
+For LSF queue system, it is `bjobs -w`   
 For PBS queue system, it is `qstat`
 
 ---------------------------------------------------------

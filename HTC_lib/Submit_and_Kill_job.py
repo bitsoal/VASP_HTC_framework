@@ -16,7 +16,7 @@ from Error_checker import Queue_std_files
 # In[2]:
 
 
-def submit_jobs(ready_jobs, workflow, max_jobs_in_queue=30):
+def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
     """
     submit jobs.
     input arguments:
@@ -25,12 +25,14 @@ def submit_jobs(ready_jobs, workflow, max_jobs_in_queue=30):
             related pre- and post- processes
         - max_jobs_in_queue (int): default 30
     """
-    available_submissions = max_jobs_in_queue - len(Job_management.check_jobs_in_queue_system(workflow=workflow))
-    if available_submissions > len(ready_jobs):
-        available_submissions = len(ready_jobs)
-    if available_submissions < 0:
+    
+    no_of_running_jobs = len(cal_jobs_status["running_folder_list"])
+    if no_of_running_jobs < max_jobs_in_queue:
+        available_submissions = max_jobs_in_queue - no_of_running_jobs
+    else:
         available_submissions = 0
-        
+    
+    ready_jobs = cal_jobs_status["prior_ready_folder_list"] + cal_jobs_status["ready_folder_list"]
     for i in range(available_submissions):
         cal_loc = ready_jobs[i]
         Job_management(cal_loc, workflow).submit()
@@ -100,7 +102,7 @@ class Job_management():
     
     @classmethod
     def check_jobs_in_queue_system(cls, workflow, max_times=10):
-        job_query_cmd = workflow[0]["job_query_command"].split("@")
+        job_query_cmd = workflow[0]["job_query_command"].split()
         
         result_list, error_list = [], []
         for i in range(max_times):
