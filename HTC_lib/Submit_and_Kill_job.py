@@ -33,6 +33,7 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
         available_submissions = 0
     
     ready_jobs = cal_jobs_status["prior_ready_folder_list"] + cal_jobs_status["ready_folder_list"]
+    available_submissions = min([available_submissions, len(ready_jobs)])
     for i in range(available_submissions):
         cal_loc = ready_jobs[i]
         Job_management(cal_loc, workflow).submit()
