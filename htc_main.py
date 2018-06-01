@@ -16,7 +16,7 @@ if  os.path.join(HTC_lib_path, "HTC_lib") not in sys.path:
 
 
 from HTC_lib.Utilities import get_time_str
-from HTC_lib.Parse_calculation_workflow import parse_calculation_workflow
+from HTC_lib.Parse_calculation_workflow import parse_calculation_workflow, old_parse_calculation_workflow
 from HTC_lib.new_Preprocess_and_Postprocess import pre_and_post_process
 from HTC_lib.Check_and_update_calculation_status import check_calculations_status
 from HTC_lib.Check_and_update_calculation_status import update_running_jobs_status
@@ -48,11 +48,11 @@ if __name__ == "__main__":
 
         cal_status = check_calculations_status(cal_folder=cal_folder)
         update_running_jobs_status(cal_status["running_folder_list"], workflow=workflow)
+        kill_error_jobs(error_jobs=cal_status["error_folder_list"], workflow=workflow)
         update_killed_jobs_status(cal_status["killed_folder_list"], workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
-        ready_job_list = cal_status["prior_ready_folder_list"] + cal_status["ready_folder_list"]
-        submit_jobs(ready_jobs=ready_job_list, workflow=workflow,max_jobs_in_queue=max_running_job)
-        kill_error_jobs(error_jobs=cal_status["error_folder_list"], workflow=workflow)
+        #ready_job_list = cal_status["prior_ready_folder_list"] + cal_status["ready_folder_list"]
+        submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
         
         for cif_file in cif_file_list:
             pre_and_post_process(cif_filename=cif_file, cif_folder=cif_file_folder, cal_folder=cal_folder, workflow=workflow)
