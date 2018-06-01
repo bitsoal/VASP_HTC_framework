@@ -21,7 +21,7 @@ from HTC_lib.new_Preprocess_and_Postprocess import pre_and_post_process
 from HTC_lib.Check_and_update_calculation_status import check_calculations_status
 from HTC_lib.Check_and_update_calculation_status import update_running_jobs_status
 from HTC_lib.Check_and_update_calculation_status import update_killed_jobs_status
-from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
+from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs, Job_management
 
 
 # In[2]:
@@ -43,7 +43,8 @@ if __name__ == "__main__":
             break
         
         cif_file_list = os.listdir(cif_file_folder)
-        for cif_file in cif_file_list:
+        no_of_submission_slots = max_running_job - Job_management.count_running_jobs(workflow=workflow)
+        for cif_file in cif_file_list[:no_of_submission_slots]:
             pre_and_post_process(cif_filename=cif_file, cif_folder=cif_file_folder, cal_folder=cal_folder, workflow=workflow)
 
         cal_status = check_calculations_status(cal_folder=cal_folder)
@@ -54,7 +55,8 @@ if __name__ == "__main__":
         #ready_job_list = cal_status["prior_ready_folder_list"] + cal_status["ready_folder_list"]
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
         
-        for cif_file in cif_file_list:
+        no_of_submission_slots = max_running_job - Job_management.count_running_jobs(workflow=workflow)
+        for cif_file in cif_file_list[:no_of_submission_slots]:
             pre_and_post_process(cif_filename=cif_file, cif_folder=cif_file_folder, cal_folder=cal_folder, workflow=workflow)
             
         cal_status = check_calculations_status(cal_folder=cal_folder)
