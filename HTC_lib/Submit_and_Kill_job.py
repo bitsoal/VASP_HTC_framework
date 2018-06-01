@@ -25,15 +25,14 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
             related pre- and post- processes
         - max_jobs_in_queue (int): default 30
     """
+    no_of_running_jobs = Job_management.count_running_jobs(workflow=workflow)
     
-    no_of_running_jobs = len(cal_jobs_status["running_folder_list"])
     if no_of_running_jobs < max_jobs_in_queue:
         available_submissions = max_jobs_in_queue - no_of_running_jobs
     else:
         available_submissions = 0
     
     ready_jobs = cal_jobs_status["prior_ready_folder_list"] + cal_jobs_status["ready_folder_list"]
-    available_submissions = min([available_submissions, len(ready_jobs)])
     for i in range(available_submissions):
         cal_loc = ready_jobs[i]
         Job_management(cal_loc, workflow).submit()
@@ -124,6 +123,30 @@ class Job_management():
         
         lines = [line.strip() for line in result.split("\n") if line.strip()]
         return lines
+    
+    @classmethod
+    def count_running_jobs(cls, workflow):
+        if not os.path.isdir(workflow[0]["cal_folder"]):
+            return 0
+        else:
+            jobs_in_queue = cls.check_jobs_in_queue_system(workflow)
+            #current_no_of_jobs_in_queue = len(jobs_in_queue)
+            jobs_in_queue_str = ""
+            for job_ in jobs_in_queue:
+                jobs_in_queue_str += ("\n"+job_)
+                
+            running_job_count = 0
+            cal_folder = workflow[0]["cal_folder"]
+            job_id_file = workflow[0]["where_to_parse_queue_id"]
+            for material_folder in os.listdir(cal_folder):
+                material_folder = os.path.join(cal_folder, material_folder)
+                for firework_folder in os.listdir(material_folder):
+                    firework_folder = os.path.join(material_folder, firework_folder)
+                    if os.path.isfile(os.path.join(firework_folder, job_id_file))                     and not os.path.isfile(os.path.join(firework_folder, "__done__")):
+                        if Job_management(cal_loc=firework_folder, workflow=workflow).find_queue_id() in jobs_in_queue_str:
+                            running_job_count += 1
+            return running_job_count
+
         
     def is_cal_in_queue(self):
         queue_id = self.find_queue_id()
