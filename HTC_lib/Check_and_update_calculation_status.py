@@ -39,51 +39,38 @@ def check_calculations_status(cal_folder):
         - manual_folder_list (list): a list of absolute pathes where the error can not be fixed automatically.
         - vis_folder_list (list): a list of absolute pathes where the input files for calculations need to be prepared
     """
+    signal_file_list = ["__manual__", "__test__", "__vis__", "__skipped__", "__ready__", "__prior_ready__", 
+                        "__error__", "__running__", "__done__", "__killed__"]
+    job_status_folder_list = ["manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", 
+                              "ready_folder_list", "prior_ready_folder_list", "error_folder_list", "running_folder_list", 
+                              "done_folder_list", "killed_folder_list", "other_folder_list"]
+    job_status_dict = {key: [] for key in job_status_folder_list}
+    if not os.path.isdir(cal_folder):
+        return job_status_dict
+        
     mater_folder_list = os.listdir(cal_folder)
-    sub_mater_folder_list = []
+    firework_folder_list = []
     for mater_folder in mater_folder_list:
+        mater_folder_path = os.path.join(cal_folder, mater_folder)
         #in case any file appears in cal_folder.
-        if not os.path.isdir(os.path.join(cal_folder, mater_folder)):
+        if not os.path.isdir(mater_folder_path):
             continue
-        sub_mater_folders = os.listdir(os.path.join(cal_folder, mater_folder))
-        abs_sub_mater_folders = [os.path.join(cal_folder, mater_folder, sub_mater_folder) for sub_mater_folder in sub_mater_folders]
-        sub_mater_folder_list += abs_sub_mater_folders
-        
-    prior_ready_folder_list, vis_folder_list = [], []
-    ready_folder_list, error_folder_list, running_folder_list, done_folder_list = [], [], [], []
-    killed_folder_list, manual_folder_list, skipped_folder_list = [], [], []
-    other_folder_list = []
-    for sub_mater_folder in sub_mater_folder_list:
-        if not os.path.isdir(sub_mater_folder):
-            continue
-        
-        if os.path.isfile(os.path.join(sub_mater_folder, "__manual__")):
-            manual_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__vis__")):
-            vis_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__skipped__")):
-            skipped_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__ready__")):
-            ready_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__prior_ready__")):
-            prior_ready_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__error__")):
-            error_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__running__")):
-            running_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__done__")):
-            done_folder_list.append(sub_mater_folder)
-        elif os.path.isfile(os.path.join(sub_mater_folder, "__killed__")):
-            killed_folder_list.append(sub_mater_folder)
-        else:
-            other_folder_list.append(sub_mater_folder)
-    return {
-        "vis_folder_list": vis_folder_list, "ready_folder_list": ready_folder_list, 
-        "error_folder_list": error_folder_list, "prior_ready_folder_list": prior_ready_folder_list,
-        "running_folder_list":running_folder_list, "done_folder_list": done_folder_list, 
-        "killed_folder_list": killed_folder_list, "manual_folder_list": manual_folder_list,
-        "other_folder_list": other_folder_list, "skipped_folder_list": skipped_folder_list
-    }
+        #ignore irrelevant files or folders
+        firework_name_list = [firework_name for firework_name in os.listdir(mater_folder_path) if firework_name.startswith("step")]
+        firework_folder_list += [os.path.join(mater_folder_path, firework_name) for firework_name in firework_name_list]
+    
+    #categorize fireworks
+    for firework_folder in firework_folder_list:
+        firework_belongs_to_other = True
+        for signal_file_ind, signal_file in enumerate(signal_file_list):
+            if os.path.isfile(os.path.join(firework_folder, signal_file)):
+                job_status_dict[job_status_folder_list[signal_file_ind]].append(firework_folder)
+                firework_belongs_to_other = False
+                break
+        if firework_belongs_to_other:
+            job_status_dict["other_folder_list"].append(firework_folder)
+       
+    return job_status_dict
 
 
 # In[3]:
