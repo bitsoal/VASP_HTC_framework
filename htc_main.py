@@ -53,7 +53,7 @@ if __name__ == "__main__":
             pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
-        
+        cal_status = check_calculations_status(cal_folder=cal_folder)
                 
         print("\n")
         print(get_time_str())
@@ -69,7 +69,7 @@ if __name__ == "__main__":
                         
         #check if all calculations are complete
         #At the end, all calculations should be labeled by signal file __done__ or __skipped__
-        cal_status = check_calculations_status(cal_folder=cal_folder)
+        
         no_of_done_or_skipped_cal = len(cal_status["done_folder_list"]) + len(cal_status["skipped_folder_list"])
         if no_of_done_or_skipped_cal == len(os.listdir(structure_file_folder))*len(workflow):
             print("All calculations have finished --> Stop this program.")
