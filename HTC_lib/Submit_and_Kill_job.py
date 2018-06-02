@@ -25,12 +25,14 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
             related pre- and post- processes
         - max_jobs_in_queue (int): default 30
     """
-    no_of_running_jobs = Job_management.count_running_jobs(workflow=workflow)
+    no_of_running_jobs, current_no_of_jobs_in_queue = Job_management.count_running_jobs(workflow=workflow)
     
     if no_of_running_jobs < max_jobs_in_queue:
         available_submissions = max_jobs_in_queue - no_of_running_jobs
     else:
         available_submissions = 0
+        
+    print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions, current_no_of_jobs_in_queue))
     
     ready_jobs = cal_jobs_status["prior_ready_folder_list"] + cal_jobs_status["ready_folder_list"]
     for i in range(available_submissions):
@@ -130,7 +132,7 @@ class Job_management():
             return 0
         else:
             jobs_in_queue = cls.check_jobs_in_queue_system(workflow)
-            #current_no_of_jobs_in_queue = len(jobs_in_queue)
+            current_no_of_jobs_in_queue = len(jobs_in_queue)
             jobs_in_queue_str = ""
             for job_ in jobs_in_queue:
                 jobs_in_queue_str += ("\n"+job_)
@@ -142,10 +144,15 @@ class Job_management():
                 material_folder = os.path.join(cal_folder, material_folder)
                 for firework_folder in os.listdir(material_folder):
                     firework_folder = os.path.join(material_folder, firework_folder)
-                    if os.path.isfile(os.path.join(firework_folder, job_id_file))                     and not os.path.isfile(os.path.join(firework_folder, "__done__")):
-                        if Job_management(cal_loc=firework_folder, workflow=workflow).find_queue_id() in jobs_in_queue_str:
+                    if os.path.isfile(os.path.join(firework_folder, job_id_file)):
+                        is_potentially_running = True
+                        for signal_file in ["__done__", "__ready__", "__prior_ready__"]:
+                            if os.path.isfile(os.path.join(firework_folder, signal_file)):
+                                is_potentially_running = False
+                                break
+                        if is_potentially_running and Job_management(cal_loc=firework_folder, workflow=workflow).find_queue_id() in jobs_in_queue_str:
                             running_job_count += 1
-            return running_job_count
+            return running_job_count, current_no_of_jobs_in_queue
 
         
     def is_cal_in_queue(self):

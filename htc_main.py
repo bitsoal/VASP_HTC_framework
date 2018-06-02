@@ -21,7 +21,7 @@ from HTC_lib.new_Preprocess_and_Postprocess import pre_and_post_process
 from HTC_lib.Check_and_update_calculation_status import check_calculations_status
 from HTC_lib.Check_and_update_calculation_status import update_running_jobs_status
 from HTC_lib.Check_and_update_calculation_status import update_killed_jobs_status
-from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs, Job_management
+from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 
 
 # In[2]:
@@ -30,8 +30,11 @@ from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs, Job_manage
 if __name__ == "__main__":
     assert os.path.isfile("HTC_calculation_setup_file"), "Error: No HTC_calculation_setup_file under {}".format(os.getcwd())
     workflow = parse_calculation_workflow("HTC_calculation_setup_file")
+    old_workflow = old_parse_calculation_workflow("HTC_calculation_setup_file")
+    print('workflow == old_workflow? {}'.format(workflow == old_workflow))
+    assert workflow == old_workflow, "new workflow is not equal to old workflow."
     
-    cif_file_folder = workflow[0]["structure_folder"]
+    structure_file_folder = workflow[0]["structure_folder"]
     cal_folder = workflow[0]["cal_folder"]
     max_running_job = workflow[0]["max_running_job"]
 
@@ -42,24 +45,14 @@ if __name__ == "__main__":
             print(">>>Detect file __stop__ in {}\n ---->stop this program.".format(main_dir))
             break
         
-        cif_file_list = os.listdir(cif_file_folder)
-        no_of_submission_slots = max_running_job - Job_management.count_running_jobs(workflow=workflow)
-        for cif_file in cif_file_list[:no_of_submission_slots]:
-            pre_and_post_process(cif_filename=cif_file, cif_folder=cif_file_folder, cal_folder=cal_folder, workflow=workflow)
-
         cal_status = check_calculations_status(cal_folder=cal_folder)
         update_running_jobs_status(cal_status["running_folder_list"], workflow=workflow)
         kill_error_jobs(error_jobs=cal_status["error_folder_list"], workflow=workflow)
         update_killed_jobs_status(cal_status["killed_folder_list"], workflow=workflow)
+        for structure_file in os.listdir(structure_file_folder):
+            pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
-        #ready_job_list = cal_status["prior_ready_folder_list"] + cal_status["ready_folder_list"]
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
-        
-        no_of_submission_slots = max_running_job - Job_management.count_running_jobs(workflow=workflow)
-        for cif_file in cif_file_list[:no_of_submission_slots]:
-            pre_and_post_process(cif_filename=cif_file, cif_folder=cif_file_folder, cal_folder=cal_folder, workflow=workflow)
-            
-        cal_status = check_calculations_status(cal_folder=cal_folder)
         
                 
         print("\n")
@@ -74,11 +67,11 @@ if __name__ == "__main__":
                     for folder in folder_list:
                         f.write("\t{}\n".format(folder))
                         
-        to_be_cal_folders = []
-        for folder_name, folder_list in cal_status.items():
-            if folder_name not in ["done_folder_list", "skipped_folder_list"] :
-                to_be_cal_folders += folder_list
-        if to_be_cal_folders == []:
+        #check if all calculations are complete
+        #At the end, all calculations should be labeled by signal file __done__ or __skipped__
+        cal_status = check_calculations_status(cal_folder=cal_folder)
+        no_of_done_or_skipped_cal = len(cal_status["done_folder_list"]) + len(cal_status["skipped_folder_list"])
+        if no_of_done_or_skipped_cal == len(os.listdir(structure_file_folder))*len(workflow):
             print("All calculations have finished --> Stop this program.")
             os.chdir(main_dir)
             with open("htc_job_status.dat", "a") as f:
