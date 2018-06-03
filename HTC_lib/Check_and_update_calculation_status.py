@@ -87,11 +87,11 @@ def update_running_jobs_status(running_jobs_list, workflow):
     #Check_after_cal = ["__electronic_divergence__", "__positive_energy__", "__ionic_divergence__"]
     #Check_on_the_fly = ["__electronic_divergence__", "__positive_energy__"]
     
-    job_status_list = Job_management.check_jobs_in_queue_system(workflow=workflow)
-    job_status_str = ""
-    if job_status_list:
-        for i in range(1, len(job_status_list)):
-            job_status_str += job_status_list[i]
+    job_status_str = Job_management.check_jobs_in_queue_system(workflow=workflow, return_a_str=True)
+    #job_status_str = ""
+    #if job_status_list:
+    #    for i in range(1, len(job_status_list)):
+    #        job_status_str += job_status_list[i]
     
     for job_path in running_jobs_list:
         

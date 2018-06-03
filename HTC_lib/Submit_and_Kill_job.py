@@ -25,14 +25,15 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
             related pre- and post- processes
         - max_jobs_in_queue (int): default 30
     """
-    no_of_running_jobs, current_no_of_jobs_in_queue = Job_management.count_running_jobs(workflow=workflow)
+    no_of_running_jobs = Job_management.count_running_jobs(workflow=workflow)
+    assert no_of_running_jobs >= len(cal_jobs_status["running_folder_list"]),     "Error in counting running jobs: # of job name in queue {} V.S. # of jobs labeled by __running__ {}".format(no_of_running_jobs, len(cal_jobs_status["running_folder_list"]))
     
     if no_of_running_jobs < max_jobs_in_queue:
         available_submissions = max_jobs_in_queue - no_of_running_jobs
     else:
         available_submissions = 0
         
-    print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions, current_no_of_jobs_in_queue))
+    print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions,                                                                                          len(Job_management.check_jobs_in_queue_system(workflow))))
     
     ready_jobs = cal_jobs_status["prior_ready_folder_list"] + cal_jobs_status["ready_folder_list"]
     available_submissions = min([available_submissions, len(ready_jobs)])
@@ -104,7 +105,7 @@ class Job_management():
                 return firework
     
     @classmethod
-    def check_jobs_in_queue_system(cls, workflow, max_times=10):
+    def check_jobs_in_queue_system(cls, workflow, max_times=10, return_a_str=False):
         job_query_cmd = workflow[0]["job_query_command"].split()
         
         result_list, error_list = [], []
@@ -124,11 +125,25 @@ class Job_management():
         else:
             result = result_list[-1]
         
-        lines = [line.strip() for line in result.split("\n") if line.strip()]
-        return lines
+        if return_a_str:
+            return result
+        else:
+            return [line.strip() for line in result.split("\n") if line.strip()]
+        
     
     @classmethod
     def count_running_jobs(cls, workflow):
+        all_jobs_in_queue = cls.check_jobs_in_queue_system(workflow)
+        job_name = workflow[0]["job_name"]
+        no_of_running_jobs = 0
+        for job_ in all_jobs_in_queue:
+            if job_name in job_:
+                no_of_running_jobs += 1
+        return no_of_running_jobs
+        
+    
+    @classmethod
+    def old_count_running_jobs(cls, workflow):
         if not os.path.isdir(workflow[0]["cal_folder"]):
             return 0
         else:

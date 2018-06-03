@@ -128,6 +128,8 @@ def old_parse_calculation_workflow(filename="Calculation_setup"):
                     print("Error: must specify at least one of the tags below in the first firework:")
                     print("\t\tqueue_stdout_file_prefix, queue_stdout_file_suffix, queue_stderr_file_prefix, queue_stderr_file_suffix")
                     raise Exception("See above for the error information.")
+                    
+                firework["job_name"] = firework.get("job_name", "")
                 
                 if "vasp.out" not in firework.keys():
                     print("Error: vasp.out must be specified in the first firework")
@@ -425,7 +427,9 @@ def parse_firework_block(block_str_list, step_no):
             print("Error: must specify at least one of the tags below in the first firework:")
             print("\t\tqueue_stdout_file_prefix, queue_stdout_file_suffix, queue_stderr_file_prefix, queue_stderr_file_suffix")
             raise Exception("See above for the error information.")
-                
+         
+        firework["job_name"] = firework.get("job_name", "")
+        
         if "vasp.out" not in firework.keys():
             print("Error: vasp.out must be specified in the first firework")
             print("\t\tIn the job submission script,")
