@@ -63,9 +63,14 @@ if __name__ == "__main__":
         with open("htc_job_status.dat", "w") as f:
                 f.write("\n{}:".format(get_time_str()))
                 for status, folder_list in cal_status.items():
+                    if status == "done_folder_list":
+                        continue
                     f.write("\n{}:\n".format(status))
                     for folder in folder_list:
                         f.write("\t{}\n".format(folder))
+                f.write("\n{}:\n".format(status))
+                for folder in cal_status["done_folder_list"]:
+                    f.write("\t{}\n".format(folder))
                         
         #check if all calculations are complete
         #At the end, all calculations should be labeled by signal file __done__ or __skipped__
