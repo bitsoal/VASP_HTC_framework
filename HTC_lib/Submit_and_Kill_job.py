@@ -34,7 +34,7 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
         available_submissions = 0
         
     #print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions, \
-                                                                                         len(Job_management.check_jobs_in_queue_system(workflow))))
+                                                                                         #len(Job_management.check_jobs_in_queue_system(workflow))))
     
     ready_jobs = cal_jobs_status["prior_ready_folder_list"] + cal_jobs_status["ready_folder_list"]
     available_submissions = min([available_submissions, len(ready_jobs)])
