@@ -88,6 +88,9 @@ def update_running_jobs_status(running_jobs_list, workflow):
     #Check_on_the_fly = ["__electronic_divergence__", "__positive_energy__"]
     
     job_status_str = Job_management.check_jobs_in_queue_system(workflow=workflow, return_a_str=True)
+    #print()
+    #print(get_time_str())
+    #print(job_status_str)
     #job_status_str = ""
     #if job_status_list:
     #    for i in range(1, len(job_status_list)):
@@ -119,6 +122,7 @@ def update_running_jobs_status(running_jobs_list, workflow):
                 continue
                 
             queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
+            #print(queue_id, queue_id in job_status_str)
             if queue_id not in job_status_str:
                 log_txt_loc, firework_name = os.path.split(job_path)
                 with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:

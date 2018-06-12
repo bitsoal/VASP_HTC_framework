@@ -33,7 +33,8 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
     else:
         available_submissions = 0
         
-    print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions,                                                                                          len(Job_management.check_jobs_in_queue_system(workflow))))
+    #print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions, \
+                                                                                         len(Job_management.check_jobs_in_queue_system(workflow))))
     
     ready_jobs = cal_jobs_status["prior_ready_folder_list"] + cal_jobs_status["ready_folder_list"]
     available_submissions = min([available_submissions, len(ready_jobs)])
@@ -217,8 +218,8 @@ class Job_management():
                         [f.write("{} ".format(f_name)) for f_name in [stdout_file, stderr_file] if f_name != None]
                         f.write("is|are detected. So the job has been killed somehow...\n")
                         f.write("\t\t\t__error__ --> __killed__\n")
-                        f.write("***Let's create __manual__ for test purpose***\n")
-                        open(os.path.join(self.cal_loc, "__manual__"), "w").close()
+                        #f.write("***Let's create __manual__ for test purpose***\n")
+                        #open(os.path.join(self.cal_loc, "__manual__"), "w").close()
                     else:
                         f.write("\t\t\t__error__ --> __manual__\n")
                 f.write("\t\t\tmove back\n")
