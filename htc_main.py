@@ -47,6 +47,7 @@ if __name__ == "__main__":
         
         cal_status = check_calculations_status(cal_folder=cal_folder)
         update_running_jobs_status(cal_status["running_folder_list"], workflow=workflow)
+        cal_status = check_calculations_status(cal_folder=cal_folder)
         kill_error_jobs(error_jobs=cal_status["error_folder_list"], workflow=workflow)
         update_killed_jobs_status(cal_status["killed_folder_list"], workflow=workflow)
         for structure_file in os.listdir(structure_file_folder):
