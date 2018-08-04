@@ -347,6 +347,8 @@ def get_current_firework_ind(mater_cal_folder, workflow):
         current_firework_ind = 0
     elif os.path.isfile(os.path.join(mater_cal_folder, firework_folder_name_list[ind-1], "__done__")):
         current_firework_ind = ind
+    elif os.path.isfile(os.path.join(mater_cal_folder, firework_folder_name_list[ind-1], "__skipped__")):
+        current_firework_ind = ind
     else:
         current_firework_ind = ind - 1
         
