@@ -7,17 +7,6 @@
 import os, sys, time
 import pprint
 
-HTC_lib_path = /absolute_path_head/../HTC_lib
-cif_file_folder = /absolute_path_head/cif_files
-cal_folder = /absolute_path_head/cal_folder
-HTC_calculation_setup = /absolute_path_head/HTC_calculation_setup_example
-
-if HTC_lib_path not in sys.path:
-    sys.path.append(HTC_lib_path)
-
-if os.path.join(HTC_lib_path, "HTC_lib") not in sys.path:
-    sys.path.append(os.path.join(HTC_lib_path, "HTC_lib"))
-
 from HTC_lib.Utilities import get_time_str
 from HTC_lib.Parse_calculation_workflow import parse_calculation_workflow
 from HTC_lib.Preprocess_and_Postprocess import pre_and_post_process
@@ -31,6 +20,14 @@ from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 
 
 if __name__ == "__main__":
+    workdir = sys.args[1]
+    if not workdir:
+        workdir = os.curdir
+    
+    cif_file_folder = os.path.join(workdir, "cif_files")
+    cal_folder = os.path.join(workdir, "cal_folder")
+    HTC_calculation_setup_file = os.path.join(workdir, "HTC_calculation_setup_example")
+    
     workflow = parse_calculation_workflow(HTC_calculation_setup_file)
 
     while True:
