@@ -121,9 +121,23 @@ def update_running_jobs_status(running_jobs_list, workflow):
             if Queue_std_files(cal_loc=job_path, workflow=workflow).find_std_files() != [None, None]:
                 continue
                 
+            
+                    
+                
             queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
             #print(queue_id, queue_id in job_status_str)
             if queue_id not in job_status_str:
+                if not os.path.isfile(os.path.join(cal_loc, "__no_of_times_not_in_queue__")):
+                    with open(os.path.join(cal_loc, "__no_of_times_not_in_queue__"), "w") as f:
+                        f.write("1")
+                else:
+                    with open(os.path.join(cal_loc, "__no_of_times_not_in_queue__"), "r") as f:
+                        times = int(next(f).strip())
+                    if times <= 5:
+                        with open(os.path.join(cal_loc, "__no_of_times_not_in_queue__"), "w") as f:
+                            f.write(str(times+1))
+                        continue
+                
                 log_txt_loc, firework_name = os.path.split(job_path)
                 with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
                     f.write("{} Queue Error: {}\n".format(get_time_str(), job_path))
@@ -133,6 +147,9 @@ def update_running_jobs_status(running_jobs_list, workflow):
                     open(os.path.join(job_path, "__running_job_not_in_queue__"), "w").close()
                     decorated_os_rename(loc=job_path, old_filename="__running__", new_filename="__manual__")
                     #os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))                
+            else:
+                if os.path.isfile(os.path.join(cal_loc, "__no_of_times_not_in_queue__")):
+                    os.remove(os.path.join(cal_loc, "__no_of_times_not_in_queue__"))
 
 
 # In[4]:
