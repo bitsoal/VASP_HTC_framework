@@ -312,7 +312,7 @@ def find_NBANDS_from_OUTCAR(cal_loc="."):
     
     with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
         for line in f:
-            if "NBANDS" in line and "=" in line:
+            if "NBANDS" in line and "=" in line and "k-points in BZ" in line:
                 break
                 
     return int(line.strip().split("=")[-1].strip())

@@ -202,6 +202,8 @@ def get_current_firework(mater_cal_folder, workflow):
         if firework_folder_name in existent_firework_folder_list:
             if os.path.isfile(os.path.join(mater_cal_folder, firework_folder_name, "__done__")):
                 continue
+            elif os.path.isfile(os.path.join(mater_cal_folder, firework_folder_name, "__skipped__")):
+                continue
         return workflow[ind]
     
     return workflow[-1]

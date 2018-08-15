@@ -312,9 +312,24 @@ e.g. On LSF queue system, suppose the job submission script refered by job\_subm
 
 --------------------------------
 
-- **max\_running\_job** (integer), optional for the first firework  
-The maximum number of running/pending jobs in queue. **Note that this number is the number of jobs labeled by signal file `__running__`.** For example, if `max_running_job=10` and there are already 3 jobs labeled by `__running__`, then 7 jobs at most will be submitted and labeled by `__running__` automatically.  
-Default: `max_running_job=30`
+- **job\_name**, optional for the first firework.  
+The job name shown in the job status query output.  
+In PBS queue system, `job_name` is the one specified by the field `#PBS -N "xxx"`  
+In LSF queue system, `job_name` is the one specified by the field `#BSUB -J "xxx"`  
+where `xxx` in the double quotation marks are `job_name`  
+Default: `empty` 
+
+- **max\_running\_job** (integer), optional for the first firework    
+The maximum number of running/pending jobs in queue for your htc project. For example, if `max_running_job=10`, the program can automatically submit jobs such that there are maximally 10 running/pending jobs in queue.   
+Default: `max_running_job=30`  
+**how to count running jobs**  
+In general, when you use the cmd specified by `job_query_command` to query the overall status for all submitted jobs, the queue will return a multiple-line summary. Each line of the summary displays the status of a submitted job except the header (the first several lines). The program will count the running/pending jobs of your htc project by counting the string specified by `job_name` in this multiple-line summary. *Note that if the string specified by `job_name` appears more than once in a line, it will be counted as 1.* 
+
+   
+**Tips**  
+	- If you want `max_running_job` to refer to the total number of running/pending jobs, including those of this htc project and those of other projects, do not set `job_name`. This might be useful if the job submission per user is limited, say every user can submit 20 jobs maximally.  
+	- If you want `max_running_job` to refer to the total number of running/pending jobs **only** for this htc project, do set `job_name` and make sure it is unique. This might be useful if there are more than one htc projects, e.g. 20 running/pending jobs for project 1; 30 running/pending jobs for project 2; 5 running/pending jobs for project 3.  
+	- If the job submission per user is limited, it is recommended not to set `max_running_job` to that maximal value in case you want to submit some urgent jobs manually. Say each user can submit 30 jobs maximally, `max_running_job=25 or 26 or 27 or 28` might be a good choice.
 
 --------------------
 
