@@ -127,14 +127,14 @@ def update_running_jobs_status(running_jobs_list, workflow):
             queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
             #print(queue_id, queue_id in job_status_str)
             if queue_id not in job_status_str:
-                if not os.path.isfile(os.path.join(cal_loc, "__no_of_times_not_in_queue__")):
-                    with open(os.path.join(cal_loc, "__no_of_times_not_in_queue__"), "w") as f:
+                if not os.path.isfile(os.path.join(job_path, "__no_of_times_not_in_queue__")):
+                    with open(os.path.join(job_path, "__no_of_times_not_in_queue__"), "w") as f:
                         f.write("1")
                 else:
-                    with open(os.path.join(cal_loc, "__no_of_times_not_in_queue__"), "r") as f:
+                    with open(os.path.join(job_path, "__no_of_times_not_in_queue__"), "r") as f:
                         times = int(next(f).strip())
                     if times <= 5:
-                        with open(os.path.join(cal_loc, "__no_of_times_not_in_queue__"), "w") as f:
+                        with open(os.path.join(job_path, "__no_of_times_not_in_queue__"), "w") as f:
                             f.write(str(times+1))
                         continue
                 
