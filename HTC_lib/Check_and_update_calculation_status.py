@@ -148,8 +148,8 @@ def update_running_jobs_status(running_jobs_list, workflow):
                     decorated_os_rename(loc=job_path, old_filename="__running__", new_filename="__manual__")
                     #os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))                
             else:
-                if os.path.isfile(os.path.join(cal_loc, "__no_of_times_not_in_queue__")):
-                    os.remove(os.path.join(cal_loc, "__no_of_times_not_in_queue__"))
+                if os.path.isfile(os.path.join(job_path, "__no_of_times_not_in_queue__")):
+                    os.remove(os.path.join(job_path, "__no_of_times_not_in_queue__"))
 
 
 # In[4]:
