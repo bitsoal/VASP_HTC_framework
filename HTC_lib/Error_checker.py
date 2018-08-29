@@ -1522,7 +1522,7 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         IBRION = find_incar_tag_from_OUTCAR(tag="IBRION", cal_loc=self.cal_loc)
         #EDIFFG = find_incar_tag_from_OUTCAR(tag="EDIFFG", cal_loc=self.cal_loc)
         #This if statement deactivates the check method unless the calculation is the structural optimization
-        if NSW == 0 or IBRION == -1:
+        if NSW == 0 or IBRION in [-1, 5, 6, 7, 8]:
             return True
         
         target_str = "reached required accuracy - stopping structural energy minimisation"
