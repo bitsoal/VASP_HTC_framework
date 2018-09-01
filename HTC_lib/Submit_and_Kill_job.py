@@ -26,12 +26,16 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
         - max_jobs_in_queue (int): default 30
     """
     no_of_running_jobs = Job_management.count_running_jobs(workflow=workflow)
-    assert no_of_running_jobs >= len(cal_jobs_status["running_folder_list"]),     "Error in counting running jobs: # of job name in queue {} V.S. # of jobs labeled by __running__ {}".format(no_of_running_jobs, len(cal_jobs_status["running_folder_list"]))
+    #assert no_of_running_jobs >= len(cal_jobs_status["running_folder_list"]), \
+    #"Error in counting running jobs: # of job name in queue {} V.S. # of jobs labeled by __running__ {}".format(no_of_running_jobs, len(cal_jobs_status["running_folder_list"]))
+    if no_of_running_jobs > len(cal_jobs_status["running_folder_list"]):
+        return False
     
     if no_of_running_jobs < max_jobs_in_queue:
         available_submissions = max_jobs_in_queue - no_of_running_jobs
     else:
-        available_submissions = 0
+        return False
+        #available_submissions = 0
         
     #print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions, \
                                                                                          #len(Job_management.check_jobs_in_queue_system(workflow))))
