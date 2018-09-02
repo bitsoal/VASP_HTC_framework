@@ -217,8 +217,8 @@ class Vasp_Error_Saver(object):
     def __init__(self, cal_loc, workflow):
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.error_folder = os.path.join(self.cal_loc, "error_folder")
                 
     def backup(self):
@@ -298,8 +298,8 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
     def __init__(self, cal_loc, workflow):
         self.cal_loc = cal_loc
         self.workflow = workflow
-        self.lot_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
     
     def write_error_log(self, target_error_str, error_type):
         error_type = error_type.strip()
@@ -404,8 +404,8 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
     def __init__(self, cal_loc, workflow):
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_str = "General timing and accounting informations for this job:"
         self.target_file = "OUTCAR"
             
@@ -460,8 +460,8 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str = "internal error in subroutine PRICEL"
         
@@ -530,8 +530,8 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str = "TOO FEW BANDS"
         
@@ -575,6 +575,8 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         NBANDS = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="NBANDS")
         NBANDS_ = int(NBANDS*1.1)
+        if NBANDS_ == NBANDS:
+            NBANDS_ += 1
         
         super(Vasp_out_too_few_bands, self).backup()
         modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"NBANDS": NBANDS_}, rename_old_incar=False)
@@ -602,8 +604,8 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str = "Tetrahedron method fails for NKPT<4."
         
@@ -667,8 +669,8 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         #super(Vasp_out_posmap, self).__init__(cal_loc, workflow)
         self.target_str = "POSMAP internal error: symmetry equivalent atom not found"
@@ -734,8 +736,8 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
     def __init__(self, cal_loc, workflow):
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str = "=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES"
         
@@ -807,8 +809,8 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str_list = [" VERY BAD NEWS! internal error in subroutine INVGRP:", 
                                 "inverse of rotation matrix was not found (increase SYMPREC)"]
@@ -887,8 +889,8 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str_list = ["ZBRENT: fatal error in bracketing", 
                                 "please rerun with smaller EDIFF, or copy CONTCAR", 
@@ -976,8 +978,8 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str = "RHOSYG internal error: stars are not distinct, try to increase SYMPREC to e.g."
         
@@ -1050,8 +1052,8 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str = "LAPACK: Routine ZPOTRF failed"
         
@@ -1148,8 +1150,8 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str = "Error EDDDAV: Call to ZHEGV failed"
         
@@ -1227,8 +1229,8 @@ class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str = "REAL_OPTLAY: internal error"
         
@@ -1291,8 +1293,8 @@ class Vasp_out_pzunmtr_or_pzstein(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.target_file = self.workflow[0]["vasp.out"]
         self.target_str_list = ["PZUNMTR parameter number", "PZSTEIN parameter number"]
         
@@ -1354,8 +1356,8 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         #super(Electronic_divergence, self).__init__(cal_loc)
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
      
@@ -1498,8 +1500,8 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
     
@@ -1605,8 +1607,8 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         #super(Positive_energy, self).__init__(cal_loc)
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
     
@@ -1682,8 +1684,8 @@ class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         self.workflow = workflow
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.firework = get_current_firework_from_cal_loc(cal_loc=cal_loc, workflow=workflow)
 
     
