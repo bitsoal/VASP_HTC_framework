@@ -1,0 +1,18 @@
+
+
+***************************************************************************************
+***************************************************************************************
+2018-09-02-19:47:25 INFO: under /htc_test/preview_HTC
+		Create sub-folder step_8_bader_charge
+		create __vis__ under step_8_bader_charge
+2018-09-02-19:47:25 INFO: copy and move files from src to dst
+			src: step_3_scf
+			dst: step_8_bader_charge
+			copy files: INCAR	POSCAR	CHGCAR	POTCAR	
+			Fail to move files below because they are not existent: copy_files	move_files	
+2018-09-02-19:47:25 INFO: modify INCAR in step_8_bader_charge
+		new incar tags:
+			LCHARG=.TRUE.
+			LWAVE=.FALSE.
+			ISMEAR=0
+		comment incar tags:LVHAR	

@@ -1,0 +1,35 @@
+
+
+***************************************************************************************
+***************************************************************************************
+2018-09-02-18:03:05 INFO: under /htc_test/cal_folder/MoS2
+		Create sub-folder step_2_consecutive_str_opt
+		create __vis__ under step_2_consecutive_str_opt
+2018-09-02-18:03:05 INFO: copy and move files from src to dst
+			src: step_1_str_opt
+			dst: step_2_consecutive_str_opt
+			copy files: INCAR	KPOINTS	POSCAR	POTCAR	CONTCAR	vasp.lsf	
+			move files: CHGCAR	
+			Fail to move files below because they are not existent: copy_files	move_files	
+			CONTCAR --> POSCAR under dst folder
+2018-09-02-18:03:05 INFO: modify INCAR in step_2_consecutive_str_opt
+		new incar tags:
+			LDIPOL=.TRUE.
+			ICHARG=1
+			IDIPOL=3
+			EDIFFG=-0.02
+2018-09-02-18:03:05 INFO: All VASP input files are ready at step_2_consecutive_str_opt
+			__vis__ --> __ready__
+2018-09-02-18:03:06 Submission: at step_2_consecutive_str_opt
+			Before the job submission, remove certain VASP files from which error checkers check errors.
+				remove the queue stdout and stderr files if found
+2018-09-02-18:03:06 Submit: move to step_2_consecutive_str_opt
+		try to submit job via cmd bsub < vasp.lsf > job_id
+			1st try:
+					exist-status: 0
+					error: None
+			Successfully submit the job.
+			__ready__ --> __running__
+			move back
+2018-09-02-18:05:06 INFO: Calculation successfully finishes at step_2_consecutive_str_opt
+			__running__ --> __done__

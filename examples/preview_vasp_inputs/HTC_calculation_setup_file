@@ -1,0 +1,219 @@
+#This is testing workflow
+
+**start
+step_no = 1
+cal_name = str opt
+
+kpoints_type = MPRelaxSet
+
+*begin(add_new_incar_tags)
+ISIF = 2
+ISMEAR = 0
+LCHARG = .TRUE.
+NPAR   = 4
+IVDW   = 12
+EDIFF  = 1.0E-4
+EDIFFG = -0.03
+*end(add_new_incar_tags)
+
+
+remove_incar_tags = MAGMOM
+comment_incar_tags = ISPIN, LORBIT
+
+user_defined_cmd = echo 'user_defined_cmd test' >>__test_file__, date >>__test_file__
+final_user_defined_cmd = echo 'final_user_defined_cmd' >>__test_file__, date >>__test_file__
+
+job_submission_script = /htc_test/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+
+###############################################################
+###These parameters are required in the first step.
+force_gamma = Yes
+preview_vasp_inputs = Yes
+
+job_query_command = bjobs -w             #@ replaces spaces
+job_killing_command = bkill
+where_to_parse_queue_id = job_id
+re_to_parse_queue_id = <([0-9]+)>    #based on re.findall
+queue_stdout_file_prefix = lsf
+queue_stdout_file_suffix = .o
+queue_stderr_file_prefix = lsf
+queue_stderr_file_suffix = .e
+vasp.out = out
+
+max_running_job = 10
+job_name=test_htc
+structure_folder = /htc_test/structures
+cal_folder = /htc_test/cal_folder
+##################################################################
+**end
+
+
+
+**start
+step_no = 2
+cal_name = consecutive str opt
+
+copy_from_prev_cal = INCAR, KPOINTS, POSCAR, POTCAR, CONTCAR, vasp.lsf
+move_from_prev_cal = CHGCAR
+contcar_to_poscar = Yes
+
+kpoints_type = MPRelaxSet
+
+*begin(add_new_incar_tags)
+ICHARG = 1
+IDIPOL = 3
+LDIPOL = .TRUE.
+EDIFFG = -0.02
+*end(add_new_incar_tags)
+
+job_submission_script = /htc_test/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+**start
+step_no = 3
+cal_name = scf
+
+copy_from_prev_cal = INCAR, CONTCAR, POTCAR
+contcar_to_poscar = Yes
+
+kpoints_type = MPStaticSet
+denser_kpoints = 1.5, 1.5, 1
+
+*begin(add_new_incar_tags)
+ICHARG = 2
+ISMEAR = -5
+LVHAR = .TRUE.
+ALGO  = Normal
+*end(add_new_incar_tags)
+
+comment_incar_tags = IBRION, ISIF, NSW, EDIFFG
+
+job_submission_script = /htc_test/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+
+**start
+step_no = 4
+cal_name = band structure
+
+copy_from_prev_cal = INCAR, POSCAR, CHGCAR, POTCAR
+copy_which_step = 3
+
+kpoints_type = Line-mode
+intersections = 20
+
+comment_incar_tags = LVHAR
+
+*begin(add_new_incar_tags)
+ICHARG = 11
+LORBIT = 11
+LCHARG = .FALSE.
+ISMEAR = 0
+LCHARG = .FALSE.
+*end(add_new_incar_tags)
+
+user_defined_cmd = echo 'user_defined_cmd test' >>__test_file__, date >>__test_file__
+final_user_defined_cmd = echo 'final_user_defined_cmd' >>__test_file__, date >>__test_file__
+
+
+job_submission_script = /htc_test/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+**start
+step_no = 5
+cal_name = band structure
+
+copy_from_prev_cal = INCAR, POSCAR, CHGCAR, POTCAR
+copy_which_step = 3
+
+kpoints_type = MPNonSCFSet_line
+kpoints_line_density = 20
+
+comment_incar_tags = LVHAR
+
+*begin(add_new_incar_tags)
+ICHARG = 11
+LORBIT = 11
+LCHARG = .FALSE.
+ISMEAR = 0
+LCHARG = .FALSE.
+*end(add_new_incar_tags)
+
+job_submission_script = /htc_test/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+**start
+step_no = 6
+cal_name = dos
+
+copy_from_prev_cal = INCAR, POSCAR, CHGCAR, POTCAR
+copy_which_step = 3
+
+kpoints_type = MPNonSCFSet_uniform
+reciprocal_density = 1000
+
+comment_incar_tags = LVHAR
+
+*begin(add_new_incar_tags)
+ICHARG = 11
+LORBIT = 11
+LCHARG = .FALSE.
+ISMEAR = 0
+LCHARG = .FALSE.
+*end(add_new_incar_tags)
+
+job_submission_script = /htc_test/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+**start
+step_no = 7
+cal_name = dos
+
+copy_from_prev_cal = INCAR, POSCAR, CHGCAR, POTCAR
+copy_which_step = 3
+
+kpoints_type = MPStaticSet
+denser_kpoints = 2, 2, 1.1
+
+comment_incar_tags = LVHAR
+
+*begin(add_new_incar_tags)
+ICHARG = 11
+LORBIT = 11
+LCHARG = .FALSE.
+ISMEAR = 0
+LCHARG = .FALSE.
+*end(add_new_incar_tags)
+
+job_submission_script = /htc_test/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+
+**start
+step_no = 8
+cal_name = bader_charge
+
+copy_from_prev_cal = INCAR, POSCAR, CHGCAR, POTCAR
+copy_which_step = 3
+
+kpoints_type = MPStaticSet
+
+comment_incar_tags = LVHAR
+
+bader_charge = Yes
+*begin(add_new_incar_tags)
+LCHARG = .TRUE.
+ISMEAR = 0
+LWAVE  = .FALSE.
+*end(add_new_incar_tags)
+
+job_submission_script = /htc_test/vasp.lsf
+job_submission_command = bsub < vasp.lsf > job_id
+**end
+

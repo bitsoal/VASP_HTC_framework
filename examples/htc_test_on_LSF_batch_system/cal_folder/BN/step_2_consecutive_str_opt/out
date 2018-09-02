@@ -1,0 +1,34 @@
+ running on    8 total cores
+ distrk:  each k-point on    8 cores,    1 groups
+ distr:  one band on    2 cores,    4 groups
+ using from now: INCAR     
+ vasp.5.4.4.18Apr17-6-g9f103f2a35 (build Feb 26 2018 15:04:24) complex          
+  
+ POSCAR found type information on POSCAR  B  N 
+ POSCAR found :  2 types and       2 ions
+ scaLAPACK will be used
+ LDA part: xc-table for Pade appr. of Perdew
+ POSCAR, INCAR and KPOINTS ok, starting setup
+ FFT: planning ...
+ WAVECAR not read
+ WARNING: random wavefunctions but no delay for mixing, default for NELMDL
+ entering main loop
+       N       E                     dE             d eps       ncg     rms          rms(c)
+DAV:   1     0.687337571528E+02    0.68734E+02   -0.32898E+03   504   0.717E+02
+DAV:   2    -0.131931830898E+02   -0.81927E+02   -0.66548E+02   728   0.131E+02
+DAV:   3    -0.194048958600E+02   -0.62117E+01   -0.62117E+01   656   0.651E+01
+DAV:   4    -0.194835907431E+02   -0.78695E-01   -0.78695E-01   880   0.709E+00
+DAV:   5    -0.194836151118E+02   -0.24369E-04   -0.24369E-04   712   0.142E-01    0.721E+00
+DAV:   6    -0.178687642796E+02    0.16149E+01   -0.62547E+00   808   0.173E+01    0.267E+00
+DAV:   7    -0.176744869180E+02    0.19428E+00   -0.19883E-01   904   0.380E+00    0.149E+00
+DAV:   8    -0.175818265792E+02    0.92660E-01   -0.19866E-01   840   0.325E+00    0.257E-01
+DAV:   9    -0.175746428682E+02    0.71837E-02   -0.35747E-03   904   0.483E-01    0.837E-02
+DAV:  10    -0.175723746908E+02    0.22682E-02   -0.12334E-03   848   0.225E-01    0.570E-02
+DAV:  11    -0.175714797528E+02    0.89494E-03   -0.18691E-03   664   0.228E-01    0.239E-02
+DAV:  12    -0.175728115253E+02   -0.13318E-02   -0.23455E-04   672   0.839E-02    0.166E-02
+DAV:  13    -0.175736203908E+02   -0.80887E-03   -0.13842E-04   616   0.647E-02    0.651E-03
+DAV:  14    -0.175740622174E+02   -0.44183E-03   -0.82986E-05   704   0.405E-02    0.496E-03
+DAV:  15    -0.175740854843E+02   -0.23267E-04   -0.50332E-06   640   0.163E-02
+   1 F= -.17727834E+02 E0= -.17727834E+02  d E =-.177278E+02
+ BRION: g(F)=  0.280E-06 g(S)=  0.000E+00
+ reached required accuracy - stopping structural energy minimisation

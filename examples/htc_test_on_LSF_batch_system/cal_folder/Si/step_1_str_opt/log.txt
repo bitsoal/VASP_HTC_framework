@@ -1,0 +1,52 @@
+
+
+***************************************************************************************
+***************************************************************************************
+2018-09-02-18:01:47 INFO: under /htc_test/cal_folder/Si
+		Create sub-folder step_1_str_opt
+		create __vis__ under step_1_str_opt
+2018-09-02-18:01:47 INFO: no POSCAR in step_1_str_opt
+			src: /htc_test/structures/Si.cif
+			tag sort_structure is on
+			So write a sorted structure into POSCAR using pymatgen.Structure
+2018-09-02-18:01:47 INFO: at /htc_test/cal_folder/Si/step_1_str_opt
+			successfully execute user-defined-cmd as listed below:
+				echo 'user_defined_cmd test' >>__test_file__
+				date >>__test_file__
+2018-09-02-18:01:47 INFO: no INCAR in step_1_str_opt
+			use pymatgen.io.vasp.sets.MPRelaxSet to write INCAR
+2018-09-02-18:01:47 INFO: modify INCAR in step_1_str_opt
+		new incar tags:
+			LCHARG=.TRUE.
+			EDIFF=1.0E-4
+			EDIFFG=-0.03
+			ISIF=2
+			ISMEAR=0
+			IVDW=12
+			NPAR=4
+		comment incar tags:ISPIN	LORBIT	
+		remove incar tags: MAGMOM	
+		old INCAR --> INCAR.pymatgen
+2018-09-02-18:01:47 INFO: use pymatgen.io.vasp.MPRelaxSet to write KPOINTS under step_1_str_opt
+2018-09-02-18:01:47 INFO: no POTCAR in step_1_str_opt
+			use pymatgen.io.vasp.sets.MPRelaxSet to write POTCAR
+2018-09-02-18:01:47 INFO: at /htc_test/cal_folder/Si/step_1_str_opt
+			successfully execute user-defined-cmd as listed below:
+				echo 'final_user_defined_cmd' >>__test_file__
+				date >>__test_file__
+2018-09-02-18:01:47 INFO: All VASP input files are ready at step_1_str_opt
+			__vis__ --> __ready__
+2018-09-02-18:01:48 Submission: at step_1_str_opt
+			Before the job submission, remove certain VASP files from which error checkers check errors.
+				remove the queue stdout and stderr files if found
+2018-09-02-18:01:48 INFO: copy vasp.lsf from /htc_test/vasp.lsf
+2018-09-02-18:01:48 Submit: move to step_1_str_opt
+		try to submit job via cmd bsub < vasp.lsf > job_id
+			1st try:
+					exist-status: 0
+					error: None
+			Successfully submit the job.
+			__ready__ --> __running__
+			move back
+2018-09-02-18:05:06 INFO: Calculation successfully finishes at step_1_str_opt
+			__running__ --> __done__

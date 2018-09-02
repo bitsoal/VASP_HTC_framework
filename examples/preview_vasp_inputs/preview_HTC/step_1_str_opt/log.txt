@@ -1,0 +1,38 @@
+
+
+***************************************************************************************
+***************************************************************************************
+2018-09-02-19:47:23 INFO: under /htc_test/preview_HTC
+		Create sub-folder step_1_str_opt
+		create __vis__ under step_1_str_opt
+2018-09-02-19:47:23 INFO: no POSCAR in step_1_str_opt
+			src: /htc_test/structures/Si.cif
+			tag sort_structure is on
+			So write a sorted structure into POSCAR using pymatgen.Structure
+2018-09-02-19:47:23 INFO: at /htc_test/preview_HTC/step_1_str_opt
+			successfully execute user-defined-cmd as listed below:
+				echo 'user_defined_cmd test' >>__test_file__
+				date >>__test_file__
+2018-09-02-19:47:23 INFO: no INCAR in step_1_str_opt
+			use pymatgen.io.vasp.sets.MPRelaxSet to write INCAR
+2018-09-02-19:47:24 INFO: modify INCAR in step_1_str_opt
+		new incar tags:
+			LCHARG=.TRUE.
+			EDIFF=1.0E-4
+			EDIFFG=-0.03
+			ISIF=2
+			ISMEAR=0
+			IVDW=12
+			NPAR=4
+		comment incar tags:ISPIN	LORBIT	
+		remove incar tags: MAGMOM	
+		old INCAR --> INCAR.pymatgen
+2018-09-02-19:47:24 INFO: use pymatgen.io.vasp.MPRelaxSet to write KPOINTS under step_1_str_opt
+2018-09-02-19:47:24 INFO: no POTCAR in step_1_str_opt
+			use pymatgen.io.vasp.sets.MPRelaxSet to write POTCAR
+2018-09-02-19:47:24 INFO: at /htc_test/preview_HTC/step_1_str_opt
+			successfully execute user-defined-cmd as listed below:
+				echo 'final_user_defined_cmd' >>__test_file__
+				date >>__test_file__
+2018-09-02-19:47:24 INFO: All VASP input files are ready at step_1_str_opt
+			__vis__ --> __ready__

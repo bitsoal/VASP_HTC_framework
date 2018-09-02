@@ -6,7 +6,7 @@
 
 import os, sys, time, pprint
 
-HTC_lib_path = "/home/e0001020/.HTC"
+HTC_lib_path = "~/.HTC"
 
 if HTC_lib_path not in sys.path:
     sys.path.append(HTC_lib_path)

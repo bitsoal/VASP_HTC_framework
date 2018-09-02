@@ -1,0 +1,22 @@
+
+
+***************************************************************************************
+***************************************************************************************
+2018-09-02-19:47:25 INFO: under /htc_test/preview_HTC
+		Create sub-folder step_6_dos
+		create __vis__ under step_6_dos
+2018-09-02-19:47:25 INFO: copy and move files from src to dst
+			src: step_3_scf
+			dst: step_6_dos
+			copy files: INCAR	POSCAR	CHGCAR	POTCAR	
+			Fail to move files below because they are not existent: copy_files	move_files	
+2018-09-02-19:47:25 INFO: modify INCAR in step_6_dos
+		new incar tags:
+			LCHARG=.FALSE.
+			ICHARG=11
+			LORBIT=11
+			ISMEAR=0
+		comment incar tags:LVHAR	
+2018-09-02-19:47:25 INFO: use pymatgen.io.vasp.MPNonSCFSet_uniform to write KPOINTS under step_6_dos
+2018-09-02-19:47:25 INFO: All VASP input files are ready at step_6_dos
+			__vis__ --> __ready__

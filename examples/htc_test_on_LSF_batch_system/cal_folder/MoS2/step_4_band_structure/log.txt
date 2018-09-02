@@ -1,0 +1,44 @@
+
+
+***************************************************************************************
+***************************************************************************************
+2018-09-02-18:07:08 INFO: under /htc_test/cal_folder/MoS2
+		Create sub-folder step_4_band_structure
+		create __vis__ under step_4_band_structure
+2018-09-02-18:07:08 INFO: copy and move files from src to dst
+			src: step_3_scf
+			dst: step_4_band_structure
+			copy files: INCAR	POSCAR	CHGCAR	POTCAR	
+			Fail to move files below because they are not existent: copy_files	move_files	
+2018-09-02-18:07:08 INFO: at /htc_test/cal_folder/MoS2/step_4_band_structure
+			successfully execute user-defined-cmd as listed below:
+				echo 'user_defined_cmd test' >>__test_file__
+				date >>__test_file__
+2018-09-02-18:07:09 INFO: modify INCAR in step_4_band_structure
+		new incar tags:
+			LCHARG=.FALSE.
+			ICHARG=11
+			LORBIT=11
+			ISMEAR=0
+		comment incar tags:LVHAR	
+2018-09-02-18:07:09 INFO: write KPOINTS in the line mode based on pymatgen.symmetry.bandstructure.HighSymmKpath
+2018-09-02-18:07:09 INFO: at /htc_test/cal_folder/MoS2/step_4_band_structure
+			successfully execute user-defined-cmd as listed below:
+				echo 'final_user_defined_cmd' >>__test_file__
+				date >>__test_file__
+2018-09-02-18:07:09 INFO: All VASP input files are ready at step_4_band_structure
+			__vis__ --> __ready__
+2018-09-02-18:07:10 Submission: at step_4_band_structure
+			Before the job submission, remove certain VASP files from which error checkers check errors.
+				remove the queue stdout and stderr files if found
+2018-09-02-18:07:10 INFO: copy vasp.lsf from /htc_test/vasp.lsf
+2018-09-02-18:07:10 Submit: move to step_4_band_structure
+		try to submit job via cmd bsub < vasp.lsf > job_id
+			1st try:
+					exist-status: 0
+					error: None
+			Successfully submit the job.
+			__ready__ --> __running__
+			move back
+2018-09-02-18:09:11 INFO: Calculation successfully finishes at step_4_band_structure
+			__running__ --> __done__

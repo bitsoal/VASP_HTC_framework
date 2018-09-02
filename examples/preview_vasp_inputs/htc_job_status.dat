@@ -1,0 +1,49 @@
+
+2018-09-02-18:56:59:
+manual_folder_list:
+
+other_folder_list:
+
+skipped_folder_list:
+
+error_folder_list:
+
+running_folder_list:
+
+test_folder_list:
+
+killed_folder_list:
+
+ready_folder_list:
+
+vis_folder_list:
+
+prior_ready_folder_list:
+
+done_folder_list:
+	/htc_test/cal_folder/BN/step_3_scf
+	/htc_test/cal_folder/BN/step_6_dos
+	/htc_test/cal_folder/BN/step_8_bader_charge
+	/htc_test/cal_folder/BN/step_4_band_structure
+	/htc_test/cal_folder/BN/step_1_str_opt
+	/htc_test/cal_folder/BN/step_5_band_structure
+	/htc_test/cal_folder/BN/step_2_consecutive_str_opt
+	/htc_test/cal_folder/BN/step_7_dos
+	/htc_test/cal_folder/Si/step_3_scf
+	/htc_test/cal_folder/Si/step_6_dos
+	/htc_test/cal_folder/Si/step_8_bader_charge
+	/htc_test/cal_folder/Si/step_4_band_structure
+	/htc_test/cal_folder/Si/step_1_str_opt
+	/htc_test/cal_folder/Si/step_5_band_structure
+	/htc_test/cal_folder/Si/step_2_consecutive_str_opt
+	/htc_test/cal_folder/Si/step_7_dos
+	/htc_test/cal_folder/MoS2/step_3_scf
+	/htc_test/cal_folder/MoS2/step_6_dos
+	/htc_test/cal_folder/MoS2/step_8_bader_charge
+	/htc_test/cal_folder/MoS2/step_4_band_structure
+	/htc_test/cal_folder/MoS2/step_1_str_opt
+	/htc_test/cal_folder/MoS2/step_5_band_structure
+	/htc_test/cal_folder/MoS2/step_2_consecutive_str_opt
+	/htc_test/cal_folder/MoS2/step_7_dos
+
+***All calculations have finished --> Stop this program.***
