@@ -103,3 +103,11 @@ ENV/
 .mypy_cache/
 
 
+examples/preview_vasp_inputs/preview_HTC/step_8_bader_charge/POTCAR
+examples/preview_vasp_inputs/preview_HTC/step_7_dos/POTCAR
+examples/preview_vasp_inputs/preview_HTC/step_6_dos/POTCAR
+examples/preview_vasp_inputs/preview_HTC/step_5_band_structure/POTCAR
+examples/preview_vasp_inputs/preview_HTC/step_4_band_structure/POTCAR
+examples/preview_vasp_inputs/preview_HTC/step_3_scf/POTCAR
+examples/preview_vasp_inputs/preview_HTC/step_2_consecutive_str_opt/POTCAR
+examples/preview_vasp_inputs/preview_HTC/step_2_str_opt/POTCAR
