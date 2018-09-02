@@ -6,7 +6,7 @@
 
 import os, sys, time, pprint
 
-HTC_lib_path = "/home/users/nus/e0001020/.HTC"
+HTC_lib_path = "/home/e0001020/.HTC"
 
 if HTC_lib_path not in sys.path:
     sys.path.append(HTC_lib_path)
@@ -17,7 +17,7 @@ if  os.path.join(HTC_lib_path, "HTC_lib") not in sys.path:
 
 from HTC_lib.Utilities import get_time_str
 from HTC_lib.Parse_calculation_workflow import parse_calculation_workflow, old_parse_calculation_workflow
-from HTC_lib.new_Preprocess_and_Postprocess import pre_and_post_process
+from HTC_lib.new_Preprocess_and_Postprocess import pre_and_post_process, preview_HTC_vasp_inputs
 from HTC_lib.Check_and_update_calculation_status import check_calculations_status
 from HTC_lib.Check_and_update_calculation_status import update_running_jobs_status
 from HTC_lib.Check_and_update_calculation_status import update_killed_jobs_status
@@ -30,16 +30,17 @@ from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 if __name__ == "__main__":
     assert os.path.isfile("HTC_calculation_setup_file"), "Error: No HTC_calculation_setup_file under {}".format(os.getcwd())
     workflow = parse_calculation_workflow("HTC_calculation_setup_file")
-    old_workflow = old_parse_calculation_workflow("HTC_calculation_setup_file")
-    print('workflow == old_workflow? {}'.format(workflow == old_workflow))
-    assert workflow == old_workflow, "new workflow is not equal to old workflow."
     
     structure_file_folder = workflow[0]["structure_folder"]
     cal_folder = workflow[0]["cal_folder"]
     max_running_job = workflow[0]["max_running_job"]
+    
+    if workflow[0]["preview_vasp_inputs"]:
+        preview_HTC_vasp_inputs(cif_filename=os.listdir(structure_file_folder)[0], cif_folder=structure_file_folder, workflow=workflow)
+
 
     main_dir = os.getcwd()
-    while True:
+    while not workflow[0]["preview_vasp_inputs"]:
         os.chdir(main_dir)
         if os.path.isfile("__stop__"):
             print(">>>Detect file __stop__ in {}\n ---->stop this program.".format(main_dir))

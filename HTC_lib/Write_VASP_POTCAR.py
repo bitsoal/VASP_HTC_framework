@@ -11,7 +11,7 @@ import os
 from pymatgen.io.vasp.sets import MPRelaxSet
 from pymatgen import Structure
 
-from Utilities import get_time_str, get_current_firework_from_cal_loc
+from Utilities import get_time_str#, get_current_firework_from_cal_loc
 
 
 # In[2]:
@@ -27,9 +27,9 @@ def Write_Vasp_POTCAR(cal_loc, structure_filename, workflow):
         workflow
     """
     
-    firework = get_current_firework_from_cal_loc(cal_loc, workflow)
-    log_txt_loc, firework_name = os.path.split(cal_loc)
-    log_txt = os.path.join(log_txt_loc, "log.txt")
+    #firework = get_current_firework_from_cal_loc(cal_loc, workflow)
+    firework_name = os.path.split(cal_loc)[-1]
+    log_txt = os.path.join(cal_loc, "log.txt")
     
     if not os.path.isfile(os.path.join(cal_loc, "POTCAR")):
         structure = Structure.from_file(os.path.join(cal_loc, structure_filename))

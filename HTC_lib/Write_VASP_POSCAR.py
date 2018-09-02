@@ -10,7 +10,7 @@ import os, shutil
 
 from pymatgen import Structure
 
-from Utilities import get_time_str, get_current_firework_from_cal_loc
+from Utilities import get_time_str#, get_current_firework_from_cal_loc
 
 
 # In[5]:
@@ -31,9 +31,9 @@ def Write_Vasp_POSCAR(cal_loc, structure_filename, structure_file_folder, workfl
         workflow
     """
     
-    firework = get_current_firework_from_cal_loc(cal_loc, workflow)
-    log_txt_loc, firework_name = os.path.split(cal_loc)
-    log_txt = os.path.join(log_txt_loc, "log.txt")
+    #firework = get_current_firework_from_cal_loc(cal_loc, workflow)
+    firework_name = os.path.split(cal_loc)[-1]
+    log_txt = os.path.join(cal_loc, "log.txt")
     
     if not os.path.isfile(os.path.join(cal_loc, "POSCAR")):
         

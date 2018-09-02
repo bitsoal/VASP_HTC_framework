@@ -105,8 +105,8 @@ def update_running_jobs_status(running_jobs_list, workflow):
             #If found, __running__ --> __error__ and the error info will be written into __error__ and return False
             #If not found, return True
             if Vasp_Error_checker(error_type=["after_cal"], cal_loc=job_path, workflow=workflow):
-                log_txt_loc, firework_name = os.path.split(job_path)
-                with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
+                firework_name = os.path.split(job_path)[-1]
+                with open(os.path.join(job_path, "log.txt"), "a") as f:
                     f.write("{} INFO: Calculation successfully finishes at {}\n".format(get_time_str(), firework_name))
                     f.write("\t\t\t__running__ --> __done__\n")
                     decorated_os_rename(loc=job_path, old_filename="__running__", new_filename="__done__")
@@ -138,8 +138,8 @@ def update_running_jobs_status(running_jobs_list, workflow):
                             f.write(str(times+1))
                         continue
                 
-                log_txt_loc, firework_name = os.path.split(job_path)
-                with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
+                firework_name = os.path.split(job_path)[-1]
+                with open(os.path.join(job_path, "log.txt"), "a") as f:
                     f.write("{} Queue Error: {}\n".format(get_time_str(), job_path))
                     f.write("\t\t\tThe running job is not found in queue.\n")
                     f.write("\t\t\t__running__ --> __manual__\n")
@@ -175,11 +175,11 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
         
         error_type = Write_and_read_error_tag(killed_job).read_error_tag("__killed__")
         error_checker = Vasp_Error_checker(cal_loc=killed_job, error_type=error_type, workflow=workflow)
-        log_txt_loc, firework_name = os.path.split(killed_job)
+        firework_name = os.path.split(killed_job)[-1]
         if Vasp_Error_Saver(cal_loc=killed_job, workflow=workflow).find_error_times() >= max_error_times:
             decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
             #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
-            with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
+            with open(os.path.join(killed_job, "log.txt"), "a") as f:
                 f.write("{} Killed: {}\n".format(get_time_str(), killed_job))
                 f.write("\t\t\tThe error times hit the max_error_times ({})\n".format(max_error_times))
                 f.write("\t\t\t__killed__ -> __manual__\n")
@@ -192,7 +192,7 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
                     
             os.remove(os.path.join(killed_job, "__killed__"))
             open(os.path.join(killed_job, "__ready__"), "w").close()
-            with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
+            with open(os.path.join(killed_job, "log.txt"), "a") as f:
                 f.write("{} Killed: Successfully correct the error {} under {}\n".format(get_time_str(), error_type, firework_name))
                 #f.write("\t\t\tremove stdout and stderr files\n")
                 #for file_ in to_be_removed:
@@ -202,7 +202,7 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
         else:
             decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
             #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
-            with open(os.path.join(log_txt_loc, "log.txt"), "a") as f:
+            with open(os.path.join(killed_job, "log.txt"), "a") as f:
                 f.write("{} Killed: Fail to correct the error {} under {}\n".format(get_time_str(), error_type, firework_name))
                 f.write("\t\t\t__killed__ --> __manual__\n")
             

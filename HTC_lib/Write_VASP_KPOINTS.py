@@ -86,8 +86,8 @@ class Vasp_Kpoints():
     
     def __init__(self, cal_loc, structure_filename, workflow):
         self.cal_loc, self.workflow = cal_loc, workflow
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.structure = Structure.from_file(os.path.join(self.cal_loc, structure_filename))
         self.current_firework = self.get_current_firework()
         

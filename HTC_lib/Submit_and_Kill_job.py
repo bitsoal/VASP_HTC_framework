@@ -93,8 +93,8 @@ class Job_management():
     
     def __init__(self, cal_loc, workflow):
         self.cal_loc = cal_loc
-        self.log_txt_loc, self.firework_name = os.path.split(cal_loc)
-        self.log_txt = os.path.join(self.log_txt_loc, "log.txt")
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.workflow = workflow
         self.firework = self.find_firework_from_workflow()
         

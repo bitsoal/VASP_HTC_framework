@@ -141,10 +141,14 @@ def search_file(cal_loc, prefix="", suffix=""):
         target_file_list.append(file)
         
     if len(target_file_list) > 1:
-        print("\nError: Given the prefix {} and suffix {}, more than one files are found: ".format(prefix, suffix))
-        print(("{}\t"*len(target_file_list)).format(*target_file_list))
-        print("under {}\n".format(cal_loc))
-        raise Exception("See error above.")
+        with open(os.path.join(cal_loc, "log.txt"), "a") as f:
+            f.write("\nError: Given the prefix {} and suffix {}, more than one files are found: \n".format(prefix, suffix))
+            f.write(("{}\t"*len(target_file_list)).format(*target_file_list))
+            f.write("under {}\n".format(cal_loc))
+            f.write("\t\tcreate __manual__\n")
+        with open(os.path.join(cal_loc, "__manual__"), "w") as f:
+            f.write("The given prefix {} and suffix {} are not unique enough to match only file".format(prefix, suffix))
+        #raise Exception("See error above.")
     elif len(target_file_list) == 1:
         return target_file_list[0]
     else:

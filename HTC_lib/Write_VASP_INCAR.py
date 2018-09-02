@@ -30,8 +30,8 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
     """
     
     firework = get_current_firework_from_cal_loc(cal_loc, workflow)
-    log_txt_loc, firework_name = os.path.split(cal_loc)
-    log_txt = os.path.join(log_txt_loc, "log.txt")
+    firework_name = os.path.split(cal_loc)[-1]
+    log_txt = os.path.join(cal_loc, "log.txt")
     
     write_INCAR = False
     if not os.path.isfile(os.path.join(cal_loc, "INCAR")):

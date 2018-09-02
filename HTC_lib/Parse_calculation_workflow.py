@@ -36,7 +36,7 @@ class Read_Only_Dict(dict):
         return Read_Only_Dict(**read_only_dictionary)
 
 
-# In[4]:
+# In[3]:
 
 
 def parse_calculation_workflow(filename="Calculation_setup"):
@@ -59,14 +59,35 @@ def parse_calculation_workflow(filename="Calculation_setup"):
                 if not line.startswith("**end"):
                     firework_block_list[-1].append(line)
     firework_block_list = [block for block in firework_block_list if block]
-        
+    
+    firework_hierarchy_dict = {}
     for firework_block_ind, firework_block in enumerate(firework_block_list):
-        workflow.append(parse_firework_block(block_str_list=firework_block, step_no=firework_block_ind+1)) 
+        step_no = firework_block_ind+1
+        firework = parse_firework_block(block_str_list=firework_block, step_no=step_no)
+        workflow.append(firework)
+        if step_no == 1:
+            firework_hierarchy_dict["-1"] = [firework["firework_folder_name"]]
+        else:
+            if firework["copy_which_step"] == -1:
+                prev_firework_folder_name = "-1"
+            else:
+                prev_firework_folder_name = workflow[firework["copy_which_step"]-1]["firework_folder_name"]
+            
+            if prev_firework_folder_name not in firework_hierarchy_dict.keys():
+                firework_hierarchy_dict[prev_firework_folder_name] = [firework["firework_folder_name"]]
+            else:
+                firework_hierarchy_dict[prev_firework_folder_name].append(firework["firework_folder_name"])
+     
+    workflow[0]["firework_hierarchy_dict"] = firework_hierarchy_dict
+    workflow = [Read_Only_Dict.from_dict(firework) for firework in workflow]
+    
+    import pprint
+    pprint.pprint(workflow)
                     
     return workflow              
 
 
-# In[5]:
+# In[4]:
 
 
 def old_parse_calculation_workflow(filename="Calculation_setup"):
@@ -288,7 +309,7 @@ def old_parse_calculation_workflow(filename="Calculation_setup"):
     return workflow              
 
 
-# In[3]:
+# In[5]:
 
 
 def parse_firework_block(block_str_list, step_no):
@@ -340,8 +361,8 @@ def parse_firework_block(block_str_list, step_no):
     firework["copy_from_prev_cal"] = [item.strip() for item in firework["copy_from_prev_cal"].split(",") if item.strip()]
     if "copy_which_step" in firework.keys():
         firework["copy_which_step"] = int(firework["copy_which_step"])
-        if firework["copy_which_step"] < 1 or firework["copy_which_step"]  >= step_no:
-            raise Exception("step {}: tag copy_which_step should be >=1 and <{}".format(step_no, step_no))
+        if firework["copy_which_step"] not in [-1]+[i for i in range(1, step_no)]:
+            raise Exception("step {}: tag copy_which_step should be >=1 and <{}, or ==-1".format(step_no, step_no))
     else:
         if step_no == 1:
             firework["copy_which_step"] = -1
@@ -440,8 +461,11 @@ def parse_firework_block(block_str_list, step_no):
         firework["force_gamma"] = firework.get("force_gamma", "No").lower()
         firework["2d_system"] = firework.get("2d_system", "No").lower()
         firework["sort_structure"] = firework.get("sort_structure", "Yes").lower()
-        for tag in ["force_gamma", "2d_system", "sort_structure"]:
+        firework["preview_vasp_inputs"] = firework.get("preview_vasp_inputs", "No").lower()
+        for tag in ["force_gamma", "2d_system", "sort_structure", "preview_vasp_inputs"]:
             firework[tag] = True if 'y' in firework[tag] else False
+            
+        
                 
                     
         #set the calculation folder, structure folder, max_running_job
@@ -455,10 +479,10 @@ def parse_firework_block(block_str_list, step_no):
         assert firework["max_running_job"] >= 0, "tag max_running_job must be 0 or a positive integer."
                 
                    
-    return Read_Only_Dict.from_dict(firework)                  
+    #return Read_Only_Dict.from_dict(firework)
+    return firework
 
 
-# workflow = parse_calculation_workflow("Calculation_setup_GRC")
-# workflow[0]
+# parse_calculation_workflow("HTC_calculation_setup_file")
 
 # workflow[4]

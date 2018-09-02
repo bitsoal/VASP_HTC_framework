@@ -125,6 +125,7 @@ Default: `No`
 
 - **copy\_which\_step** (integer), optional.  
 This will specify where to copy the files listed in copy\_from\_prev\_cal or move the files listed in move\_from\_prev\_cal.**Note that this tag is meaningless for the first firework**  
+**In a workflow, if there are more than one fireworks that depend on the output of the same calculation and are independent of one another, the calculations defined by them will be carried out simultaneously.**  
 Default: `step_no-1`
 
 ---------------------------------
@@ -296,6 +297,16 @@ This tag allows users to execute a series of commands to perform user-defined fi
 e.g. `user_defined_postprocess_cmd = date >>__test_file__, echo 'test user_defined_postprocess_cmd tag' >>__test_file__`    
 **By default, the commands will be executed in the current firework folder. You can put your commands in a bash script so that before executing them, you can switch to other folders. If your firetasks involve modifications of VASP output files, we suggest you to make a sub-folder under the current firework folder in order to avoid damaging VASP output files. Just copy required files into this sub-folder, carry out your firetasks (and copy results back to the current firework folder)**  
 Default: empty
+
+-------------------------------------------------
+**preview\_vasp\_inputs**, **optional for the first firework**  
+This tag enables you to preview the vasp inputs of each firework defined in `HTC_calculation_setup`. **This tag is designed to check whether the input setting defined in `HTC_calculation_setup` is correct before the real HTC calculation is carried out.**   
+
+
+- `Yes`: When `python htc_main.py` is executed, a folder named `preview_HTC` will be created under the same directory where `python htc_main.py` is executed. Under `preview_HTC`, the vasp inputs of each firework will be written. ***In this case, the real HTC calculation won't be carried out.***  
+- `No`: ***The real HTC calculation will be carried out***  
+default: `No`
+
 
 -----------------------------------------
 #### Below are tags related to job managements
