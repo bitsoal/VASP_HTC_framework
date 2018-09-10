@@ -13,7 +13,7 @@ from Utilities import get_time_str, decorated_os_rename
 from Error_checker import Queue_std_files
 
 
-# In[2]:
+# In[1]:
 
 
 def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
@@ -26,8 +26,9 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
         - max_jobs_in_queue (int): default 30
     """
     no_of_running_jobs = Job_management.count_running_jobs(workflow=workflow)
-    assert no_of_running_jobs >= len(cal_jobs_status["running_folder_list"]),     "Error in counting running jobs: # of job name in queue {} V.S. # of jobs labeled by __running__ {}".format(no_of_running_jobs, len(cal_jobs_status["running_folder_list"]))
-    #if no_of_running_jobs > len(cal_jobs_status["running_folder_list"]):
+    if no_of_running_jobs != len(cal_jobs_status["running_folder_list"]):
+        print("Error in counting running jobs: qstat|bjobs gives {} V.S. __running__ gives {}".format(no_of_running_jobs, len(cal_jobs_status["running_folder_list"])))
+    no_of_running_jobs = max([no_of_running_jobs, len(cal_jobs_status["running_folder_list"])])
     #    return False
     
     if no_of_running_jobs < max_jobs_in_queue:
