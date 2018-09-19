@@ -63,8 +63,23 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
      * tag **2d_system**: for 2D systems, KPOINTS will be modified so that K\_z is zero for all kpoints.
      * tag **sort_structure**: Whether sort structure or not beforing write POSCAR by the electronegativity of the species
 
+<br>
+
+------------------------------------------
+------------------------------------------
+## The calculations listed below are already available:  
+* **Structural relaxations**
+* **Self-consistent calculations**
+* **Density of states**
+* **Band structure (KPOINTS can be automatically for either PBE and HSE06)**
+* **Partial charge around CBM and VBM**
+* **Bader charge calculation**
+* **...**
+ 
 
 
+------------------------------------------
+------------------------------------------
 
 
 <br><br>
@@ -128,6 +143,21 @@ This will specify where to copy the files listed in copy\_from\_prev\_cal or mov
 **In a workflow, if there are more than one fireworks that depend on the output of the same calculation and are independent of one another, the calculations defined by them will be carried out simultaneously.**  
 Default: `step_no-1`
 
+-------------------------------
+
+- **additional\_cal\_dependence**, optional.  
+By default, the calculation of the current firework may only rely on the output of its parent firework (specified by `copy_which_step`). However, chances are that the current firework may depend on the outputs of additional previous fireworks. In this case, the current firework shouldn't start unless all dependent previous fireworks are complete.  
+`additional_cal_dependence` should be a `step_no` or a array of `step_no`s of the additional dependent fireworks. If an array is given, `step_no` in the array should be separated by commas `,`.     
+Example 1: step 3 and step 5 are the self-consistent calculation (provide WAVECAR) and the band structure calculation (provide CBM, VBM, Efermi). In step 6, we want to calculate the associated partial charge density around CBM. In this case, the INCAR setting of step 6 rely on both step 3 and step 5. The corresponding setting should be  
+>`copy_which_step=3`
+>`additional_cal_dependence=5`   
+
+Example 2: If the raw VASP input setup of step 6 is copied/moved from step 2, and the modification of the input setup of this step also relies on the output of step 3, step 4 and step 5. Then the corresponding setting should be  
+>`copy_which_step=2`
+>`additional_cal_dependence=3, 4, 5`
+
+Default: `empty` 
+
 ---------------------------------
 
 - **remove\_after\_cal**, optional.  
@@ -171,6 +201,31 @@ If multiple INCAR tags need to be removed, separate them with commas.
 Default: empty
 
 -------------------------------
+- **partial\_charge\_cal**, optional.  
+This tag enables the partial charge calculation. If this tag is set to `Yes`, the following tags will be automatically added into INCAR of this firework  
+>LPARD = .TRUE.  
+>NBMOD = -3  
+>EINT  = determined by tag `EINT_wrt_CBM` or `EINT_wrt_VBM` and `which_step_to_read_cbm_vbm`
+
+
+Default: `No`  
+**It should be noted that once this tag is set to `Yes`, either `EINT_wrt_CBM` or `EINT_wrt_VBM` should be set in order to determine `EINT`. `which_step_to_read_cbm_vbm` should also be set to read CBM, VBM and Efermi**
+
+--------------------------------------------
+- **which\_step\_to\_read\_cbm\_vbm**, optional  
+This tag tells us from which previous step CBM, VBM and Efermi can be read in order to determine `EINT` in INCAR if the partial charge calculation is activated.  
+Default: `Must be specified in the case where partial charge_cal is set to Yes. No need to set in other cases`  
+**It should be noted that `EINT` cannot be determined unless `which_step_to_read_vbm` and one of (`EINT_wrt_CBM`, `EINT_wrt_VBM`) are provided at the same time**  
+**CBM, VBM and Efermi are read from the vasprun.xml of the specified previous step. So that vasprun.xml must exist.**
+
+
+--------------------------------------------
+- **EINT\_wrt\_CBM** & **EINT\_wrt\_VBM**, optional    
+**either one should be given if `partial_charge_cal=Yes`**  
+Default: `Must be specified in the case where partial charge_cal is set to Yes. No need to set in other cases`  
+**It should be noted that `EINT` cannot be determined unless `which_step_to_read_vbm` and one of (`EINT_wrt_CBM`, `EINT_wrt_VBM`) are provided at the same time**
+
+-----------------------------------
 
 - **add\_new\_incar\_tags** sub-block, optional
   - start from the line which starts with `*begin(add_new_incar_tags)`; It ends up with the line which starts with `*end(add_new_incar_tags)`

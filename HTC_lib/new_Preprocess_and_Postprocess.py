@@ -239,7 +239,12 @@ def get_current_firework(mater_cal_folder, workflow, current_firework_folder_nam
             next_firework_list.extend(get_current_firework(mater_cal_folder, workflow, current_firework_folder_name=next_firework_folder_name))
         else:
             next_firework_step_no = int(next_firework_folder_name.split("_")[1])
-            next_firework_list.append(workflow[next_firework_step_no-1])
+            all_dependent_fireworks_are_complete = True
+            for dependent_firework_folder_name in workflow[next_firework_step_no-1]["additional_cal_dependence"]:
+                if not os.path.isfile(os.path.join(mater_cal_folder, dependent_firework_folder_name, "__done__")) and not                 os.path.isfile(os.path.join(mater_cal_folder, dependent_firework_folder_name, "__skipped__")):
+                    all_dependent_fireworks_are_complete = False
+            if all_dependent_fireworks_are_complete:
+                next_firework_list.append(workflow[next_firework_step_no-1])
     return next_firework_list        
             
 

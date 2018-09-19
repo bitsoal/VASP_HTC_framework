@@ -424,7 +424,7 @@ class OUTCAR_status(Vasp_Error_Checker_Logger):
                                                               final_signal_file="__error__")
             return False
         
-        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str) or        find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str="Finished calculating partial charge density."):
             return True
         else:
             self.write_error_log()

@@ -27,7 +27,7 @@ def Execute_user_defined_cmd(cal_loc, user_defined_cmd_list, where_to_execute):
                     f.write("{} Error: at {}\n".format(get_time_str(), where_to_execute))
                     f.write("\t\t\tfail to execute user-defined-cmd {}\n".format(cmd_))
                     f.write("\t\t\tcreate __manual__ into {}\n".format(cal_loc))
-                open(os.path.join(cal_loc, "__manual__"))
+                open(os.path.join(cal_loc, "__manual__"), "w").close()
                 return False
         with open(os.path.join(cal_loc, "log.txt"), "a") as f:
             f.write("{} INFO: at {}\n".format(get_time_str(), where_to_execute))

@@ -42,12 +42,15 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
         with open(log_txt, "a") as f:
             f.write("{} INFO: no INCAR in {}\n".format(get_time_str(), firework_name))
             f.write("\t\t\tuse pymatgen.io.vasp.sets.MPRelaxSet to write INCAR\n")
-      
+    
     
     
     new_incar_tags = firework["new_incar_tags"]
     comment_incar_tags = firework["comment_incar_tags"]
     remove_incar_tags = firework["remove_incar_tags"]
+    #Tags related to partial charge calculations.
+    if firework["partial_charge_cal"]:
+        new_incar_tags.update(get_partial_charge_tags(cal_loc=cal_loc, firework=firework, workflow=workflow))
     if new_incar_tags or comment_incar_tags or remove_incar_tags:
         if write_INCAR:
             modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, comment_tags=comment_incar_tags, 
@@ -227,6 +230,79 @@ def get_bader_charge_tags(cal_loc):
             "NGXF": 2* NGXF, 
             "NGYF":2*NGYF, 
             "NGZF": 2*NGZF}
+
+
+# In[4]:
+
+
+def get_partial_charge_tags(cal_loc, firework, workflow):
+    if firework["eint_wrt_cbm"] != None:
+        step_folder_for_band_edge = workflow[firework["which_step_to_read_cbm_vbm"]-1]["firework_folder_name"]
+        vbm_cbm_efermi_path = os.path.join(os.path.split(cal_loc)[0], step_folder_for_band_edge)
+        VBM, CBM, VBM_occ, CBM_occ, efermi = read_CBM_VBM_Efermi_from_vasprun(cal_loc=vbm_cbm_efermi_path)
+        CBM_ = CBM-efermi
+        EINT_lower, EINT_top = firework["eint_wrt_cbm"]
+        new_incar_tags = {"EINT": "{}  {}".format(EINT_lower+CBM_, EINT_top+CBM_), "NBMOD": -3, "LPARD": ".TRUE."}
+        with open(os.path.join(cal_loc, "log.txt"), "a") as f:
+            f.write("{} INFO: partial_charge_cal is set to Yes-->following actions are taken\n".format(get_time_str()))
+            f.write("\t\tread band edge information and the Fermi level from {}\n".format(vbm_cbm_efermi_path))
+            f.write("\t\tCBM={}\tVBM={}\tCBM_occ={}\tVBM_occ={}\tEfermi={}\n".format(CBM, VBM, CBM_occ, VBM_occ, efermi))
+            f.write("\t\tbased on these and EINT_wrt_CBM={}, the following tags are generated and added:\n".format(str(EINT_lower)+"  "+str(EINT_top)))
+            f.write("\t\t\tEINT={}\tNBMOD=-3\TLPARD=.TRUE.\n".format(new_incar_tags["EINT"]))
+        return new_incar_tags
+    elif firework["eint_wrt_vbm"] != None:
+        step_folder_for_band_edge = workflow[firework["which_step_to_read_cbm_vbm"]-1]["firework_folder_name"]
+        vbm_cbm_efermi_path = os.path.join(os.path.split(cal_loc)[0], step_folder_for_band_edge)
+        VBM, CBM, VBM_occ, CBM_occ, efermi = read_CBM_VBM_Efermi_from_vasprun(cal_loc=vbm_cbm_efermi_path)
+        VBM_ = VBM-efermi
+        EINT_lower, EINT_top = firework["eint_wrt_vbm"]
+        new_incar_tags = {"EINT": "{}  {}".format(EINT_lower+VBM_, EINT_top+VBM_), "NBMOD": -3, "LPARD": ".TRUE."}
+        with open(os.path.join(cal_loc, "log.txt"), "a") as f:
+            f.write("{} INFO: partial_charge_cal is set to Yes-->following actions are taken\n".format(get_time_str()))
+            f.write("\t\tread band edge information and the Fermi level from {}\n".format(vbm_cbm_efermi_path))
+            f.write("\t\tCBM={}\tVBM={}\tCBM_occ={}\tVBM_occ={}\tEfermi={}\n".format(CBM, VBM, CBM_occ, VBM_occ, efermi))
+            f.write("\t\tbased on these and EINT_wrt_VBM={}, the following tags are generated and added:\n".format(str(EINT_lower)+"  "+str(EINT_top)))
+            f.write("\t\t\tEINT={}\tNBMOD=-3\TLPARD=.TRUE.\n".format(new_incar_tags["EINT"]))
+        return new_incar_tags
+    else:
+        return {}
+
+
+# In[1]:
+
+
+def read_CBM_VBM_Efermi_from_vasprun(cal_loc):
+    energy_list, occ_list = [], []
+    with open(os.path.join(cal_loc, "vasprun.xml"), "r") as f:
+        read_energy_occ = False
+        for line in f:
+            if "efermi" in line and "name" in line:
+                efermi = line.split(">")[1].split("<")[0].strip()
+                efermi = float(efermi)
+            if '<set comment="kpoint' in line:
+                energy_list.append([])
+                occ_list.append([])
+                read_energy_occ = True
+                continue
+            if read_energy_occ:
+                if "<r>" in line:
+                    energy, occ = line.split(">")[1].split("<")[0].strip().split()
+                    #print(line, energy, occ)
+                    energy_list[-1].append(float(energy))
+                    occ_list[-1].append(float(occ))
+                else:
+                    read_energy_occ = False
+                    
+    VBM, CBM = -1e10, 1e10
+    for energy_list_a_kpoint, occ_list_a_kpoint in zip(energy_list, occ_list):
+        for energy, occ in zip(energy_list_a_kpoint, occ_list_a_kpoint):
+            if CBM > energy > efermi:
+                CBM = energy
+                CBM_occ = occ
+            elif efermi > energy > VBM:
+                VBM = energy
+                VBM_occ = occ
+    return VBM, CBM, VBM_occ, CBM_occ, efermi
 
 
 # modify_vasp_incar(".", new_tags={"ISMEAR": 5}) #, remove_tags=["ISYM", "EDIFF", "ISMEARy"], comment_tags=["LWAVE", "IBRION"])
