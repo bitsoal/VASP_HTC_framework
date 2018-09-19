@@ -74,7 +74,7 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 * **Band structure (KPOINTS can be automatically for either PBE and HSE06)**
 * **Partial charge around CBM and VBM**
 * **Bader charge calculation**
-* **...**
+* **Other calculations that can be setup by simply changing INCAR (e.g. phonon dispersions)**
  
 
 
