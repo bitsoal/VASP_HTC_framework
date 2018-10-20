@@ -276,6 +276,10 @@ Mn			d				3.06	0
   
 **Note that U, J and LDAUTYPE may vary, depending on the systems in which you are interested. So we don't provide default values.** 
 
+----------------------------
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_kpoints_type_1.png)
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_kpoints_type_II.png)
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_kpoints_type_III.png)
 --------------------------------------
 - **kpoints\_type**, **case sensitive**, **required for every firework**  
 options - MPRelaxSet, MPStaticSet, MPNonSCFSet\_line, MPNonSCFSet\_uniform, Line-mode:
