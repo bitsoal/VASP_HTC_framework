@@ -47,7 +47,8 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 * `HTC_calculation_setup` consists of a set of blocks, namely fireworks
 * Every firework starts from the line which begins with `**start`, and ends up with the line which begins with `**end`
 * In a firework
-  * pre-processes and post-processes are defined in a key-value manner with the equal sign `=` linking them. **There is an exception that inside a firework, there is a sub-block. This sub-block starts from the line which begins with `\*begin(add_new_incar_tags)` and it ends with the line which begins with `\*end(add_new_incar_tags)`. In this sub-block, you can overwrite INCAR tags or add new INCAR tags as you are writing INCAR.**
+  * pre-processes and post-processes are defined in a key-value manner with the equal sign `=` linking them. **There is an exception that inside a firework, there is a sub-
+  * . This sub-block starts from the line which begins with `\*begin(add_new_incar_tags)` and it ends with the line which begins with `\*end(add_new_incar_tags)`. In this sub-block, you can overwrite INCAR tags or add new INCAR tags as you are writing INCAR.**
   * In addition, job submissions, job status queries or job terminations will also need to be specified in a key-value manner.
   * Note that in the first firework, some job management tags must be set and these setting will be used for the whole workflow:
      * the command to query a job status from a queue system.
@@ -236,7 +237,8 @@ Default: `Must be specified in the case where partial charge_cal is set to Yes. 
 **Note that in this sub-block, the multiple pairs of tag-values separated by `;` in a line is not supported. In this case, only the first pair of tag-value will be parsed as a new INCAR tag, and the value is what is in between the first `=` and the second `=`. This may incur unpredictable errors**  
 
 **It doesn't make sense that you reset an INCAR tag in `add_new_incar_tags` sub-block while simultaneously trying to comment or remove this INCAR tag using `comment_incar_tags` or `remove_incar_tags`. If such a contradiction takes place, an error will be incurred.**  
-Default: `empty`
+Default: `empty`  
+  ![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_specific_calculation.png)
 
 ----------------
 - **bader\_charge**, optional.
@@ -253,6 +255,26 @@ Default: `bader_charge=No`
 **Where to find default (NGXF, NGYF, NGZF):**  
 	- if the current firework is the first step (no parent firework), a calculation without these tags will be carried out and then be terminated once the default values of (NGXF, NGYF, NFZF) are found in the OUTCAR. Afterwards, add all of the associated tags into INCAR for the Bader Charge calculation  
 	- if the current firework is not the first step, (NGXF, NGYF, NGZF) will be retrieved from the OUTCAR of the previous calculation which is indicated by `copy_which_step` 
+
+---------------------------------------------------
+- **ldau\_cal**, optional.  
+Invoke a LDA+U calculation. Note that you need to provide a file containing the Hubbard U and J for the atomic species to which the on-site interaction need to be added. Such file is specified by tag `ldau_u_j_table`.  
+Default: `ldau_cal=No`
+
+--------------------------------------------------
+- **ldau\_u\_j\_table**, required if `ldau_cal=Yes`  
+A file containing the Hubbard U and J for the atomic species to which the on-site interaction need to be added.  
+The format of the file:  
+`LDAUTYPE=1 | 2 | 4` should be specified in the first line to indicate which type of LDA+U is used. For the following lines, there are four columns, namely, `atomic species`, `orbital type`, `U`, `J`. Bellow is an example of the file:  
+>LDAUTYPE = 2  
+\#element   orbital_type     U     J  
+Sc		    d				2.11	0  
+Ti			d				2.58	0  
+V			d				2.72	0  
+Cr			d				2.79	0  
+Mn			d				3.06	0  
+  
+**Note that U, J and LDAUTYPE may vary, depending on the systems in which you are interested. So we don't provide default values.** 
 
 --------------------------------------
 - **kpoints\_type**, **case sensitive**, **required for every firework**  
