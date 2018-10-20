@@ -502,6 +502,11 @@ def parse_firework_block(block_str_list, step_no):
         assert 0<firework["which_step_to_read_cbm_vbm"]<step_no, "For step {}, which_step_to_read_cbm_vbm should be >0 and <{}".format(step_no, step_no)
         assert firework["eint_wrt_vbm"] != None or firework["eint_wrt_cbm"] != None,         "For step {}, since the partial charge calculation is activated by partial_charge_cal, eith EINT_wrt_CBM or EINT_wrt_VBM shoud be set".format(step_no)
         
+    firework["ldau_cal"] = firework.get("ldau_cal", "no").lower()
+    if "y" in firework["ldau_cal"]:
+        firework["ldau_cal"] = True
+        assert os.path.isfile(firework["ldau_u_j_table"]), "Step {}: Since you want to carry out LDA+U calculation, you need to provide a file containing Hubbard U and J by tag ldau_u_j_table".format(step_no)
+        
         
     #5. KPOINTS related tags
     if "kpoints_type" not in firework.keys():
