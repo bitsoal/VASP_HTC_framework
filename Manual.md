@@ -72,10 +72,12 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 * **Structural relaxations**
 * **Self-consistent calculations**
 * **Density of states**
-* **Band structure (KPOINTS can be automatically for either PBE and HSE06)**
+* **LDA+U calculations**
+* **Band structure (KPOINTS can be automatically created for either PBE and HSE06)**
 * **Partial charge around CBM and VBM**
 * **Bader charge calculation**
 * **Other calculations that can be setup by simply changing INCAR (e.g. phonon dispersions)**
+* **Can facilitate split-mode [CALYPSO](http://www.calypso.cn/) for structure predictions (refer to HTC tag `sort_structure` below)**
  
 
 
@@ -348,7 +350,7 @@ This tag can be set only in the first firework and *this setting will be applied
   
   * In some cases, the atomic sites may be ordered carefully for some specific purposes. So you may not want to change the order of atoms by pymatgen
   * The `Yes` state of this tag aims to deal with the given structures whose atoms are not grouped by atomic species. For example, the atoms of the given MoS2 may be arranged like `S  Mo  S` instead of `S S  Mo` or `Mo S S`. Such non-grouped atom arrangements may happen if the to-be-calculated structures are outputs of pymatgen and while exporting from pymatgen, `get_sorted_structure` has not been called to group atoms.  
-  * The `No` state of this tag can facilitate [split-mode CALYPSO](http://www.calypso.cn/) for structure predictions. By applying the particle swarm optimization method, CALYPSO generates certain number of to-be-relaxed structures. *If CALYPSO works in the split mode, users should **manually** relax these structures.* These structures are POSCAR-formated. Taking into account the backward compatibility of VASP, the line listing atomic species in POSCAR is missing, but `pymatgen.Structure` cannot correctly parse such kind of POSCAR, let alone create correct POSCARs. So we provide this tag `sort_structure` whose `No` mode allows POSCAR to be created by just copying and renaming. With this `No` mode, this VASP HTC framework can be utilized to automatically relax structures predicted by CALYPSO. *Note that since `pymatgen` cannot write correct POTCAR due to the absence of atomic species line in CALYPSO-generated POSCARs, `POTCAR` should be copied from somewhere. This can be realized via tag `extra_copy` or `final_extra_copy`.*   
+  * The `No` state of this tag can facilitate [split-mode CALYPSO](http://www.calypso.cn/) for structure predictions. By applying the particle swarm optimization method, CALYPSO generates certain number of to-be-relaxed structures. *If CALYPSO works in the split mode, users should **manually** relax these structures.* These structures are POSCAR-formated. Taking into account the backward compatibility of VASP, the line listing atomic species in POSCAR is missing, but `pymatgen.Structure` cannot correctly parse such kind of POSCAR, let alone create correct POSCARs and POTCARs. So we provide this tag `sort_structure` whose `No` mode allows POSCAR to be created by just copying and renaming. With this `No` mode, this VASP HTC framework can be utilized to automatically relax structures predicted by CALYPSO. *Note that since `pymatgen` cannot write correct POTCAR due to the absence of atomic species line in CALYPSO-generated POSCARs, `POTCAR` should be copied from somewhere. This can be realized via tag `extra_copy` or `final_extra_copy`.*   
 
 ***The creation of POSCAR:***  
 *For the second or later fireworks, POSCAR can be inherited from previous calculations, while this is not the case for the first firework. By default, for the first firework, the program will retrieve the structure under the folder which is specified by tag `structure_folder` where all to-be-calculated structures are stored in the form of cif, POSCAR or others that are supported by `pymatgen.Structure`. Once POSCAR is created according to tag `sort_structure` for the first firework, other VASP input files can be created accordingly and calculations therefore proceed. Of course, you may use tag `user_defined_cmd` to overwrite POSCAR, say cleave surfaces, which is why we let the firetasks defined by `user_defined_cmd` run before the creation of other VASP input files.*
