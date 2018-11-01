@@ -25,6 +25,7 @@ Package requirements: [pymatgen](http://pymatgen.org/index.html)
 * **Partial charge around CBM and VBM**
 * **Bader charge calculation**
 * **Other calculations that can be setup by simply changing INCAR (e.g. phonon dispersions)**
+* **Sub-folder calculations (for e.g. lattice constant optimization)**
 * **Can facilitate split-mode [CALYPSO](http://www.calypso.cn/) for structure predictions (refer to HTC tag `sort_structure` below)**
 
 ------------------------------------------
