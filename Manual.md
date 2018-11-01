@@ -85,6 +85,7 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 <br>
 
 --------------------------------------------------------------------------------------
+
 ##The HTC directory structure  
 
 The directory structure of a HTC is illustrated in the figure below.
