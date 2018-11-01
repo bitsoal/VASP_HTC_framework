@@ -86,6 +86,7 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 
 --------------------------------------------------------------------------------------
 ##The HTC directory structure  
+
 The directory structure of a HTC is illustrated in the figure below.
    
 * HTC root directory  
@@ -104,9 +105,9 @@ The directory structure of a HTC is illustrated in the figure below.
 
 
 ![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/HTC_directory_structure.png)
+</br>
 
 --------------------------------------------------------------------------------------
-<br>
 ## Tag list - below are tags that can be set in HTC\_calculation\_setup\_file
 ### (Note that for boolean data type, we use 'Yes' and 'No')
 ----------------------
