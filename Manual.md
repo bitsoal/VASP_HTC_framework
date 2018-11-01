@@ -9,8 +9,8 @@ version: python2.7
 Package requirements: [pymatgen](http://pymatgen.org/index.html)
 
 #### How to run:
-1. specify `HTC_lib_path` at the beginning of htc_main.py, where `HTC_lib_path` is the absolute path of the directory containing this VASP HTC package.
-2. Compose a setup file named `HTC_calculation_setup_file`. See below for the composition of `HTC_calculation_setup_file`
+1. specify `HTC_lib_path` at the beginning of htc_main.py, where `HTC_lib_path` is the absolute path to this VASP HTC package.
+2. Write up a setup file named `HTC_calculation_setup_file`. See below for the composition of `HTC_calculation_setup_file`
 3. In the directory containing `HTC_calculation_setup_file`, execute `python htc_main.py` OR `nohup python htc_main.py > log.txt 2>&1 &` to start this HTC program.
 
 </br>
@@ -32,7 +32,7 @@ Package requirements: [pymatgen](http://pymatgen.org/index.html)
 
 
 ## Terminologies we used
-We adopt the terminologies below from pymatgen, atomate:
+We adopt the terminologies below from pymatgen and atomate:
   
 * firetask - A Firetask is an atomic computing job. For example:
   * copy, move, remove files  
@@ -59,12 +59,12 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 
 -----------------------------------------------
 ## How to write up HTC\_calculation\_setup\_file  
-**We assume the HTC workflow setup is saved into a file named HTC\_calculation\_setup\_file. In addition to structure files, this is the only file that you need to specify to automate the HTC calculations. What follows is how to setup a workflow by composing HTC\_calculation\_setup**
+**We assume the HTC workflow setup is saved into a file named ***HTC\_calculation\_setup\_file***. In addition to structure files, this is the only file that you need to specify to automate the HTC calculations. What follows is how to define a workflow by composing HTC\_calculation\_setup**
 
 * `HTC_calculation_setup` consists of a set of blocks, namely fireworks
 * Every firework starts from the line which begins with `**start`, and ends up with the line which begins with `**end`
 * In a firework
-  * pre-processes and post-processes are defined in a key-value manner with the equal sign `=` linking them. **There is an exception that inside a firework, there is a sub-block. This sub-block starts from the line which begins with `\*begin(add_new_incar_tags)` and it ends with the line which begins with `\*end(add_new_incar_tags)`. In this sub-block, you can overwrite INCAR tags or add new INCAR tags as you are writing INCAR.**
+  * pre-processes and post-processes are defined in a key-value manner with the equal sign `=` linking them. **There is an exception that inside a firework, there is a sub-block related to INCAR modifications. This sub-block starts from the line which begins with `\*begin(add_new_incar_tags)` and it ends with the line which begins with `\*end(add_new_incar_tags)`. In this sub-block, you can overwrite INCAR tags or add new INCAR tags as you are writing INCAR.**
   * In addition, job submissions, job status queries or job terminations will also need to be specified in a key-value manner.
   * Note that **in the first firework**, some job management tags must be set and these setting will be used for the whole workflow:
      * the command to query a job status from a queue system.
@@ -79,6 +79,7 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
      * tag **forece_gamma**: if the kpoints are forced to be gamma-centered.
      * tag **2d_system**: for 2D systems, KPOINTS will be modified so that K\_z is zero for all kpoints.
      * tag **sort_structure**: Whether sort structure or not beforing write POSCAR by the electronegativity of the species 
+     * tag **max\_running\_job** and **job\_name**: they decide the maximum number of running/pending jobs.
       
 **Please refer to the tag list below for all available HTC tags and their detailed descriptions**
 
@@ -97,7 +98,7 @@ The directory structure of a HTC is illustrated in the figure below.
 	* folder `Calculation folder`: The HTC program will read the to-be-calculated structures in `Structure folder` and create a sub-folders for every materials. The sub-folder names would be the same as the associated structure filenames but without extensions. e.g. structure file `Mater_A.cif` will have a corresponding sub-folder named `Mater_A` under `Structure folder`. Similar to `Structure folder`, this folder could be anywhere with the associated HTC tag `cal_folder`, but again putting it into the HTC root directory is a choice.      
 		* folder `Mater_A`: The folder corresponding to structure `Mater_A.cif` in `Structure folder`. In this folder, a series of sub-folders will be created for the DFT calculations according to the pre-defined workflow. **Whether the DFT calculations are performed in this folder or in its sub-folders is determined by the HTC tag `sub_dir_cal`**
 			* folder `step_1_xxx`: 
-				* if `sub_dir_cal=Yes`: a series of sub-folders will be created under this folder. It is in those sub-folders that DFT calculations are carried out. The sub-folder calculations somewhat are fully determined by the command predifined by the HTC tag `sub_dir_cal_cmd`
+				* if `sub_dir_cal=Yes`: a series of sub-folders will be created under this folder. It is in those sub-folders that DFT calculations are carried out. The sub-folder calculations somewhat are fully determined by the command pre-difined by the HTC tag `sub_dir_cal_cmd`
 				* if `sub_dir_cal=No`: the DFT calculation pre-defined in the workflow is going to be carried out directly in this folder.
 			* folder `step_2_xxx`: 
 				* if `sub_dir_cal=Yes`: a series of sub-folders will be created under this folder. It is in those sub-folders that DFT calculations are carried out. The sub-folder calculations somewhat are fully determined by the command pre-defined by the HTC tag `sub_dir_cal_cmd`
@@ -119,6 +120,8 @@ The directory structure of a HTC is illustrated in the figure below.
 ### (Note that for boolean data type, we use 'Yes' and 'No')
 ----------------------
 ![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_input_file_preparations.png)
+</br>
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_input_file_preparations_2.png)
 
 
 - **structure\_folder** (str), **required for the first firework**  
@@ -410,6 +413,35 @@ This tag allows users to execute a series of commands to perform user-defined fi
 e.g. `user_defined_postprocess_cmd = date >>__test_file__, echo 'test user_defined_postprocess_cmd tag' >>__test_file__`    
 **By default, the commands will be executed in the current firework folder. You can put your commands in a bash script so that before executing them, you can switch to other folders. If your firetasks involve modifications of VASP output files, we suggest you to make a sub-folder under the current firework folder in order to avoid damaging VASP output files. Just copy required files into this sub-folder, carry out your firetasks (and copy results back to the current firework folder)**  
 Default: empty
+
+-------------------------------------
+
+**sub\_dir\_cal**, optional,  
+This tag together with `sub_dir_cal_cmd` defines the sub-folder calculations, as shown in the first figure (the HTC directory structure). See `sub_dir_cal_cmd` for more details about the sub-folder calculations.  
+Default: `No`  
+
+------------------------------------
+
+**sub\_dir\_cal\_cmd**, required if `sub_dir_cal=Yes`; optional otherwise,  
+This is the main HTC tag to realize sub-folder calculations.  
+**Why is there this tag:**  
+
+* Might be useful for the lattice constant optimization for 1D/2D materials if you don't want to use `ISIF=3` to relax everything. Suppose we are gonna relax lattice constant a, we may relax the structure with `ISIF=2` first and then do a single-point calculation with different a. To get the optimal a, we may fit the a v.s. Energy to an equation of state or just make an interpolation.  
+
+**How to realize the sub-folder calculations**  
+As shown in the second figure (`The procedure of preparing VASP input files and relevant tags`), actions related to `sub_dir_cal` and `sub_dir_cal_cmd` are taken at the end. So INCAR, POSCAR, KPOINTS and POTCAR have already been prepared according to the preceding HTC tags. **Commands defined by `sub_dir_cal_cmd` should:** 
+ 
+*  use these VASP input files as parent input files, change them as you want, create sub-folders and save them into the sub-folders for sub-folder DFT calculations.
+*  create a signal file after the input file preparations in sub-folders such that the HTC program can respond.
+	* `__ready__` or `__prior_ready__`: The calculation will be submitted and the signal file will be changed to `__running__`
+* change `__sub_dir_cal__` to `__manual__` if any error takes place during the sub-folder input file preparations or in other specified conditions.
+* change `__sub_dir_cal__` to `__done__` when all the sub-folder calculations and post-process of the outcome are complete.
+* copy some files from sub-folders back to the parent folder such that the subsequent calculations relying on this step can copy required files. **Note that such action may not needed. Those required files can be copied or moved by setting `user_defined_cmd` in the subsequent dependent calculations using relative paths.**  
+
+
+**commands defined by `sub_dir_cal_cmd` is going to be called repeatedly by the program to detect and change the status of the sub-folder calculation. We suggest you to write all commands into a script and copy that script to the specific calculation folder using HTC tag `extra_copy` or `final_extra_copy`. Then just execute that script.**  
+
+Default: **No default command. Any command that can be executed in the linux terminal. If there are more than one commands, separate them using `,`. Anyway, we suggest you to put all commands into a script and simply run that script.**  
 
 -------------------------------------------------
 **preview\_vasp\_inputs**, **optional for the first firework**  
