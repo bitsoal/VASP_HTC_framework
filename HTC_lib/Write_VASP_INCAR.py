@@ -46,7 +46,6 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
     
     
     new_incar_tags = firework["new_incar_tags"]
-    comment_incar_tags = firework["comment_incar_tags"]
     remove_incar_tags = firework["remove_incar_tags"]
     #Tags related to partial charge calculations.
     if firework["partial_charge_cal"]:
@@ -55,20 +54,14 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
         new_incar_tags.update(generate_Hubbard_U_J_INCAR_tags(cal_loc=cal_loc, U_J_table_filename=firework["ldau_u_j_table"]))
     if new_incar_tags or comment_incar_tags or remove_incar_tags:
         if write_INCAR:
-            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, comment_tags=comment_incar_tags, 
-                              rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags)
+            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags)
         else:
-            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, comment_tags=comment_incar_tags, 
-                              remove_tags=remove_incar_tags)
+            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, remove_tags=remove_incar_tags)
         with open(log_txt, "a") as f:
             f.write("{} INFO: modify INCAR in {}\n".format(get_time_str(), firework_name))
             if new_incar_tags:
                 f.write("\t\tnew incar tags:\n")
                 [f.write("\t\t\t{}={}\n".format(key_, value_)) for key_, value_ in new_incar_tags.items()]
-            if comment_incar_tags:
-                f.write("\t\tcomment incar tags:")
-                [f.write("{}\t".format(tag_)) for tag_ in comment_incar_tags]
-                f.write("\n")
             if remove_incar_tags:
                 f.write("\t\tremove incar tags: ")
                 [f.write("{}\t".format(tag_)) for tag_ in remove_incar_tags]
@@ -99,7 +92,7 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
 # In[18]:
 
 
-def modify_vasp_incar(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], rename_old_incar=True):
+def modify_vasp_incar0(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], rename_old_incar=True):
     """
     add new tags and comment obsolete tags in incar.
     input arguments:
@@ -213,6 +206,80 @@ def modify_vasp_incar(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], ren
 # In[18]:
 
 
+def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=True):
+    """
+    add new tags and comment obsolete tags in incar.
+    input arguments:
+        - cal_loc (str): the location of INCAR to be modified, <--required
+        - new_tags (dict): new tags to be added,
+        - remove_tags (list): incar tags that will be removed
+        - rename_old_incar (bool or str): if rename_old_incar is True, rename the old INCAR as INCAR_0, INCAR_1, INCAR_2, etc.
+                                        if rename_old_incar is False, the old INCAR will be overwritten by new INCAR.
+                                        if rename_old_incar is a string, rename the old INCAR as the string.
+                                        Default: True
+    return the valid INCAR dictionary if no modification is made.
+    """
+    
+
+    new_tags = {key.upper(): value for key, value in new_tags.items()}
+    remove_tags = [tag.upper() for tag in remove_tags]
+    
+    new_incar_tag_name = new_tags.keys()
+    for tag in remove_tags:
+        if tag in new_incar_tag_name:
+            #import pprint
+            print("\n\n**directory: {}".format(cal_loc))
+            print("**new_tags:")
+            pprint.pprint(new_tags)
+            print("**remove_tags:")
+            pprint.pprint(remove_tags)
+            Error_info = "***You are gonna remove an INCAR tag {} via comment_tags/remove_tags.".format(tag)
+            Error_info += "This contradicts the simultaneous attempt to set {} via new_tags**\n\n".format(tag)
+            print(Error_info)
+            raise Exception("See the error information above.")
+            
+
+    incar_dict = {}
+    with open(os.path.join(cal_loc, "INCAR"), "r") as incar_f:
+        lines = []
+        for line in incar_f:
+            if line.strip() == "":
+                continue
+            pairs = line.strip().split("#")[0]
+            pairs = pairs.strip().split("!")[0]
+            assert pairs.count("=") == 1,             "We ask you to set only one tag per line in INCAR, but there are more than one.\nwhere: {}\nline: {}".format(cal_loc, line)
+            pairs = [tag_or_value.strip() for tag_or_value in pairs.split("=")]
+            incar_dict[pairs[0].upper()] = pairs[1]
+                
+    incar_dict.update(new_tags)                
+    for remove_tag in remove_tags:
+        if remove_tag in incar_dict.keys():
+            del incar_dict[remove_tag]
+    
+    
+    if new_tags == {} and remove_tags == []:
+        return incar_dict
+
+    if isinstance(rename_old_incar, bool):
+        if rename_old_incar:
+            rename_old_incar = find_next_name(cal_loc=cal_loc, orig_name="INCAR")["next_name"]
+            decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
+            #shutil.copyfile(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, rename_old_incar))
+    elif isinstance(rename_old_incar, str):
+        decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
+        #shutil.copyfile(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, rename_old_incar))
+    else:
+        raise Exception("input argument rename_old_incar of modify_vasp_incar must be either bool or str.")
+        
+    
+    with open(os.path.join(cal_loc, "INCAR"), "w") as incar_f:
+        for tag, value in sorted(incar_dict.items(), key=lambda key_value_pair: key_value_pair[0]):
+            incar_f.write("{} = {}\n".format(tag, value))
+
+
+# In[18]:
+
+
 def get_bader_charge_tags(cal_loc):
     """
     Find INCAR tags relevant to Bader Charge Calculations. 
@@ -250,7 +317,7 @@ def get_partial_charge_tags(cal_loc, firework, workflow):
             f.write("\t\tread band edge information and the Fermi level from {}\n".format(vbm_cbm_efermi_path))
             f.write("\t\tCBM={}\tVBM={}\tCBM_occ={}\tVBM_occ={}\tEfermi={}\n".format(CBM, VBM, CBM_occ, VBM_occ, efermi))
             f.write("\t\tbased on these and EINT_wrt_CBM={}, the following tags are generated and added:\n".format(str(EINT_lower)+"  "+str(EINT_top)))
-            f.write("\t\t\tEINT={}\tNBMOD=-3\TLPARD=.TRUE.\n".format(new_incar_tags["EINT"]))
+            f.write("\t\t\tEINT={}\tNBMOD=-3\tLPARD=.TRUE.\n".format(new_incar_tags["EINT"]))
         return new_incar_tags
     elif firework["eint_wrt_vbm"] != None:
         step_folder_for_band_edge = workflow[firework["which_step_to_read_cbm_vbm"]-1]["firework_folder_name"]

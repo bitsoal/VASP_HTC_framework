@@ -18,9 +18,7 @@ if  os.path.join(HTC_lib_path, "HTC_lib") not in sys.path:
 from HTC_lib.Utilities import get_time_str
 from HTC_lib.Parse_calculation_workflow import parse_calculation_workflow, old_parse_calculation_workflow
 from HTC_lib.new_Preprocess_and_Postprocess import pre_and_post_process, preview_HTC_vasp_inputs
-from HTC_lib.Check_and_update_calculation_status import check_calculations_status
-from HTC_lib.Check_and_update_calculation_status import update_running_jobs_status
-from HTC_lib.Check_and_update_calculation_status import update_killed_jobs_status
+from HTC_lib.Check_and_update_calculation_status import check_calculations_status, update_job_status
 from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 
 
@@ -35,6 +33,9 @@ if __name__ == "__main__":
     cal_folder = workflow[0]["cal_folder"]
     max_running_job = workflow[0]["max_running_job"]
     
+    if not os.path.isdir(cal_folder):
+        os.mkdir(cal_folder)
+    
     if workflow[0]["preview_vasp_inputs"]:
         preview_HTC_vasp_inputs(cif_filename=os.listdir(structure_file_folder)[0], cif_folder=structure_file_folder, workflow=workflow)
 
@@ -46,20 +47,16 @@ if __name__ == "__main__":
             print(">>>Detect file __stop__ in {}\n ---->stop this program.".format(main_dir))
             break
         
-        cal_status = check_calculations_status(cal_folder=cal_folder)
-        update_running_jobs_status(cal_status["running_folder_list"], workflow=workflow)
-        cal_status = check_calculations_status(cal_folder=cal_folder)
-        kill_error_jobs(error_jobs=cal_status["error_folder_list"], workflow=workflow)
-        update_killed_jobs_status(cal_status["killed_folder_list"], workflow=workflow)
+        update_job_status(cal_folder=cal_folder, workflow=workflow)
         for structure_file in os.listdir(structure_file_folder):
             pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
         cal_status = check_calculations_status(cal_folder=cal_folder)
                 
-        print("\n")
-        print(get_time_str())
-        pprint.pprint(cal_status)
+        #print("\n")
+        #print(get_time_str())
+        #pprint.pprint(cal_status)
         
         os.chdir(main_dir)    
         with open("htc_job_status.dat", "w") as f:
@@ -78,7 +75,9 @@ if __name__ == "__main__":
         #At the end, all calculations should be labeled by signal file __done__ or __skipped__
         
         no_of_done_or_skipped_cal = len(cal_status["done_folder_list"]) + len(cal_status["skipped_folder_list"])
-        if no_of_done_or_skipped_cal == len(os.listdir(structure_file_folder))*len(workflow):
+        no_of_ongoing_jobs = sum([len(job_list) for job_status, job_list in cal_status.items() 
+                                  if job_status not in ["done_folder_list", "skipped_folder_list"]])
+        if no_of_ongoing_jobs == 0:
             print("All calculations have finished --> Stop this program.")
             os.chdir(main_dir)
             with open("htc_job_status.dat", "a") as f:

@@ -12,7 +12,7 @@ from pymatgen.io.vasp.sets import MPRelaxSet, MPNonSCFSet, MPStaticSet
 from pymatgen import Structure
 from pymatgen.symmetry.bandstructure import HighSymmKpath
 
-from Utilities import get_time_str,  find_next_name, decorated_os_rename
+from Utilities import get_time_str,  find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
 
 
 # In[2]:
@@ -89,12 +89,7 @@ class Vasp_Kpoints():
         self.firework_name = os.path.split(cal_loc)[-1]
         self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.structure = Structure.from_file(os.path.join(self.cal_loc, structure_filename))
-        self.current_firework = self.get_current_firework()
-        
-    def get_current_firework(self):
-        for firework in self.workflow:
-            if self.firework_name == firework["firework_folder_name"]:
-                return firework
+        self.current_firework = get_current_firework_from_cal_loc(cal_loc, workflow)#self.get_current_firework()
             
             
     def Write_MPRelax_KPOINTS(self, **kwargs):

@@ -68,10 +68,7 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
         - cal_folder (str): Under cal_folder, a sub-folder will be created where a set of DFT calculations defined by workflow will be made.
                         Note that the absolute path should be provided.
         - workflow: the return of function parse_calculation_workflow, which define a set of DFT calculations and related pre- and post- processes
-    """
-    if not os.path.isdir(cal_folder):
-        os.mkdir(cal_folder)
-       
+    """       
     
     mater_cal_folder = os.path.join(cal_folder, cif_filename.split(".")[0])
     if not os.path.isdir(mater_cal_folder):
@@ -86,7 +83,7 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
         post_process(mater_cal_folder=mater_cal_folder, current_firework=current_firework, workflow=workflow)
 
 
-# In[3]:
+# In[1]:
 
 
 def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_firework, workflow):
@@ -151,14 +148,15 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                         f.write("\n")
                 if contcar_to_poscar:
                     f.write("\t\t\tCONTCAR --> POSCAR under dst folder\n")
-        assert os.path.isfile(os.path.join(current_cal_loc, "POSCAR")), "Error: POSCAR is missing!"
+        
         
         
         input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["user_defined_cmd"],
                            "where_to_execute": current_cal_loc}
         if not Execute_user_defined_cmd(**input_args_list):
             return False
-            
+        
+        assert os.path.isfile(os.path.join(current_cal_loc, "POSCAR")), "Error: POSCAR is missing!"
         
         Write_Vasp_INCAR(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
         Write_Vasp_KPOINTS(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
@@ -182,6 +180,18 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
         if not Execute_user_defined_cmd(**input_args_list):
             return False
         
+        if current_firework["sub_dir_cal"]:
+            #input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["sub_dir_cal_cmd"],
+            #                  "where_to_execute": current_cal_loc}
+            #if not Execute_user_defined_cmd(**input_args_list):
+            #    return False
+            #else:
+                decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__sub_dir_cal__")
+                with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:
+                    f.write("{} INFO: All VASP input files needed for sub-directory calculations are ready at {}\n".format(get_time_str(), 
+                                                                                                                    current_firework["firework_folder_name"]))
+                    f.write("\t\t\t__vis__ --> __sub_dir_cal__\n")
+                return True
         
         decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__ready__")
         with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:

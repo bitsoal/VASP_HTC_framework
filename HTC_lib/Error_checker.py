@@ -16,8 +16,8 @@ from pymatgen import Structure
 import numpy as np
 
 from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
-from Utilities import get_time_str, search_file, decorated_os_rename
-from Write_VASP_INCAR import modify_vasp_incar, get_current_firework_from_cal_loc, get_bader_charge_tags
+from Utilities import get_time_str, search_file, decorated_os_rename, get_current_firework_from_cal_loc
+from Write_VASP_INCAR import modify_vasp_incar, get_bader_charge_tags
 
 
 # In[2]:
@@ -345,12 +345,11 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
                 
                 
             
-    def write_correction_log(self, new_incar_tags={}, comment_incar_tags=[], remove_incar_tags=[], new_filenames={}, remove_files=[]):
+    def write_correction_log(self, new_incar_tags={}, remove_incar_tags=[], new_filenames={}, remove_files=[]):
         """
         write the correction log
         input arguments:
             new_incar_tags (dict): key-INCAR tags, value-corresponding values. Default: empty dictionary
-            comment_incar_tags (list): a list of INCAR tags. Default: empty list
             remove_incar_tags (list): a list of INCAR tags. Default: empty list
             new_filenames (dict): key-old filename, value-new filename. Default: empty dictionary
             remove_files (list): file list that will be removed
@@ -361,11 +360,6 @@ class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
                 f.write("\t\tnew incar tags:\n")
                 for tag, value in new_incar_tags.items():
                     f.write("\t\t\t{} = {}\n".format(tag, value))
-            if comment_incar_tags:
-                f.write("\t\t\comment incar tags:\n\t\t\t")
-                for tag in comment_incar_tags:
-                    f.write("{}\t".format(tag))
-                f.write("\n")
             if remove_incar_tags:
                 f.write("\t\tremove incar tags:\n\t\t\t")
                 for tag in remove_incar_tags:
@@ -1201,7 +1195,7 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 os.remove(os.path.join(self.cal_loc, "CHGCAR"))
         if ALGO != "all":
             super(Vasp_out_edddav, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"}, remove_tags=["AMIX", "BMIX", "AMIN"])
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"}, remove_tags=["AMIX", "BMIX", "AMIN"], rename_old_incar=False)
             super(Vasp_out_edddav, self).write_correction_log(new_incar_tags={"ALGO": "All"}, remove_incar_tags=["AMIX", "BMIX", "AMIN"], 
                                                               remove_files=["CHGCAR"])
             return True

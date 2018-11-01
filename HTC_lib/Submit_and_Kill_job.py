@@ -9,7 +9,7 @@
 import os, shutil, subprocess
 import re
 
-from Utilities import get_time_str, decorated_os_rename
+from Utilities import get_time_str, decorated_os_rename, get_current_firework_from_cal_loc
 from Error_checker import Queue_std_files
 
 
@@ -96,7 +96,7 @@ class Job_management():
         self.firework_name = os.path.split(cal_loc)[-1]
         self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.workflow = workflow
-        self.firework = self.find_firework_from_workflow()
+        self.firework = get_current_firework_from_cal_loc(cal_loc=cal_loc, workflow=workflow) #self.find_firework_from_workflow()
         
         self.job_query_cmd = workflow[0]["job_query_command"].split("@")
         self.job_killing_cmd = workflow[0]["job_killing_command"]
@@ -104,10 +104,6 @@ class Job_management():
         self.queue_id_file = os.path.join(self.cal_loc, self.queue_id_file)
         self.re_to_queue_id = workflow[0]["re_to_parse_queue_id"]
     
-    def find_firework_from_workflow(self):
-        for firework in self.workflow:
-            if firework["firework_folder_name"] == self.firework_name:
-                return firework
     
     @classmethod
     def check_jobs_in_queue_system(cls, workflow, max_times=10, return_a_str=False):

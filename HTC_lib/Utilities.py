@@ -1,8 +1,6 @@
 
 # coding: utf-8
 
-# # created on Feb 18 2018
-
 # In[1]:
 
 
@@ -80,6 +78,7 @@ def decorated_os_rename(loc, old_filename, new_filename, clear_content=False):
 
 
 # In[7]:
+
 
 
 def rename_files(loc, file_list, additional_file_list=[]):
@@ -220,10 +219,17 @@ def get_current_firework_from_cal_loc(cal_loc, workflow):
         - cal_loc (str): absolute calculation directory.
         - workflow
     """
-    firework_name = os.path.split(cal_loc)[-1]
+    cal_loc0 = cal_loc
+    while True:
+        heading_path, firework_name = os.path.split(cal_loc)
+        if firework_name.startswith("step_"):
+            break
+        else:
+            cal_loc = heading_path
     for firework in workflow:
         if firework_name == firework["firework_folder_name"]:
             return firework
+    raise Exception("Cannot parse a firework name from the path below:\n%s" % cal_loc0)
 
 
 # In[11]:
@@ -249,5 +255,25 @@ def decorated_os_system(cmd, where_to_execute):
             return True
     
     os.chdir(dir0)
-    return False       
+    return False  
+
+
+# In[12]:
+
+
+def decorated_subprocess_check_output(args, stdin=None, stderr=None, shell=True, no_of_trails=10):
+    trail_no = 0
+    error_list = []
+    while trail_no < no_of_trails:
+        try:
+            output = subprocess.check_output(args, stdin=stdin, stderr=stderr, shell=shell)
+        except Exception as err:
+            error_list.append(err)
+        else:
+            break
+        trail_no += 1
+    if type(args) == list:
+        args = " ".join(args)
+    assert trail_no != no_of_trails,     "The command below has been called %d times but all failed. Make sure it is correct\nwhere to call: %s\ncmd:%s" % (no_of_trails, os.getcwd(), args)
+    return output, error_list
 

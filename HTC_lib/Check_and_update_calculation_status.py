@@ -9,9 +9,10 @@
 import os
 
 
-from Utilities import get_time_str, decorated_os_rename
+from Utilities import get_time_str, decorated_os_rename, decorated_subprocess_check_output, get_current_firework_from_cal_loc
+from Execute_user_defined_cmd import Execute_user_defined_cmd
 
-from Submit_and_Kill_job import Job_management
+from Submit_and_Kill_job import Job_management, kill_error_jobs
 
 from Error_checker import Write_and_read_error_tag
 from Error_checker import Vasp_Error_Saver
@@ -19,10 +20,23 @@ from Error_checker import Queue_std_files
 from Error_checker import Vasp_Error_checker
 
 
+# In[ ]:
+
+
+def update_job_status(cal_folder, workflow):
+    job_status_dict = check_calculations_status(cal_folder=cal_folder)
+    update_running_jobs_status(running_jobs_list=job_status_dict["running_folder_list"], workflow=workflow)
+    job_status_dict = check_calculations_status(cal_folder=cal_folder)
+    kill_error_jobs(error_jobs=job_status_dict["error_folder_list"], workflow=workflow)
+    job_status_dict = check_calculations_status(cal_folder=cal_folder)
+    update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
+    update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_status_dict["sub_dir_cal_folder_list"], workflow=workflow)
+
+
 # In[2]:
 
 
-def check_calculations_status(cal_folder):
+def check_calculations_status_0(cal_folder):
     """
     Check the status of all calculations under folder cal_folder 
     input argument:
@@ -73,6 +87,55 @@ def check_calculations_status(cal_folder):
     return job_status_dict
 
 
+# In[2]:
+
+
+def check_calculations_status(cal_folder):
+    """
+    Check the status of all calculations under folder cal_folder 
+    input argument:
+        - cal_folder (str): The absolute path to a directory under which the program creates a sub-directory for every to-be-calculated
+                            materials. In the sub-directory, a series of DFT calculations predefined will be carried out.
+                            This function checks the calculation status of all DFT calculations under the folder referenced by cal_folder/
+    return a dictionary having keys below:
+        - ready_folder_list (list): a list of absolute pathes where the calculations are ready.
+                                    Note that the pathes where instead file __prior_ready__ exists will be put at the beginning
+                                    of list read_folder_list.
+        - running_folder_list (list): a list of absolute pathes where the calculations are ongoing.
+        - done_folder_list (list): a list of absolute pathes where the calculations are done.
+        - error_folder_list (list): a list of absolute pathes where the calculations encounter errors.
+        - killed_folder_list (list): a list of absolute pathes where the calculation has been killed.
+        - manual_folder_list (list): a list of absolute pathes where the error can not be fixed automatically.
+        - vis_folder_list (list): a list of absolute pathes where the input files for calculations need to be prepared
+    """
+    signal_file_list = ["__manual__", "__test__", "__vis__", "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__",
+                        "__error__", "__running__", "__done__", "__killed__"]
+    job_status_folder_list = ["manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", 
+                              "ready_folder_list", "prior_ready_folder_list", "sub_dir_cal_folder_list", "error_folder_list", "running_folder_list", 
+                              "done_folder_list", "killed_folder_list", "other_folder_list"]
+    job_status_dict = {key: [] for key in job_status_folder_list}
+    
+    jobs_in_str = decorated_subprocess_check_output("find %s -type f -name INCAR" % cal_folder)[0]
+    job_list = []
+    for job in jobs_in_str.split("\n"):
+        job = job.strip()
+        if job and "step" in job and "error_folder" not in job:
+            job_list.append(os.path.split(job)[0])
+    
+    for job in job_list:
+        file_list = os.listdir(job)
+        file_belong_to_other = True
+        for signal_file, status_type in zip(signal_file_list, job_status_folder_list):
+            if signal_file in file_list:
+                job_status_dict[status_type].append(job)
+                file_belong_to_other = False
+                break
+        if file_belong_to_other:
+            job_status_folder_list["other_folder_list"].append(job)
+    
+    return job_status_dict
+
+
 # In[3]:
 
 
@@ -105,9 +168,9 @@ def update_running_jobs_status(running_jobs_list, workflow):
             #If found, __running__ --> __error__ and the error info will be written into __error__ and return False
             #If not found, return True
             if Vasp_Error_checker(error_type=["after_cal"], cal_loc=job_path, workflow=workflow):
-                firework_name = os.path.split(job_path)[-1]
+                cal_name = os.path.split(job_path)[-1]
                 with open(os.path.join(job_path, "log.txt"), "a") as f:
-                    f.write("{} INFO: Calculation successfully finishes at {}\n".format(get_time_str(), firework_name))
+                    f.write("{} INFO: Calculation successfully finishes at {}\n".format(get_time_str(), cal_name))
                     f.write("\t\t\t__running__ --> __done__\n")
                     decorated_os_rename(loc=job_path, old_filename="__running__", new_filename="__done__")
                     #os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__done__"))
@@ -138,9 +201,9 @@ def update_running_jobs_status(running_jobs_list, workflow):
                             f.write(str(times+1))
                         continue
                 
-                firework_name = os.path.split(job_path)[-1]
+                cal_name = os.path.split(job_path)[-1]
                 with open(os.path.join(job_path, "log.txt"), "a") as f:
-                    f.write("{} Queue Error: {}\n".format(get_time_str(), job_path))
+                    f.write("{} Queue Error: {}\n".format(get_time_str(), cal_name))
                     f.write("\t\t\tThe running job is not found in queue.\n")
                     f.write("\t\t\t__running__ --> __manual__\n")
                     f.write("\t\t\tCreate file __running_job_not_in_queue__.\n")
@@ -175,12 +238,12 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
         
         error_type = Write_and_read_error_tag(killed_job).read_error_tag("__killed__")
         error_checker = Vasp_Error_checker(cal_loc=killed_job, error_type=error_type, workflow=workflow)
-        firework_name = os.path.split(killed_job)[-1]
+        cal_name = os.path.split(killed_job)[-1]
         if Vasp_Error_Saver(cal_loc=killed_job, workflow=workflow).find_error_times() >= max_error_times:
             decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
             #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
             with open(os.path.join(killed_job, "log.txt"), "a") as f:
-                f.write("{} Killed: {}\n".format(get_time_str(), killed_job))
+                f.write("{} Killed: {}\n".format(get_time_str(), cal_name))
                 f.write("\t\t\tThe error times hit the max_error_times ({})\n".format(max_error_times))
                 f.write("\t\t\t__killed__ -> __manual__\n")
         elif error_checker.correct():
@@ -193,18 +256,34 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
             os.remove(os.path.join(killed_job, "__killed__"))
             open(os.path.join(killed_job, "__ready__"), "w").close()
             with open(os.path.join(killed_job, "log.txt"), "a") as f:
-                f.write("{} Killed: Successfully correct the error {} under {}\n".format(get_time_str(), error_type, firework_name))
-                #f.write("\t\t\tremove stdout and stderr files\n")
-                #for file_ in to_be_removed:
-                #    f.write("\t\t\tremove {}\n".format(file_))
+                f.write("{} Killed: Successfully correct the error {} under {}\n".format(get_time_str(), error_type, cal_name))
                 f.write("\t\t\t__killed__ --> __ready__\n")
             
         else:
             decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
             #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
             with open(os.path.join(killed_job, "log.txt"), "a") as f:
-                f.write("{} Killed: Fail to correct the error {} under {}\n".format(get_time_str(), error_type, firework_name))
+                f.write("{} Killed: Fail to correct the error {} under {}\n".format(get_time_str(), error_type, cal_name))
                 f.write("\t\t\t__killed__ --> __manual__\n")
             
+    
+
+
+# In[4]:
+
+
+def update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list, workflow):
+    """
+    update the status of the sub-directoray calculations using the corresponding sub_dir_cal_cmd predefined in workflow.
+    Note that sub_dir_cal_cmd should be responsible for the job status switching from __sub_dir_cal__ to either __done__ or __manual__.
+    """
+    
+    for sub_dir_cal_path in sub_dir_cal_jobs_list:
+        current_firework = get_current_firework_from_cal_loc(sub_dir_cal_path, workflow)
+        
+        Execute_user_defined_cmd(cal_loc=sub_dir_cal_path, user_defined_cmd_list=current_firework["sub_dir_cal_cmd"],                                 where_to_execute=sub_dir_cal_path)
+    
+    
+
     
 
