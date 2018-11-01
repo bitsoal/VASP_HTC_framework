@@ -88,7 +88,7 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 
 ##The HTC directory structure  
 The directory structure of a HTC is illustrated in the figure below.
-   
+
 * HTC root directory  
 	* file `htc_main.py`: the main python file to invoke this HTC program  
 	* file `HTC_calculation_setup_file`: a file in which the calculation workflow is defined  
@@ -102,6 +102,10 @@ The directory structure of a HTC is illustrated in the figure below.
 				* if `sub_dir_cal=Yes`: a series of sub-folders will be created under this folder. It is in those sub-folders that DFT calculations are carried out. The sub-folder calculations somewhat are fully determined by the command pre-defined by the HTC tag `sub_dir_cal_cmd`
 				* if `sub_dir_cal=No`: the second DFT calculation pre-defined in the workflow is going to be carried out directly in this folder.
 			* ...
+		* folder `Mater_B`
+			* folder `step_1_xxx`
+			* folder `step_2_xxx`
+		* ...  
 
 
 ![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/HTC_directory_structure.png)
