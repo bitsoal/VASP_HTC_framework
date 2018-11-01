@@ -92,8 +92,8 @@ The directory structure of a HTC is illustrated in the figure below.
 * HTC root directory  
 	* file `htc_main.py`: the main python file to invoke this HTC program  
 	* file `HTC_calculation_setup_file`: a file in which the calculation workflow is defined  
-	* folder `Structure folder`: the directory containing those to-be-calculated structures in the cif or POSCAR format. Because this HTC program will apply the pre-defined workflow only to the structures in the folder specified by the HTC tag `structure_folder`, this folder could be anywhere. Putting it into the HTC root directory might be a good choice.  
-	* folder `Calculation folder`: The HTC program will read the to-be-calculated structures in `Structure folder` and create a series of sub-folders for every materials. The folder names would be the same as the associated structure filenames but without extensions. e.g. structure file `Mater_A.cif` will have a corresponding folder named `Mater_A` under `Structure folder`. Similar to `Structure folder`, this folder could be anywhere with the associated HTC tag `cal_folder` but somehow the HTC root directory is a choice.      
+	* folder `Structure folder`: the folder containing those to-be-calculated structures in the cif or POSCAR format. Because this HTC program will apply the pre-defined workflow only to the structures in the folder specified by the HTC tag `structure_folder`, this folder could be anywhere. Putting it into the HTC root directory might be a good choice.  
+	* folder `Calculation folder`: The HTC program will read the to-be-calculated structures in `Structure folder` and create a sub-folders for every materials. The folder names would be the same as the associated structure filenames but without extensions. e.g. structure file `Mater_A.cif` will have a corresponding folder named `Mater_A` under `Structure folder`. Similar to `Structure folder`, this folder could be anywhere with the associated HTC tag `cal_folder` but somehow the HTC root directory is a choice.      
 		* folder `Mater_A`: The folder corresponding to structure `Mater_A.cif` in `Structure folder`. In this folder, a series of sub-folders will be created for the DFT calculations according to the pre-defined workflow. **Whether the DFT calculation are performed in this folder or in its sub-folders is determined by the HTC tag `sub_dir_cal`**
 			* folder `step_1_xxx`: 
 				* if `sub_dir_cal=Yes`: a series of sub-folders will be created under this folder. It is in those sub-folders that DFT calculations are carried out. The sub-folder calculations somewhat are fully determined by the command predifined by the HTC tag `sub_dir_cal_cmd`
@@ -108,7 +108,8 @@ The directory structure of a HTC is illustrated in the figure below.
 </br>
 
 --------------------------------------------------------------------------------------
-## Tag list - below are tags that can be set in HTC\_calculation\_setup\_file
+
+##Tag list - below are tags that can be set in HTC\_calculation\_setup\_file
 ### (Note that for boolean data type, we use 'Yes' and 'No')
 ----------------------
 ![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_input_file_preparations.png)
