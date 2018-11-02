@@ -476,6 +476,8 @@ def parse_firework_block(block_str_list, step_no):
                
         
     #4. INCAR related tags
+    if "comment_incar_tags" in firework.keys():
+        raise Exception("HTC tag 'comment_incar_tags' has been obsolete. Only use 'remove_incar_tags' to deactivate INCAR tags.")
     for tag in ["remove_incar_tags"]:
         firework[tag] = firework.get(tag, "")
         firework[tag] = [item.strip().upper() for item in firework[tag].split(",") if item.strip()]
