@@ -21,6 +21,9 @@ class Read_Only_Dict(dict):
     
     def __delitem__(self, key):
         raise Exception("{} instance is read-only and cannot be changed!".format(self.__class__.__name__))
+        
+    def update(self, *args, **kwargs):
+        raise Exception("{} instance is read-only and cannot be changed!".format(self.__class__.__name__))
     
     @classmethod
     def from_dict(cls, dictionary):
@@ -36,7 +39,7 @@ class Read_Only_Dict(dict):
         return Read_Only_Dict(**read_only_dictionary)
 
 
-# In[1]:
+# In[3]:
 
 
 def parse_calculation_workflow(filename="Calculation_setup"):
@@ -94,7 +97,7 @@ def parse_calculation_workflow(filename="Calculation_setup"):
     return workflow              
 
 
-# In[ ]:
+# In[4]:
 
 
 def cal_calculation_sequence_of_all_fireworks(firework_hierarchy_dict):
@@ -129,7 +132,7 @@ def cal_calculation_sequence_of_all_fireworks(firework_hierarchy_dict):
     return cal_sequence_dict
 
 
-# In[6]:
+# In[5]:
 
 
 def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hierarchy_dict):
@@ -181,7 +184,7 @@ def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hi
         
 
 
-# In[4]:
+# In[6]:
 
 
 def old_parse_calculation_workflow(filename="Calculation_setup"):
@@ -399,7 +402,7 @@ def old_parse_calculation_workflow(filename="Calculation_setup"):
     return workflow              
 
 
-# In[5]:
+# In[7]:
 
 
 def parse_firework_block(block_str_list, step_no):

@@ -3,10 +3,10 @@
 
 # # created on March 31 2018
 
-# In[4]:
+# In[1]:
 
 
-import os, pprint
+import os, pprint,copy
 
 from pymatgen.io.vasp.sets import MPRelaxSet
 from pymatgen import Structure
@@ -22,7 +22,7 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
     """
     Write or modify INCAR in folder cal_loc as follows:
         step I: If no INCAR in cal_loc, write INCAR using pymatgen.io.vasp.sets.MPRelaxSet
-        step II: Modify INCAR according to new_incar_tags, comment_incar_tags and remove_incar_tags.
+        step II: Modify INCAR according to new_incar_tags and remove_incar_tags.
     Input arguments:
         cal_loc (str): the absolute path
         structure_filename (str): the file from which the structure is read using pymatgen.Structure.from_file
@@ -45,14 +45,14 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
     
     
     
-    new_incar_tags = firework["new_incar_tags"]
+    new_incar_tags = dict([(incar_tag, incar_value) for incar_tag, incar_value in firework["new_incar_tags"].items()])
     remove_incar_tags = firework["remove_incar_tags"]
     #Tags related to partial charge calculations.
     if firework["partial_charge_cal"]:
         new_incar_tags.update(get_partial_charge_tags(cal_loc=cal_loc, firework=firework, workflow=workflow))
     if firework["ldau_cal"]:
         new_incar_tags.update(generate_Hubbard_U_J_INCAR_tags(cal_loc=cal_loc, U_J_table_filename=firework["ldau_u_j_table"]))
-    if new_incar_tags or comment_incar_tags or remove_incar_tags:
+    if new_incar_tags or remove_incar_tags:
         if write_INCAR:
             modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags)
         else:
@@ -208,7 +208,7 @@ def modify_vasp_incar0(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], re
 
 def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=True):
     """
-    add new tags and comment obsolete tags in incar.
+    add new tags and remove obsolete tags in incar.
     input arguments:
         - cal_loc (str): the location of INCAR to be modified, <--required
         - new_tags (dict): new tags to be added,
@@ -233,7 +233,7 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
             pprint.pprint(new_tags)
             print("**remove_tags:")
             pprint.pprint(remove_tags)
-            Error_info = "***You are gonna remove an INCAR tag {} via comment_tags/remove_tags.".format(tag)
+            Error_info = "***You are gonna remove an INCAR tag {} via remove_tags.".format(tag)
             Error_info += "This contradicts the simultaneous attempt to set {} via new_tags**\n\n".format(tag)
             print(Error_info)
             raise Exception("See the error information above.")
