@@ -243,10 +243,10 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
     with open(os.path.join(cal_loc, "INCAR"), "r") as incar_f:
         lines = []
         for line in incar_f:
-            if line.strip() == "":
-                continue
             pairs = line.strip().split("#")[0]
             pairs = pairs.strip().split("!")[0]
+            if line.strip() == "":
+                continue
             assert pairs.count("=") == 1,             "We ask you to set only one tag per line in INCAR, but there are more than one.\nwhere: {}\nline: {}".format(cal_loc, line)
             pairs = [tag_or_value.strip() for tag_or_value in pairs.split("=")]
             incar_dict[pairs[0].upper()] = pairs[1]

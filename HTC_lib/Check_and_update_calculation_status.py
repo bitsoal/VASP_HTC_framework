@@ -131,7 +131,7 @@ def check_calculations_status(cal_folder):
                 file_belong_to_other = False
                 break
         if file_belong_to_other:
-            job_status_folder_list["other_folder_list"].append(job)
+            job_status_dict["other_folder_list"].append(job)
     
     return job_status_dict
 
