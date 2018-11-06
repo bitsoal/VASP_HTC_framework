@@ -144,7 +144,7 @@ def prepare_sub_dir_cal_VASP_inputs(POSCAR_list, INCAR_list, KPOINTS_list, sub_d
             write_KPOINTS(KPOINTS=KPOINTS_list[case_ind], where_to_write=where_to_write)
         if not os.path.isfile(os.path.join(where_to_write, "POTCAR")):
             shutil.copyfile(src="POTCAR", dst=os.path.join(where_to_write, "POTCAR"))
-        if not os.path.isfile(os.path.join(where_to_write, "OSZICAR")):
+        if not os.path.isfile(os.path.join(where_to_write, "OSZICAR")) and not os.path.isfile(os.path.join(where_to_write, "__ready__")):
             open(os.path.join(where_to_write, "__ready__"), "w").close()
         status_dict["cal folder list"].append(where_to_write)
     return status_dict
@@ -233,17 +233,17 @@ def verify_interpolated_result(status_dict):
 
 def opt_lattice_constant(scaling_list, opt_which_latt_vec):
     status_dict = read_sub_dir_cal_status()
-    if status_dict["scaling list"] == [] or status_dict["scaling list"] != scaling_list:
-        status_dict["scaling list"] = sorted(list(set(scaling_list + status_dict["scaling list"])))
-        parent_POSCAR = read_parent_POSCAR()
-        POSCAR_list = prepare_rescaled_POSCAR(scaling_list=scaling_list, which_latt_vec=opt_which_latt_vec, parent_POSCAR=parent_POSCAR)
-        no_of_cases = len(POSCAR_list)
-        INCAR_list = [read_parent_INCAR()]*no_of_cases
-        KPOINTS_list = [read_parent_KPOINTS()]*no_of_cases
-        sub_dirname_list = ["case_"+str(scaling_factor) for scaling_factor in status_dict["scaling list"]]
-        prepare_sub_dir_cal_VASP_inputs(POSCAR_list=POSCAR_list, INCAR_list=INCAR_list, KPOINTS_list=KPOINTS_list, 
-                                        sub_dirname_list=sub_dirname_list, status_dict=status_dict)
-        write_sub_dir_cal_status(status_dict=status_dict)
+    if status_dict["scaling list"] == []:# or status_dict["scaling list"] != scaling_list:
+        status_dict["scaling list"] = sorted(scaling_list)#sorted(list(set(scaling_list + status_dict["scaling list"])))
+    parent_POSCAR = read_parent_POSCAR()
+    POSCAR_list = prepare_rescaled_POSCAR(scaling_list=scaling_list, which_latt_vec=opt_which_latt_vec, parent_POSCAR=parent_POSCAR)
+    no_of_cases = len(POSCAR_list)
+    INCAR_list = [read_parent_INCAR()]*no_of_cases
+    KPOINTS_list = [read_parent_KPOINTS()]*no_of_cases
+    sub_dirname_list = ["case_"+str(scaling_factor) for scaling_factor in status_dict["scaling list"]]
+    prepare_sub_dir_cal_VASP_inputs(POSCAR_list=POSCAR_list, INCAR_list=INCAR_list, KPOINTS_list=KPOINTS_list, 
+                                    sub_dirname_list=sub_dirname_list, status_dict=status_dict)
+    write_sub_dir_cal_status(status_dict=status_dict)
         
     if are_all_cal_done(status_dict["cal folder list"]) and status_dict["verification folder"] == None:
         interpolated_scaling_factor, interpolated_result = make_interpolation(status_dict)
