@@ -144,7 +144,7 @@ def prepare_sub_dir_cal_VASP_inputs(POSCAR_list, INCAR_list, KPOINTS_list, sub_d
             write_KPOINTS(KPOINTS=KPOINTS_list[case_ind], where_to_write=where_to_write)
         if not os.path.isfile(os.path.join(where_to_write, "POTCAR")):
             shutil.copyfile(src="POTCAR", dst=os.path.join(where_to_write, "POTCAR"))
-        if not os.path.isfile(os.path.join(where_to_write, "OSZICAR")) and not os.path.isfile(os.path.join(where_to_write, "__ready__")):
+        if not os.path.isfile(os.path.join(where_to_write, "OSZICAR"))         and not os.path.isfile(os.path.join(where_to_write, "__ready__"))         and not os.path.isfile(os.path.join(where_to_write, "__running__")):
             open(os.path.join(where_to_write, "__ready__"), "w").close()
         status_dict["cal folder list"].append(where_to_write)
     return status_dict
