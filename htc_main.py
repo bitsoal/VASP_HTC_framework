@@ -16,7 +16,7 @@ if  os.path.join(HTC_lib_path, "HTC_lib") not in sys.path:
 
 
 from HTC_lib.Utilities import get_time_str
-from HTC_lib.Parse_calculation_workflow import parse_calculation_workflow, old_parse_calculation_workflow
+from HTC_lib.Parse_calculation_workflow import parse_calculation_workflow
 from HTC_lib.new_Preprocess_and_Postprocess import pre_and_post_process, preview_HTC_vasp_inputs
 from HTC_lib.Check_and_update_calculation_status import check_calculations_status, update_job_status
 from HTC_lib.Submit_and_Kill_job import submit_jobs, kill_error_jobs
