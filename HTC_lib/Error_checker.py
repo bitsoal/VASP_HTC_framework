@@ -227,7 +227,7 @@ class Vasp_Error_Saver(object):
             with open(self.log_txt, "a") as f:
                 f.write("{} Backup: Create error_folder under {}\n".format(get_time_str(), self.firework_name))
         
-        file_list = ["INCAR", "POSCAR", "KPOINTS", "XDATCAR", "OUTCAR", "OSZICAR", self.workflow[0]["vasp.out"], "__killed__"]
+        file_list = ["INCAR", "POSCAR", "CONTCAR","KPOINTS", "XDATCAR", "OUTCAR", "OSZICAR", self.workflow[0]["vasp.out"], "__killed__"]
         stdout, stderr = Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files()
         for std_file in [stdout, stderr]:
             if std_file:
@@ -1495,6 +1495,7 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         self.workflow = workflow
         self.cal_loc = cal_loc
         self.firework_name = os.path.split(cal_loc)
+        self.firework = get_current_firework_from_cal_loc(cal_loc=cal_loc, workflow=workflow)
         self.log_txt = os.path.join(self.cal_loc, "log.txt")
         
         #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
@@ -1523,7 +1524,21 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         target_str = "reached required accuracy - stopping structural energy minimisation"
         if find_target_str(cal_loc=self.cal_loc, target_file="OUTCAR", target_str=target_str):
-            return True
+            if self.firework["max_ionic_step"] == -1:
+                return True
+            else:
+                with open(os.path.join(self.cal_loc, "OUTCAR"), "r") as f:
+                    max_ionic_iteration_no = 1
+                    for line in f:
+                        if "-- Iteration" in line:
+                            iteration_no = int(line.split("Iteration")[1].strip().split("(")[0])
+                            max_ionic_iteration_no = max([iteration_no, max_ionic_iteration_no])
+                if max_ionic_iteration_no <= self.firework["max_ionic_step"]:
+                    return True
+                else:
+                    with open(os.path.join(self.cal_loc, "__converged_but_exceeded_specified_max_ionic_step__"), "w") as f:
+                        f.write("%d" % max_ionic_iteration_no)
+            
          
         self.write_error_log()
         return False
@@ -1538,6 +1553,23 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
             super(Ionic_divergence, self).write_file_absence_log(filename_list = ["OUTCAR"])
             return False
+        
+        
+        
+        if os.path.isfile(os.path.join(self.cal_loc, "__converged_but_exceeded_specified_max_ionic_step__")):
+            super(Ionic_divergence, self).backup()
+            shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False)
+            with open(os.path.join(self.cal_loc, "__converged_but_exceeded_specified_max_ionic_step__"), "r") as f:
+                max_ionic_iteration_no = int(next(f))
+            os.remove(os.path.join(self.cal_loc, "__converged_but_exceeded_specified_max_ionic_step__"))
+            with open(self.log_txt, "a") as f:
+                f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
+                f.write("\t\t\tThe ionic relaxation converges after {} steps\n".format(max_ionic_iteration_no))
+                f.write("\t\t\tBut max_ionic_step is set to {}. So try one more round.\n".format(self.firework["max_ionic_step"]))
+                f.write("\t\t\tIBRION = 1,  CONTCAR --> POSCAR.\n")
+                f.write("\t\t\tDelete the file named __converged_but_exceeded_specified_max_ionic_step__.\n")
+            return True
         
         if not os.path.isfile(os.path.join(self.cal_loc, "OSZICAR")):
             open(os.path.join(self.cal_loc, "__cannot_find_OSZICAR_for_corrections__"), "w").close()

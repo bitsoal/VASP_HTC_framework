@@ -306,9 +306,14 @@ def old_parse_calculation_workflow(filename="Calculation_setup"):
                 firework["copy_which_step"] = -1
             else:
                 firework["copy_which_step"] = int(firework.get("copy_which_step", workflow[-1]["step_no"]))
+                
             
             firework["extra_copy"] = firework.get("extra_copy", [])
             firework["final_extra_copy"] = firework.get("final_extra_copy", [])
+            
+            
+            firework["max_ionic_step"] = int(firework.get("max_ionic_step", -1))
+            assert firework["max_ionic_step"] >= 1 or firework["max_ionic_step"] == -1, "tag max_ionic_step should be set to a positive integer or -1 (default) to activate or deactivate this tag, respectively."
             
             if "bader_charge" not in firework.keys():
                 firework["bader_charge"] = False

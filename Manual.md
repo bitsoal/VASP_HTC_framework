@@ -389,6 +389,14 @@ This tag can be set only in the first firework and *this setting will be applied
 ***The creation of POSCAR:***  
 *For the second or later fireworks, POSCAR can be inherited from previous calculations, while this is not the case for the first firework. By default, for the first firework, the program will retrieve the structure under the folder which is specified by tag `structure_folder` where all to-be-calculated structures are stored in the form of cif, POSCAR or others that are supported by `pymatgen.Structure`. Once POSCAR is created according to tag `sort_structure` for the first firework, other VASP input files can be created accordingly and calculations therefore proceed. Of course, you may use tag `user_defined_cmd` to overwrite POSCAR, say cleave surfaces, which is why we let the firetasks defined by `user_defined_cmd` run before the creation of other VASP input files.*
 
+---------------------------------------------
+**max\_ionic\_step** (positive integer), optional,  
+This tag provides us with another degree of freedom to ensure an accurate structural relaxation.  
+**Chances are that a structural relaxation calculation may converge w.r.t `EDIFFG` after N steps, but it will still take tens or hundreds of steps to converge if we change CONTCAR to POSCAR and do one more structural relaxation with the same VASP input setting. In principle, the structural relaxation based on the optimized structure should converge within few steps.**   
+If `max_ionic_step` is set, the program will compare the number of step to achieve the ionic convergence, denoted as N, with `max_ionic_step`. If `N>max_ionic_step`, the program will treat the structural relaxation calculation as if the structural relaxation does not converge. The following operations made by the program are to backup the calculation, change CONTCAR to POSCAR, reset `IBRION=1` and re-submit the job. Of course, these automatic operations will be executed only if the number of errors that already happened for the calculation does not reach the specified error maximum above which the error should be handled manually.  
+Default `max_ionic_step=-1 (inactive)`  
+
+  
 -------------------------------------------
 **user\_defined\_cmd**, optional,  
 This tag allows users to execute a series of commands to perform user-defined firetasks, say cleave a surface from a bulk structure optimized in the previous firework, introduce dopants/defects *et. al.*  
