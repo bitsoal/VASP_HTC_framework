@@ -191,6 +191,20 @@ def parse_firework_block(block_str_list, step_no):
     """
     parse the calculation setup for a firework.
     """
+    #available htc tags
+    htc_tag_list = ["structure_folder", "cal_folder", "step_no", "cal_name", "copy_from_prev_cal", 
+                    "move_from_prev_cal", "contcar_to_poscar", "copy_which_step", "additional_cal_dependence",
+                    "remove_after_cal", "extra_copy", "final_extra_copy", "comment_incar_tags", "remove_incar_tags",
+                    "partial_charge_cal", "which_step_to_read_cbm_vbm", "EINT_wrt_CBM", "EINT_wrt_VBM", "bader_charge",
+                    "ldau_cal", "ldau_u_j_table", "kpoints_type", "denser_kpoints", "reciprocal_density", "kpoints_line_density",
+                    "intersections", "force_gamma", "2d_system", "sort_structure", "max_ionic_step", "user_defined_cmd", 
+                    "final_user_defined_cmd", "user_defined_postprocess_cmd", "sub_dir_cal", "sub_dir_cal_cmd", "preview_vasp_inputs",
+                    "job_submission_script", "job_submission_command", "job_name", "max_running_job", "where_to_parse_queue_id",
+                    "re_to_parse_queue_id", "job_query_command", "job_killing_command", "queue_stdout_file_prefix", "queue_stdout_file_suffix",
+                    "queue_stderr_file_prefix", "queue_stderr_file_suffix", "vasp.out"]
+    htc_tag_list = [tag.lower() for tag in htc_tag_list]
+    
+    
     firework = {"new_incar_tags":{}}
     
     for line in block_str_list:
@@ -208,7 +222,10 @@ def parse_firework_block(block_str_list, step_no):
             if incar_subblock:
                 firework["new_incar_tags"][tag.upper()] = value
             else:
+                assert tag.lower() in htc_tag_list, "Step %d: tag %s has not been defined. Please check!" % (step_no, tag)
                 firework[tag.lower()] = value
+                
+    
     
     #Check the validity of the setting and assign default values to unspecified tags
     
