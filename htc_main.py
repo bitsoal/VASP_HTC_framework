@@ -83,6 +83,10 @@ if __name__ == "__main__":
             with open("htc_job_status.dat", "a") as f:
                 f.write("\n***All calculations have finished --> Stop this program.***")
             break
-            
-        time.sleep(600)
+        
+        for i in range(60):
+            if os.path.isfile(os.path.join(main_dir, "__stop__")):
+                break
+            else:
+                time.sleep(10)
 
