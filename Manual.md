@@ -1,12 +1,13 @@
 ## VASP HTC Framework  
 Yang Tong   
-bitsoal@gmail.com  
+bitsoal@gmail.com;yangtong@u.nus.edu  
 Department of Physics, National University of Singapore
 
 
 ### This is a simple framework designed for high-throughput calculation based on VASP.
-version: python2.7  
-Package requirements: [pymatgen](http://pymatgen.org/index.html)
+Package requirements: [pymatgen](http://pymatgen.org/index.html)  
+`Mater` Branch: stable and work well on python2.7  
+`upgrade_to_python_3` Branch: we are working on upgrading to python3
 
 #### How to run:
 1. specify `HTC_lib_path` at the beginning of htc_main.py, where `HTC_lib_path` is the absolute path to this VASP HTC package.
@@ -115,6 +116,16 @@ The directory structure of a HTC is illustrated in the figure below.
 </br>
 
 --------------------------------------------------------------------------------------
+
+## Built-in Tag list - below are built-in tags that can be directly used in HTC\_calculation\_setup\_file
+
+- **`{${HTC_CWD}`**: The absolute path to the folder under which `htc_main.py` is  
+Any file in `HTC_calculation_setup_file` can be specified by its absolute path or the relative path to `{${HTC_CWD}`  
+e.g. Suppose the absolute path ot `htc_main.py` is `/home/user0/htc_cal/htc_main.py` and we need to refer to a file named `file_1` under `/home/user0/htc_cal/folder1/`.  
+In this case, `${HTC_CWD}=/home/user0/htc_cal`. `file_1` can be specified using either `/home/user0/htc_cal/folder1/file_1` or `${HTC_CWD}/folder1/file_1`
+
+-------------------------------------
+
 
 
 ## Tag list - below are tags that can be set in HTC\_calculation\_setup\_file
@@ -311,6 +322,51 @@ Cr			d				2.79	0
 Mn			d				3.06	0  
   
 **Note that U, J and LDAUTYPE may vary, depending on the systems in which you are interested. So we don't provide default values.** 
+---------------------------------------------------
+
+- **incar\_template** (`str`), optional for the first firework  
+This tag comes into play if you want to order INCAR tags when writing INCAR. `incar_template` refers to a file of which each line is either an INCAR tag or empty. Comments (starting with `#`) will be skipped.  
+If this tag is set, INCAR tags will be written into INCAR in the same order/sequence as that in the referred file. The INCAR tags that don't appear in the referred file will be appended to INCAR alphabetically. 
+Suppose we have the referred file like below:
+>SYSTEM
+>
+>ENCUT  
+ISMEAR  
+SIGMA  
+EDIFF       
+>           
+ISPIN  
+>
+IBRION  
+ISIF  
+EDIFFG  
+
+If We need to write the above tags into an INCAR except `ISPIN` and there are two more tags (e.g. `NPAR` and `ICHARG`), the output INCAR will be similar to what is shown below:  
+ 
+>SYSTEM
+>
+>ENCUT  
+ISMEAR  
+SIGMA  
+EDIFF       
+>            
+>
+IBRION  
+ISIF  
+EDIFFG  
+>  
+ICHARG  
+NPAR
+
+  
+  
+-----------------------------------------------------------------------
+
+- **valid\_incar\_tags** (`str`), optional for the first firework  
+This tag refers to a file of which each line is a incar tag. Comments (starting with `#`) will be skipped. We call these incar tags appearing in the referred file **valid incar tags**. *Everytime when INCAR is written, the program will check if all incar tags are **valid**. If any incar tag is found invalid， the program will stop and raise an error prompt*  
+*This is usefull to avoid unpredictable incar tags due to automatic error corrections or any spelling mistake due to manual modifications*  
+*If this tag isn't set or the referred file is empty, nothing will be done*  
+
 
 ----------------------------
 ![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_kpoints_type_1.png)

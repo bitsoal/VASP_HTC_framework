@@ -1,9 +1,7 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# # created on March 31 2018
-
-# In[1]:
+# In[13]:
 
 
 import os, pprint,copy
@@ -13,6 +11,7 @@ from pymatgen import Structure
 
 from Utilities import get_time_str, find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
 from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
+from modify_vasp_incar import modify_vasp_incar
 
 
 # In[3]:
@@ -33,6 +32,8 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
     firework_name = os.path.split(cal_loc)[-1]
     log_txt = os.path.join(cal_loc, "log.txt")
     
+    incar_template_list, valid_incar_tags_list = workflow[0]["incar_template_list"], workflow[0]["valid_incar_tags_list"]
+
     write_INCAR = False
     if not os.path.isfile(os.path.join(cal_loc, "INCAR")):
         structure = Structure.from_file(os.path.join(cal_loc, structure_filename))
@@ -54,9 +55,9 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
         new_incar_tags.update(generate_Hubbard_U_J_INCAR_tags(cal_loc=cal_loc, U_J_table_filename=firework["ldau_u_j_table"]))
     if new_incar_tags or remove_incar_tags:
         if write_INCAR:
-            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags)
+            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags_list, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
         else:
-            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, remove_tags=remove_incar_tags)
+            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, remove_tags=remove_incar_tags, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
         with open(log_txt, "a") as f:
             f.write("{} INFO: modify INCAR in {}\n".format(get_time_str(), firework_name))
             if new_incar_tags:
@@ -79,7 +80,7 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
         else:
             prev_cal = os.path.join(os.path.split(cal_loc)[0], workflow[firework["copy_which_step"]-1]["firework_folder_name"])
             new_incar_tags = get_bader_charge_tags(cal_loc=prev_cal)
-            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge")
+            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge", incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
             with open(log_txt, "a") as f:
                 f.write("{} INFO: in {}\n".format(get_time_str(), firework_name))
                 f.write("\t\t\t'bader_charge' is on\n")
@@ -87,194 +88,6 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
                 f.write("\t\tnew incar tags:\n")    
                 [f.write("\t\t\t{}={}\n".format(key_, value_)) for key_, value_ in new_incar_tags.items()]
     
-
-
-# In[18]:
-
-
-def modify_vasp_incar0(cal_loc, new_tags={}, comment_tags=[], remove_tags=[], rename_old_incar=True):
-    """
-    add new tags and comment obsolete tags in incar.
-    input arguments:
-        - cal_loc (str): the location of INCAR to be modified, <--required
-        - new_tags (dict): new tags to be added,
-        - comment_tags (list): tags that will be obsolete by commenting them with "#"
-        - remove_tags (list): incar tags that will be removed
-        - rename_old_incar (bool or str): if rename_old_incar is True, rename the old INCAR as INCAR_0, INCAR_1, INCAR_2, etc.
-                                        if rename_old_incar is False, the old INCAR will be overwritten by new INCAR.
-                                        if rename_old_incar is a string, rename the old INCAR as the string.
-                                        Default: True
-    return the valid INCAR dictionary if no modification is made.
-    """
-    
-
-    new_tags = {key.upper(): value for key, value in new_tags.items()}
-    comment_tags = [tag.upper() for tag in comment_tags]
-    remove_tags = [tag.upper() for tag in remove_tags]
-    
-    new_incar_tag_name = new_tags.keys()
-    for tag in comment_tags + remove_tags:
-        if tag in new_incar_tag_name:
-            #import pprint
-            print("\n\n**directory: {}".format(cal_loc))
-            print("**new_tags:")
-            pprint.pprint(new_tags)
-            print("**comment_tags:")
-            pprint.pprint(comment_tags)
-            print("**remove_tags:")
-            pprint.pprint(remove_tags)
-            Error_info = "***You are gonna comment of remove an INCAR tag {} via comment_tags/remove_tags.".format(tag)
-            Error_info += "This contradicts the simultaneous attempt to set {} via new_tags**\n\n".format(tag)
-            print(Error_info)
-            raise Exception("See the error information above.")
-            
-
-    
-    with open(os.path.join(cal_loc, "INCAR"), "r") as incar_f:
-        lines = []
-        for line in incar_f:
-            if line.strip() == "":
-                continue
-            pairs = line.strip().split("#")[0]
-            pairs = pairs.strip().split("!")[0]
-            #print(pairs, line)
-            if "#" in line:
-                comments = "#" + "#".join(line.strip().split("#")[1:])
-            elif "!" in line:
-                comments = "#" + "!".join(line.strip().split("!")[1:])
-            else:
-                comments = ""
-            for pair in [pair.strip() for pair in pairs.split(";") if pair.strip()]:
-                lines.append(pair)
-            if len(comments.strip()) > 1:
-                lines.append(comments)
-                
-                    
-    incar = []
-    for line in lines:
-        if line.startswith("#"):
-            incar.append(line)
-        else:
-            #print(line)
-            key, value = line.split("=")
-            key = key.strip().upper()
-            value = value.strip()
-            if key in remove_tags:
-                continue
-            elif key in comment_tags:
-                incar.append("#"+line)
-            else:
-                incar.append([key, value])
-                
-    valid_tag_ind_dict = {}
-    for line_ind, line in enumerate(incar):
-        if isinstance(line, list):
-            valid_tag_ind_dict[line[0]] = line_ind
-            
-    for key, value in new_tags.items():
-        if key in valid_tag_ind_dict.keys():
-            incar[valid_tag_ind_dict[key]][1] = value
-        else:
-            incar.append([key, value])
-            
-    #import pprint
-    #pprint.pprint(incar)
-    
-    if new_tags == {} and comment_tags ==[] and remove_tags == []:
-        return {item[0]: item[1] for item in incar if isinstance(item, list)}
-
-    if isinstance(rename_old_incar, bool):
-        if rename_old_incar:
-            rename_old_incar = find_next_name(cal_loc=cal_loc, orig_name="INCAR")["next_name"]
-            decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
-            #shutil.copyfile(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, rename_old_incar))
-    elif isinstance(rename_old_incar, str):
-        decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
-        #shutil.copyfile(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, rename_old_incar))
-    else:
-        raise Exception("input argument rename_old_incar of modify_vasp_incar must be either bool or str.")
-        
-    
-    with open(os.path.join(cal_loc, "INCAR"), "w") as incar_f:
-        for line in incar:
-            if isinstance(line, list):
-                incar_f.write("{} = {}\n".format(line[0], line[1]))
-            elif isinstance(line, str):
-                incar_f.write(line+"\n")
-
-
-# In[18]:
-
-
-def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=True):
-    """
-    add new tags and remove obsolete tags in incar.
-    input arguments:
-        - cal_loc (str): the location of INCAR to be modified, <--required
-        - new_tags (dict): new tags to be added,
-        - remove_tags (list): incar tags that will be removed
-        - rename_old_incar (bool or str): if rename_old_incar is True, rename the old INCAR as INCAR_0, INCAR_1, INCAR_2, etc.
-                                        if rename_old_incar is False, the old INCAR will be overwritten by new INCAR.
-                                        if rename_old_incar is a string, rename the old INCAR as the string.
-                                        Default: True
-    return the valid INCAR dictionary if no modification is made.
-    """
-    
-
-    new_tags = {key.upper(): value for key, value in new_tags.items()}
-    remove_tags = [tag.upper() for tag in remove_tags]
-    
-    new_incar_tag_name = new_tags.keys()
-    for tag in remove_tags:
-        if tag in new_incar_tag_name:
-            #import pprint
-            print("\n\n**directory: {}".format(cal_loc))
-            print("**new_tags:")
-            pprint.pprint(new_tags)
-            print("**remove_tags:")
-            pprint.pprint(remove_tags)
-            Error_info = "***You are gonna remove an INCAR tag {} via remove_tags.".format(tag)
-            Error_info += "This contradicts the simultaneous attempt to set {} via new_tags**\n\n".format(tag)
-            print(Error_info)
-            raise Exception("See the error information above.")
-            
-
-    incar_dict = {}
-    with open(os.path.join(cal_loc, "INCAR"), "r") as incar_f:
-        lines = []
-        for line in incar_f:
-            pairs = line.strip().split("#")[0]
-            pairs = pairs.strip().split("!")[0]
-            if pairs.strip() == "":
-                continue
-            assert pairs.count("=") == 1,             "We ask you to set only one tag per line in INCAR, but there are more than one.\nwhere: {}\nline: {}".format(cal_loc, line)
-            pairs = [tag_or_value.strip() for tag_or_value in pairs.split("=")]
-            incar_dict[pairs[0].upper()] = pairs[1]
-                
-    incar_dict.update(new_tags)                
-    for remove_tag in remove_tags:
-        if remove_tag in incar_dict.keys():
-            del incar_dict[remove_tag]
-    
-    
-    if new_tags == {} and remove_tags == []:
-        return incar_dict
-
-    if isinstance(rename_old_incar, bool):
-        if rename_old_incar:
-            rename_old_incar = find_next_name(cal_loc=cal_loc, orig_name="INCAR")["next_name"]
-            decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
-            #shutil.copyfile(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, rename_old_incar))
-    elif isinstance(rename_old_incar, str):
-        decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
-        #shutil.copyfile(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, rename_old_incar))
-    else:
-        raise Exception("input argument rename_old_incar of modify_vasp_incar must be either bool or str.")
-        
-    
-    with open(os.path.join(cal_loc, "INCAR"), "w") as incar_f:
-        for tag, value in sorted(incar_dict.items(), key=lambda key_value_pair: key_value_pair[0]):
-            incar_f.write("{} = {}\n".format(tag, value))
 
 
 # In[18]:
@@ -433,7 +246,3 @@ def generate_Hubbard_U_J_INCAR_tags(cal_loc, U_J_table_filename):
     else:
         return Hubbard_U_tags
 
-
-# modify_vasp_incar(".", new_tags={"ISMEAR": 5}) #, remove_tags=["ISYM", "EDIFF", "ISMEARy"], comment_tags=["LWAVE", "IBRION"])
-
-# help(pprint.pprint)
