@@ -335,9 +335,9 @@ ISMEAR
 SIGMA  
 EDIFF       
 >           
-ISPIN  
+>ISPIN  
 >
-IBRION  
+>IBRION  
 ISIF  
 EDIFFG  
 
@@ -351,11 +351,11 @@ SIGMA
 EDIFF       
 >            
 >
-IBRION  
+>IBRION  
 ISIF  
 EDIFFG  
 >  
-ICHARG  
+>ICHARG  
 NPAR
 
   
