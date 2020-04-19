@@ -119,8 +119,8 @@ The directory structure of a HTC is illustrated in the figure below.
 
 ## Built-in Tag list - below are built-in tags that can be directly used in HTC\_calculation\_setup\_file
 
-- **`{${HTC_CWD}`**: The absolute path to the folder under which `htc_main.py` is  
-Any file in `HTC_calculation_setup_file` can be specified by its absolute path or the relative path to `{${HTC_CWD}`  
+- **`${HTC_CWD}`**: The absolute path to the folder under which `htc_main.py` is  
+Any file in `HTC_calculation_setup_file` can be specified by its absolute path or the relative path to `${HTC_CWD}`  
 e.g. Suppose the absolute path ot `htc_main.py` is `/home/user0/htc_cal/htc_main.py` and we need to refer to a file named `file_1` under `/home/user0/htc_cal/folder1/`.  
 In this case, `${HTC_CWD}=/home/user0/htc_cal`. `file_1` can be specified using either `/home/user0/htc_cal/folder1/file_1` or `${HTC_CWD}/folder1/file_1`
 
@@ -532,13 +532,13 @@ default:
 
 - **htc\_input\_backup** && **htc\_input\_backup\_loc**, optional for the first firework  
 `htc_input_backup` can specifiy a series of comma-separated ***files*** or ***folders***, which the program will back up under the folder specified by `htc_input_backup_loc`.  
-*Note that the specified files or folders should be relative to `{${HTC_CWD}` (see above for this built-in tag). Don't refer to them using the absolute paths.*  
+*Note that the specified files or folders should be relative to `${HTC_CWD}` (see above for this built-in tag). Don't refer to them using the absolute paths.*  
 `htc_main.py`, `HTC_calculation_setup_file` and the folder specified by `structure_folder` will be ***implicitly*** backed up.  
 `htc_input_backup` comes into play only if you have additional important htc input to be backed up.  
 
 default:  
 `htc_input_backup: empty`  
-`htc_input_backup_loc: {${HTC_CWD}/htc_input_backup_folder`
+`htc_input_backup_loc: ${HTC_CWD}/htc_input_backup_folder`
 
 -----------------------------------------
 #### Below are tags related to job managements
