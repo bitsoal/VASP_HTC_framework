@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # In[1]:
@@ -266,7 +266,7 @@ def decorated_subprocess_check_output(args, stdin=None, stderr=None, shell=True,
     error_list = []
     while trail_no < no_of_trails:
         try:
-            output = subprocess.check_output(args, stdin=stdin, stderr=stderr, shell=shell)
+            output = subprocess.check_output(args, stdin=stdin, stderr=stderr, shell=shell).decode("utf-8")
         except Exception as err:
             error_list.append(err)
         else:

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[3]:
 
 
-import os, sys, re, subprocess
+import os, sys, re, subprocess, shutil
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
 if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
@@ -112,7 +112,7 @@ class Job_management():
         result_list, error_list = [], []
         for i in range(max_times):
             try:
-                result = subprocess.check_output(job_query_cmd)
+                result = subprocess.check_output(job_query_cmd).decode("utf-8")
             except subprocess.CalledProcessError as err:
                 result_list.append(None)
                 error_list.append(err)

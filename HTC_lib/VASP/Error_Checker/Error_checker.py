@@ -220,7 +220,7 @@ class Vasp_Error_Saver(object):
         self.firework_name = os.path.split(cal_loc)[-1]
         self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.error_folder = os.path.join(self.cal_loc, "error_folder")
-        self.firework = get_current_firework_from_cal_loc(cal_loc)
+        self.firework = get_current_firework_from_cal_loc(cal_loc, workflow)
                 
     def backup(self):
         if not os.path.isdir(self.error_folder):

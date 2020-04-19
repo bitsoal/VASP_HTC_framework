@@ -533,7 +533,7 @@ default:
 - **htc\_input\_backup** && **htc\_input\_backup\_loc**, optional for the first firework  
 `htc_input_backup` can specifiy a series of comma-separated ***files*** or ***folders***, which the program will back up under the folder specified by `htc_input_backup_loc`.  
 *Note that the specified files or folders should be relative to `${HTC_CWD}` (see above for this built-in tag). Don't refer to them using the absolute paths.*  
-`htc_main.py`, `HTC_calculation_setup_file` and the folder specified by `structure_folder` will be ***implicitly*** backed up.  
+`htc_main.py` and `HTC_calculation_setup_file` will be ***implicitly*** backed up.  
 `htc_input_backup` comes into play only if you have additional important htc input to be backed up.  
 
 default:  

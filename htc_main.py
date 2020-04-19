@@ -29,7 +29,7 @@ if __name__ == "__main__":
     #back up htc input files
     htc_input_backup_loc = workflow[0]["htc_input_backup_loc"]
     backup_a_file(src_folder=".", src_file="HTC_calculation_setup_file", dst_folder=htc_input_backup_loc, overwrite=False)
-    other_htc_inputs = ["htc_main.py", workflow[0]["structure_folder"]] + list(workflow[0]["htc_input_backup"])
+    other_htc_inputs = ["htc_main.py"] + list(workflow[0]["htc_input_backup"])
     backup_htc_input_files(src_folder=".", file_or_folder_list=other_htc_inputs, dst_folder=htc_input_backup_loc)
     
     

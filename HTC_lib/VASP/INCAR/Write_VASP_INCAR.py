@@ -60,7 +60,7 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
         new_incar_tags.update(generate_Hubbard_U_J_INCAR_tags(cal_loc=cal_loc, U_J_table_filename=firework["ldau_u_j_table"]))
     if new_incar_tags or remove_incar_tags:
         if write_INCAR:
-            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags_list, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
+            modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
         else:
             modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, remove_tags=remove_incar_tags, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
         with open(log_txt, "a") as f:
