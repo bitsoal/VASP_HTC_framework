@@ -1,11 +1,15 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[1]:
 
 
-from Utilities import decorated_os_system, get_time_str
-import os
+import os, sys
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
+
+from HTC_lib.VASP.Miscellaneous.Utilities import decorated_os_system, get_time_str
 
 
 # In[5]:

@@ -1,23 +1,24 @@
-
+#!/usr/bin/env python
 # coding: utf-8
-
-# # created on Feb 18 2018
 
 # In[1]:
 
 
-import os
+import os, sys
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
 
 
-from Utilities import get_time_str, decorated_os_rename, decorated_subprocess_check_output, get_current_firework_from_cal_loc
-from Execute_user_defined_cmd import Execute_user_defined_cmd
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename, decorated_subprocess_check_output, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Execute_user_defined_cmd import Execute_user_defined_cmd
 
-from Submit_and_Kill_job import Job_management, kill_error_jobs
+from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import Job_management, kill_error_jobs
 
-from Error_checker import Write_and_read_error_tag
-from Error_checker import Vasp_Error_Saver
-from Error_checker import Queue_std_files
-from Error_checker import Vasp_Error_checker
+from HTC_lib.VASP.Error_Checker.Error_checker import Write_and_read_error_tag
+from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_Saver
+from HTC_lib.VASP.Error_Checker.Error_checker import Queue_std_files
+from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_checker
 
 
 # In[ ]:

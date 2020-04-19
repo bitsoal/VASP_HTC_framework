@@ -1,16 +1,19 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# # created on March 31 2018
-
-# In[4]:
+# In[1]:
 
 
 import os, shutil
 
+import sys
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
+
 from pymatgen import Structure
 
-from Utilities import get_time_str#, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str#, get_current_firework_from_cal_loc
 
 
 # In[5]:

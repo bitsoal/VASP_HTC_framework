@@ -1,16 +1,16 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# # created on Feb 18 2018
-
-# In[1]:
+# In[2]:
 
 
-import os, shutil, subprocess
-import re
+import os, sys, re, subprocess
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
 
-from Utilities import get_time_str, decorated_os_rename, get_current_firework_from_cal_loc
-from Error_checker import Queue_std_files
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Error_Checker.Error_checker import Queue_std_files
 
 
 # In[1]:

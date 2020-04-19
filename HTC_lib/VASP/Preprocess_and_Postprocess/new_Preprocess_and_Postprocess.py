@@ -1,22 +1,23 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# # created on March 31 2018
-
-# In[1]:
+# In[8]:
 
 
-import os, shutil
+import os, pprint, sys, shutil
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
 
 from pymatgen import Structure
 
-from Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename
-from Execute_user_defined_cmd import Execute_user_defined_cmd
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename
+from HTC_lib.VASP.Miscellaneous.Execute_user_defined_cmd import Execute_user_defined_cmd
 
-from Write_VASP_INCAR import Write_Vasp_INCAR
-from Write_VASP_KPOINTS import Write_Vasp_KPOINTS
-from Write_VASP_POTCAR import Write_Vasp_POTCAR
-from Write_VASP_POSCAR import Write_Vasp_POSCAR
+from HTC_lib.VASP.INCAR.Write_VASP_INCAR import Write_Vasp_INCAR
+from HTC_lib.VASP.KPOINTS.Write_VASP_KPOINTS import Write_Vasp_KPOINTS
+from HTC_lib.VASP.POTCAR.Write_VASP_POTCAR import Write_Vasp_POTCAR
+from HTC_lib.VASP.POSCAR.Write_VASP_POSCAR import Write_Vasp_POSCAR
 
 
 # In[2]:

@@ -1,17 +1,22 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[13]:
+# In[2]:
 
 
-import os, pprint,copy
+import pprint,copy
+
+import os, sys
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
 
 from pymatgen.io.vasp.sets import MPRelaxSet
 from pymatgen import Structure
 
-from Utilities import get_time_str, find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
-from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
-from modify_vasp_incar import modify_vasp_incar
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Query_from_OUTCAR import find_incar_tag_from_OUTCAR
+from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
 
 # In[3]:

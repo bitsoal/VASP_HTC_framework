@@ -1,23 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # created on Feb 18 2018
-
-# In[1]:
+# In[2]:
 
 
-import os, time, shutil
-import re
-import subprocess
+import os, time, shutil, sys, re, subprocess
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
 
 from pymatgen.io.vasp.outputs import Oszicar, Vasprun
 from pymatgen import Structure
 
 import numpy as np
 
-from Query_from_OUTCAR import find_incar_tag_from_OUTCAR
-from Utilities import get_time_str, search_file, decorated_os_rename, get_current_firework_from_cal_loc
-from Write_VASP_INCAR import modify_vasp_incar, get_bader_charge_tags
+from HTC_lib.VASP.Miscellaneous.Query_from_OUTCAR import find_incar_tag_from_OUTCAR
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, search_file, decorated_os_rename, get_current_firework_from_cal_loc
+from HTC_lib.VASP.INCAR.Write_VASP_INCAR import get_bader_charge_tags
+from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
 
 # In[2]:

@@ -1,18 +1,21 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
-# # created on March 31 2018
-
-# In[1]:
+# In[2]:
 
 
-import os, shutil
+import shutil
+
+import os, sys
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
 
 from pymatgen.io.vasp.sets import MPRelaxSet, MPNonSCFSet, MPStaticSet
 from pymatgen import Structure
 from pymatgen.symmetry.bandstructure import HighSymmKpath
 
-from Utilities import get_time_str,  find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str,  find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
 
 
 # In[2]:
