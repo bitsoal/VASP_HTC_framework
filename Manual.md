@@ -192,16 +192,7 @@ Default: `step_no-1`
 
 -------------------------------
 
------------------------------------
-- **error\_backup\_files**, optional.  
-When an error occurs to a calculation and the program is able to handle it, the VASP input|output files specified by `error_backup_files` will be copied/saved under `error_folder/error_#`. In the meanwhile, the files specified by `vasp.out`, `queue_stdout_file_prefix`, `queue_stdout_file_suffix`, `queue_stderr_file_prefix`, `queue_stderr_file_suffix` will also be copied/saved under the same folder.  
-*When an error cannot be automatically fixed by the program, researchers have to manually get rid of it. In this case, these backup files might be helpful.*
-  
-default:   
-`for step 1: error_backup_files = INCAR, POSCAR, CONTCAR, KPOINTS, XDATCAR, OUTCAR, OSZICAR`  
-`for other steps: error_backup_files = the same as step 1`  
 
----------------------------------- 
 
 - **additional\_cal\_dependence**, optional.  
 By default, the calculation of the current firework may only rely on the output of its parent firework (specified by `copy_which_step`). However, chances are that the current firework may depend on the outputs of additional previous fireworks. In this case, the current firework shouldn't start unless all dependent previous fireworks are complete.  
@@ -528,6 +519,26 @@ This tag enables you to preview the vasp inputs of each firework defined in `HTC
 - `No`: ***The real HTC calculation will be carried out***  
 default: `No`
 
+-----------------------------------
+- **error\_backup\_files**, optional.  
+When an error occurs to a calculation and the program is able to handle it, the VASP input|output files specified by `error_backup_files` will be copied/saved under `error_folder/error_#`. In the meanwhile, the files specified by `vasp.out`, `queue_stdout_file_prefix`, `queue_stdout_file_suffix`, `queue_stderr_file_prefix`, `queue_stderr_file_suffix` will also be copied/saved under the same folder.  
+*When an error cannot be automatically fixed by the program, researchers have to manually get rid of it. In this case, these backup files might be helpful.*
+  
+default:   
+`for step 1: error_backup_files = INCAR, POSCAR, CONTCAR, KPOINTS, XDATCAR, OUTCAR, OSZICAR`  
+`for other steps: error_backup_files = the same as step 1`  
+
+---------------------------------- 
+
+- **htc\_input\_backup** && **htc\_input\_backup\_loc**, optional for the first firework  
+`htc_input_backup` can specifiy a series of comma-separated ***files*** or ***folders***, which the program will back up under the folder specified by `htc_input_backup_loc`.  
+*Note that the specified files or folders should be relative to `{${HTC_CWD}` (see above for this built-in tag). Don't refer to them using the absolute paths.*  
+`htc_main.py`, `HTC_calculation_setup_file` and the folder specified by `structure_folder` will be ***implicitly*** backed up.  
+`htc_input_backup` comes into play only if you have additional important htc input to be backed up.  
+
+default:  
+`htc_input_backup: empty`  
+`htc_input_backup_loc: {${HTC_CWD}/htc_input_backup_folder`
 
 -----------------------------------------
 #### Below are tags related to job managements

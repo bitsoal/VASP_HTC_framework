@@ -1,21 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[7]:
+# In[1]:
 
 
 import os, sys, time, pprint
 
 HTC_lib_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-
 if HTC_lib_path not in sys.path:
     sys.path.append(HTC_lib_path)
 
-if  os.path.join(HTC_lib_path, "HTC_lib") not in sys.path:
-    sys.path.append(os.path.join(HTC_lib_path, "HTC_lib"))
-
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str
+from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_files, backup_a_file
 from HTC_lib.VASP.Preprocess_and_Postprocess.Parse_calculation_workflow import parse_calculation_workflow
 from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process, preview_HTC_vasp_inputs
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, update_job_status
@@ -28,6 +25,14 @@ from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import submit_jobs, kill_er
 if __name__ == "__main__":
     assert os.path.isfile("HTC_calculation_setup_file"), "Error: No HTC_calculation_setup_file under {}".format(os.getcwd())
     workflow = parse_calculation_workflow("HTC_calculation_setup_file")
+    
+    #back up htc input files
+    htc_input_backup_loc = workflow[0]["htc_input_backup_loc"]
+    backup_a_file(src_folder=".", src_file="HTC_calculation_setup_file", dst_folder=htc_input_backup_loc, overwrite=False)
+    other_htc_inputs = ["htc_main.py", workflow[0]["structure_folder"]] + list(workflow[0]["htc_input_backup"])
+    backup_htc_input_files(src_folder=".", file_or_folder_list=other_htc_inputs, dst_folder=htc_input_backup_loc)
+    
+    
     
     structure_file_folder = workflow[0]["structure_folder"]
     cal_folder = workflow[0]["cal_folder"]

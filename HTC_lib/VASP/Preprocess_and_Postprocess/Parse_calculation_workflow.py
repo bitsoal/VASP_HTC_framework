@@ -184,7 +184,7 @@ def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hi
         
 
 
-# In[7]:
+# In[3]:
 
 
 def parse_firework_block(block_str_list, step_no):
@@ -193,7 +193,8 @@ def parse_firework_block(block_str_list, step_no):
     """
     #available htc tags
     htc_tag_list = ["structure_folder", "cal_folder", "step_no", "cal_name", "copy_from_prev_cal", 
-                    "move_from_prev_cal", "contcar_to_poscar", "copy_which_step", "additional_cal_dependence", "error_backup_files",
+                    "move_from_prev_cal", "contcar_to_poscar", "copy_which_step", "additional_cal_dependence", "error_backup_files", 
+                    "htc_input_backup", "htc_input_backup_loc",
                     "remove_after_cal", "extra_copy", "final_extra_copy", "comment_incar_tags", "remove_incar_tags",
                     "partial_charge_cal", "which_step_to_read_cbm_vbm", "EINT_wrt_CBM", "EINT_wrt_VBM", "bader_charge",
                     "ldau_cal", "ldau_u_j_table", "incar_template", "valid_incar_tags",
@@ -442,6 +443,13 @@ def parse_firework_block(block_str_list, step_no):
             for incar_tag in valid_incar_tags:
                 assert valid_incar_tags.count(incar_tag) == 1,                 "You set {} more than once in {}. Pls reomve the duplica".format(incar_tag, firework["valid_incar_tags"])
         firework["valid_incar_tags_list"] = valid_incar_tags
+        
+        #htc_input_backup
+        firework["htc_input_backup"] = firework.get("htc_input_backup", "")
+        firework["htc_input_backup"] = [htc_input.strip() for htc_input in firework["htc_input_backup"].split(",") if htc_input.strip()]
+        for htc_input in firework["htc_input_backup"]:
+            assert os.path.isfile(os.path.join(current_directory, htc_input)) or os.path.isdir(os.path.join(current_directory, htc_input)),             "Make sure that {} is a file or folder, and exists under HTC root directory ({})".format(htc_input, current_directory)
+        firework["htc_input_backup_loc"] = firework.get("htc_input_backup_loc", "htc_input_backup_folder")
         
                 
                    
