@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # # created on Feb 18 2018
@@ -220,14 +220,21 @@ class Vasp_Error_Saver(object):
         self.firework_name = os.path.split(cal_loc)[-1]
         self.log_txt = os.path.join(self.cal_loc, "log.txt")
         self.error_folder = os.path.join(self.cal_loc, "error_folder")
+        self.firework = get_current_firework_from_cal_loc(cal_loc)
                 
     def backup(self):
         if not os.path.isdir(self.error_folder):
             os.mkdir(self.error_folder)
             with open(self.log_txt, "a") as f:
                 f.write("{} Backup: Create error_folder under {}\n".format(get_time_str(), self.firework_name))
+                
+        file_list = [self.workflow[0]["vasp.out"], "__killed__"]
+        if self.firework["error_backup_files"]:
+            file_list.extend(list(self.firework["error_backup_files"]))
+        else:
+            file_list.extend(list(self.workflow[0]["error_backup_files"]))
         
-        file_list = ["INCAR", "POSCAR", "CONTCAR","KPOINTS", "XDATCAR", "OUTCAR", "OSZICAR", self.workflow[0]["vasp.out"], "__killed__"]
+        #file_list = ["INCAR", "POSCAR", "CONTCAR","KPOINTS", "XDATCAR", "OUTCAR", "OSZICAR", self.workflow[0]["vasp.out"], "__killed__"]
         stdout, stderr = Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files()
         for std_file in [stdout, stderr]:
             if std_file:
@@ -504,7 +511,6 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return False
 
 
-
 # In[10]:
 
 
@@ -578,7 +584,6 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return True
 
 
-
 # In[11]:
 
 
@@ -641,7 +646,6 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return True
         else:
             return False
-
 
 
 # In[12]:
@@ -779,7 +783,6 @@ class Vasp_out_bad_termination(Vasp_Error_Checker_Logger):
                 f.write("\t\t\tremove queue stdout and stderr.\n")
                 f.write("\t\t\tcreate file __bad_termination__\n")
             return True
-
 
 
 # In[14]:

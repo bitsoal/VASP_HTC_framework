@@ -192,6 +192,17 @@ Default: `step_no-1`
 
 -------------------------------
 
+-----------------------------------
+- **error\_backup\_files**, optional.  
+When an error occurs to a calculation and the program is able to handle it, the VASP input|output files specified by `error_backup_files` will be copied/saved under `error_folder/error_#`. In the meanwhile, the files specified by `vasp.out`, `queue_stdout_file_prefix`, `queue_stdout_file_suffix`, `queue_stderr_file_prefix`, `queue_stderr_file_suffix` will also be copied/saved under the same folder.  
+*When an error cannot be automatically fixed by the program, researchers have to manually get rid of it. In this case, these backup files might be helpful.*
+  
+default:   
+`for step 1: error_backup_files = INCAR, POSCAR, CONTCAR, KPOINTS, XDATCAR, OUTCAR, OSZICAR`  
+`for other steps: error_backup_files = the same as step 1`  
+
+---------------------------------- 
+
 - **additional\_cal\_dependence**, optional.  
 By default, the calculation of the current firework may only rely on the output of its parent firework (specified by `copy_which_step`). However, chances are that the current firework may depend on the outputs of additional previous fireworks. In this case, the current firework shouldn't start unless all dependent previous fireworks are complete.  
 `additional_cal_dependence` should be a `step_no` or a array of `step_no`s of the additional dependent fireworks. If an array is given, `step_no` in the array should be separated by commas `,`.     

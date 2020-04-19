@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # created on Feb 18 2018
-
 # In[1]:
 
 
@@ -169,6 +167,8 @@ def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hi
                 if firework["firework_folder_name"] in next_step_folder_name_list:
                     new_hierarchy_dict[current_step_folder_name].remove(firework["firework_folder_name"])
                     break
+            #Here just pick up one dependent firework to ensure that every firework can be uniquelly referred to.
+            #The other depdendence of the firework will be stored in "additional_cal_dependence"
             new_dependent_firework_name_in_hierarchy = latest_dependent_firework_list.pop()
             if new_dependent_firework_name_in_hierarchy in new_hierarchy_dict.keys():
                 new_hierarchy_dict[new_dependent_firework_name_in_hierarchy].append(firework["firework_folder_name"])
@@ -193,7 +193,7 @@ def parse_firework_block(block_str_list, step_no):
     """
     #available htc tags
     htc_tag_list = ["structure_folder", "cal_folder", "step_no", "cal_name", "copy_from_prev_cal", 
-                    "move_from_prev_cal", "contcar_to_poscar", "copy_which_step", "additional_cal_dependence",
+                    "move_from_prev_cal", "contcar_to_poscar", "copy_which_step", "additional_cal_dependence", "error_backup_files",
                     "remove_after_cal", "extra_copy", "final_extra_copy", "comment_incar_tags", "remove_incar_tags",
                     "partial_charge_cal", "which_step_to_read_cbm_vbm", "EINT_wrt_CBM", "EINT_wrt_VBM", "bader_charge",
                     "ldau_cal", "ldau_u_j_table", "incar_template", "valid_incar_tags",
@@ -270,6 +270,12 @@ def parse_firework_block(block_str_list, step_no):
         for file_ in file_list:
             assert os.path.isfile(file_), "the file below listed in tag {} doesn't exist.\n\t\t\t{}\n".format(tag, file_)
         firework[tag] = file_list
+    if step_no == 1:
+        firework["error_backup_files"] = firework.get("error_backup_files", 
+                                                      "INCAR, POSCAR, CONTCAR, KPOINTS, XDATCAR, OUTCAR, OSZICAR")
+    else:
+        firework["error_backup_files"] = firework.get("error_backup_files", "")
+    firework["error_backup_files"] = [item.strip() for item in firework["error_backup_files"].split(",") if item.strip()]
 
        
     
@@ -372,7 +378,7 @@ def parse_firework_block(block_str_list, step_no):
     
       
         
-    #tags only required for the first firework
+    #tags only required and optional for the first firework
     if step_no == 1:
         assert "job_query_command" in firework.keys(), "Error: must specify job_query_command in the first firework. (e.g. 'bjobs -w' on GRC)"
         assert "job_killing_command" in firework.keys(), "Error: must specify job_killing_command by job_killing_command in the first firework. (e.g. 'bkill' on GRC)"
@@ -422,20 +428,20 @@ def parse_firework_block(block_str_list, step_no):
         if "incar_template" in firework.keys():
             assert os.path.isfile(firework["incar_template"]), "Fail to find a file specified by tag incar_template"
             with open(firework["incar_template"], "r") as incar_template_f:
-                incar_template = [incar_tag.split("#")[0].strip() for incar_tag in incar_template_f]
+                incar_template = [incar_tag.split("#")[0].strip().upper() for incar_tag in incar_template_f]
             for incar_tag in incar_template:
                 if incar_tag != "":
-                    assert incar_template.count(incar_tag) == 1,                     "You set %s more than once in %s. Pls remove the duplica".format(incar_tag, firework["incar_template"])
-        firework["incar_template_list"] = [incar_tag.upper() for incar_tag in incar_template]
+                    assert incar_template.count(incar_tag) == 1,                     "You set {} more than once in {}. Pls remove the duplica".format(incar_tag, firework["incar_template"])
+        firework["incar_template_list"] = incar_template
         
         valid_incar_tags = []
         if "valid_incar_tags" in firework.keys():
             assert os.path.isfile(firework["valid_incar_tags"]), "Fail to find a file specified by tag valid_incar_tags"
             with open(firework["valid_incar_tags"], "r") as valid_incar_tags_f:
-                valid_incar_tags = [incar_tag.split("#")[0].strip() for incar_tag in valid_incar_tags_f if incar_tag.strip()]
+                valid_incar_tags = [incar_tag.split("#")[0].strip().upper() for incar_tag in valid_incar_tags_f if incar_tag.strip()]
             for incar_tag in valid_incar_tags:
-                assert valid_incar_tags.count(incar_tag) == 1,                 "You set %s more than once in %s. Pls reomve the duplica".format(incar_tag, firework["valid_incar_tags"])
-        firework["valid_incar_tags_list"] = [incar_tag.upper() for incar_tag in valid_incar_tags]
+                assert valid_incar_tags.count(incar_tag) == 1,                 "You set {} more than once in {}. Pls reomve the duplica".format(incar_tag, firework["valid_incar_tags"])
+        firework["valid_incar_tags_list"] = valid_incar_tags
         
                 
                    
@@ -447,8 +453,4 @@ def parse_firework_block(block_str_list, step_no):
 
 # workflow[4]
 
-# In[2]:
-
-
-help("adsfadf".replace)
-
+# help("adsfadf".replace)

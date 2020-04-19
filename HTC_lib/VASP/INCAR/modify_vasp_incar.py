@@ -17,6 +17,19 @@ from HTC_lib.VASP.Miscellaneous.Utilities import find_next_name, decorated_os_re
 # In[2]:
 
 
+def return_duplicate(list_of_strs, excluded_strs = []):
+    for a_str in list_of_strs:
+        if a_str in excluded_strs:
+            continue
+        elif list_of_strs.count(a_str) > 1:
+            return a_str
+    return ""
+            
+
+
+# In[3]:
+
+
 def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=True, incar_template=[], valid_incar_tags=[]):
     """
     add new tags and remove obsolete tags in incar.
@@ -110,10 +123,14 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
     if isinstance(valid_incar_tags, str):
         valid_incar_tags_str = valid_incar_tags
         with open(valid_incar_tags_str, "r") as valid_incar_tags_f:
-            valid_incar_tags = [incar_tag.split("#")[0].strip() for incar_tag in valid_incar_tags_f if incar_tag.strip()]
-    for incar_tag in valid_incar_tags:
-        assert valid_incar_tags.count(incar_tag) == 1, "%s appears more than once in %s. Pls remove the duplica".format(incar_tag, valid_incar_tags_str)
+            valid_incar_tags = [incar_tag.split("#")[0].strip().upper() for incar_tag in valid_incar_tags_f if incar_tag.strip()]
+        duplicate = return_duplicate(valid_incar_tags)
+        assert duplicate == "", "{} appears more than once in {}. Pls remove the duplicate".format(duplicate, valid_incar_tags_str)
     valid_incar_tags = [incar_tag.upper() for incar_tag in valid_incar_tags]
+    duplicate = return_duplicate(valid_incar_tags)
+    assert duplicate == "", "{} appears more than once in valid_incar_tags. Pls remove the duplicate".format(duplicate)
+    
+    
     
     if valid_incar_tags:
         for incar_tag in incar_dict.keys():
@@ -135,11 +152,13 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
     if isinstance(incar_template, str):
         incar_template_str = incar_template
         with open(incar_template_str, "r") as incar_template_f:
-            incar_template = [incar_tag.split("#")[0].strip() for incar_tag in incar_template_f]
-    for incar_tag in incar_template:
-        if incar_tag != "":
-            assert incar_template.count(incar_tag) == 1, "You set %s more than once in %s. Pls remove the duplica".format(incar_tag, incar_template_str)
+            incar_template = [incar_tag.split("#")[0].strip().upper() for incar_tag in incar_template_f]
+        duplicate = return_duplicate(incar_template, excluded_strs=[""])
+        assert duplicate == "", "You set {} more than once in {}. Pls remove the duplicate".format(duplicate, incar_template_str)
     incar_template = [incar_tag.upper() for incar_tag in incar_template]
+    duplicate = return_duplicate(incar_template, excluded_strs=[""])
+    assert duplicate == "", "You set {} more than once in incar_template. Pls remove the duplicate".format(duplicate)
+    
     
     
     to_be_written_incar_tags = incar_dict.keys()
@@ -164,15 +183,17 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
         incar_f.write(output_incar_str)
 
 
-# In[3]:
+# In[9]:
 
 
-new_tags={"ISMEAR": "-5"}
-remove_tags= ["IBRION", "EDIFFG", "ISIF", "NSW"]
-rename_old_incar=True
-incar_template=["SYSTEM", "ENCUT", "ISMEAR", "SIGMA", "EDIFF", "PREC", "", "ISPIN", "", "LWAVE", "LCHARG", "NPAR", "LREAL"]
-valid_incar_tags=[]
-
-modify_vasp_incar(cal_loc="test/", new_tags=new_tags, remove_tags=remove_tags, rename_old_incar=True, incar_template=incar_template, 
-                  valid_incar_tags=valid_incar_tags)
+if __name__ == "__main__":
+    new_tags={"ISMEAR": "-5"}
+    remove_tags= ["IBRION", "EDIFFG", "ISIF", "NSW"]
+    rename_old_incar=True
+    incar_template=["SYSTEM", "EnCUT", "ISMEAR", "SIGMA", "EDIFF", "PREC", "", "ISPIN", "", "LWAVE", "LCHARG", "NPAR", "LREAL"]
+    valid_incar_tags=["SYSTEM", "EnCUT", "ISMEAR", "SIGMA", "EDIFF", "PREC", "", "ISPIN", "", "LWAVE", "LCHARG", "NPAR", "lreal", "algo", "icharg", 
+                      "nelm"]
+    
+    modify_vasp_incar(cal_loc="test/", new_tags=new_tags, remove_tags=remove_tags, rename_old_incar=True, incar_template=incar_template, 
+                      valid_incar_tags=valid_incar_tags)
 
