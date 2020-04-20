@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[11]:
 
 
-import os, pprint, sys
-
+import os, sys
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
 if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
 
+import pprint
 
 from HTC_lib.VASP.Miscellaneous.Utilities import find_next_name, decorated_os_rename
 
 
-# In[2]:
+# In[12]:
 
 
 def return_duplicate(list_of_strs, excluded_strs = []):
@@ -27,7 +27,7 @@ def return_duplicate(list_of_strs, excluded_strs = []):
             
 
 
-# In[3]:
+# In[17]:
 
 
 def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=True, incar_template=[], valid_incar_tags=[]):
@@ -158,18 +158,23 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
     incar_template = [incar_tag.upper() for incar_tag in incar_template]
     duplicate = return_duplicate(incar_template, excluded_strs=[""])
     assert duplicate == "", "You set {} more than once in incar_template. Pls remove the duplicate".format(duplicate)
+    #if len(incar_template) > 2:
+    #    incar_template = [tag_1 for tag_1, tag_2 in zip(incar_template[:-1], incar_template[1:]) if tag_1 != "" or tag_2 != ""]
     
     
     
     to_be_written_incar_tags = incar_dict.keys()
     consumed_incar_tags = []
     output_incar_str = ""
+    is_an_empty_line_allowed = True #ensure there is only one empty line between incar tag blocks
     for incar_tag in incar_template:
         if incar_tag in to_be_written_incar_tags:
             output_incar_str += "{} = {}\n".format(incar_tag, incar_dict[incar_tag])
             consumed_incar_tags.append(incar_tag)
-        elif incar_tag == "":
+            is_an_empty_line_allowed = True
+        elif incar_tag == "" and is_an_empty_line_allowed:
             output_incar_str += "\n"
+            is_an_empty_line_allowed = False
 
     left_incar_tags = set(to_be_written_incar_tags).difference(set(incar_template))
     if left_incar_tags: output_incar_str += "\n"
@@ -183,14 +188,14 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
         incar_f.write(output_incar_str)
 
 
-# In[9]:
+# In[19]:
 
 
 if __name__ == "__main__":
     new_tags={"ISMEAR": "-5"}
     remove_tags= ["IBRION", "EDIFFG", "ISIF", "NSW"]
     rename_old_incar=True
-    incar_template=["SYSTEM", "EnCUT", "ISMEAR", "SIGMA", "EDIFF", "PREC", "", "ISPIN", "", "LWAVE", "LCHARG", "NPAR", "LREAL"]
+    incar_template=["SYSTEM", "EnCUT","", "", "", "ISMEAR", "SIGMA","", "",  "EDIFF", "PREC", "", "ISPIN", "", "LWAVE", "LCHARG", "NPAR", "LREAL"]
     valid_incar_tags=["SYSTEM", "EnCUT", "ISMEAR", "SIGMA", "EDIFF", "PREC", "", "ISPIN", "", "LWAVE", "LCHARG", "NPAR", "lreal", "algo", "icharg", 
                       "nelm"]
     

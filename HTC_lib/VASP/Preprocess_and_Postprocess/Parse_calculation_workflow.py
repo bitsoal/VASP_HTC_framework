@@ -433,7 +433,11 @@ def parse_firework_block(block_str_list, step_no):
             for incar_tag in incar_template:
                 if incar_tag != "":
                     assert incar_template.count(incar_tag) == 1,                     "You set {} more than once in {}. Pls remove the duplica".format(incar_tag, firework["incar_template"])
-        firework["incar_template_list"] = incar_template
+        if len(incar_template) <= 2: 
+            firework["incar_template_list"] = incar_template
+        else:
+            firework["incar_template_list"] = [tag_1 for tag_1, tag_2 in zip(incar_template[:-1], incar_template[1:]) if tag_1 != "" or tag_2 != ""]
+            
         
         valid_incar_tags = []
         if "valid_incar_tags" in firework.keys():
