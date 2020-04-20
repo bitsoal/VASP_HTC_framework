@@ -141,7 +141,7 @@ def prepare_cal_files(argv_dict):
         for filename in file_list:
             if filename.startswith("__") and filename.endswith("__"):
                 #The presence of any HTC signal file indicates that the sub-dir VASP calculation input files were prepared.
-                is_preparation_needed == False
+                is_preparation_needed = False
                 break
         
         if is_preparation_needed:
