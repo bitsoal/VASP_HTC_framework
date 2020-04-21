@@ -213,7 +213,6 @@ def find_converged_encut(argv_dict):
     
     with open("ENCUT_VS_E0_Summary.dat", "w") as summary:
         summary.write("ENCUT\tE0\tdE0\n")
-        summary.write("{}\t{}\t0\n".format(argv_dict["encut_list"][0], energy_list[0]))
         for encut, energy, energy_diff in zip(argv_dict["encut_list"], energy_list, energy_diff_list):
             summary.write("{}\t{}\t{}\n".format(encut, energy, energy_diff))
         summary.write("{}\t{}\n".format(argv_dict["encut_list"][-1], energy_list[-1]))
