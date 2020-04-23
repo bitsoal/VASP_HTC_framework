@@ -175,7 +175,7 @@ def are_all_sub_dir_cal_finished(argv_dict):
     return True
 
 
-# In[30]:
+# In[1]:
 
 
 def find_converged_sigma(argv_dict):
@@ -195,7 +195,7 @@ def find_converged_sigma(argv_dict):
         with open(os.path.join(sub_dir_name, "OUTCAR"), "r") as outcar:
             for line in outcar:
                 if "entropy T*S    EENTRO =" in line:
-                    TS = float(line.split("=")[1].strip())
+                    TS_list.append(float(line.split("=")[1].strip()))
                     is_TS_found = True
                     break
         if is_TS_found == False:#"Fail to parse T*S from {}".format(os.path.join(sub_dir_name, "OUTCAR"))
@@ -208,8 +208,8 @@ def find_converged_sigma(argv_dict):
         for sigma, TS in zip(argv_dict["sigma_list"], TS_list):
             summary.write("{}\t{}\n".format(sigma, TS))
     
-    TS_ind = 0
-    while TS_list[TS_ind] <= argv_dict["TS_convergence"]:
+    TS_ind, length = 0, len(TS_list)
+    while TS_ind < length and abs(TS_list[TS_ind]) <= argv_dict["TS_convergence"]:
         TS_ind += 1
     
     if TS_ind >=1:
