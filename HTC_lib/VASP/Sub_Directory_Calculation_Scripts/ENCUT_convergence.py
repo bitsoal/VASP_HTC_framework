@@ -89,7 +89,6 @@ def read_and_set_default_arguments(argv_list):
         argv_dict["start"] = start_value
         
         try:
-            print(float(raw_argv_dict["--end"]))
             argv_dict["end"] = int(raw_argv_dict["--end"])
         except:
             raise Exception("You must set the starting ENCUT via '--start' in the command line. It should be an integer")
@@ -121,13 +120,13 @@ def read_and_set_default_arguments(argv_list):
             raise Exception("The energy convergence criterion should be set by '--convergence=AB', where A is a number and B should be ev, mev, ev/atom or mev/atom")
             
         try:
-            argv_dict["no_of_consecutive_convergences"] = int(argv_dict.get("--no_of_consecutive_convergences", 3))
+            argv_dict["no_of_consecutive_convergences"] = int(raw_argv_dict.get("--no_of_consecutive_convergences", 3))
             assert argv_dict["no_of_consecutive_convergences"] >= 2
         except:
             raise Exception("--no_of_consecutive_convergences should be an integer>=2")
             
         try:
-            argv_dict["which"] = int(argv_dict.get("--which", 2))
+            argv_dict["which"] = int(raw_argv_dict.get("--which", 2))
             assert argv_dict["which"] <= argv_dict["no_of_consecutive_convergences"]+1
         except:
             raise Exception("--which should be an integer=1, 2,..., --no_of_consecutive_convergences+1")
