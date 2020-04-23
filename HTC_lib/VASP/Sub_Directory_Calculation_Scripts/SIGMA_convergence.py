@@ -73,16 +73,19 @@ def read_and_set_default_arguments(argv_list):
         try:
             argv_dict["start"] = float(raw_argv_dict.get("--start", 0.01))
         except:
+            print(__doc__)
             raise Exception("The value passed to --start should be a floating point number. default: 0.01")
         
         try:
             argv_dict["end"] = float(raw_argv_dict.get("--end", 1))
         except:
+            print(__doc__)
             raise Exception("The value passed to --end should be a floating point number. default: 1")
         
         try:
             argv_dict["step"] = float(raw_argv_dict.get("--step", 0.02))
         except:
+            print(__doc__)
             raise Exception("The value passed to --step should be a floating point number. default: 0.02")
             
             
@@ -94,11 +97,13 @@ def read_and_set_default_arguments(argv_list):
         try:
             argv_dict["TS_convergence"] = float(raw_argv_dict.get("--TS_convergence", 1)) / 1000. * no_of_atoms # convert meV/atom to eV
         except:
+            print(__doc__)
             raise Exception("The TS convergence criterion via '--TS_convergence' in the command line")
             
         try:
             argv_dict["which"] = int(raw_argv_dict.get("--which", 1))
         except:
+            print(__doc__)
             raise Exception("--which is the 1-based index of the list of SIGMA in a descending order w.r.t which the term T*S in OUTCAR is converged.")
         
     
@@ -194,7 +199,7 @@ def find_converged_sigma(argv_dict):
                     is_TS_found = True
                     break
         if is_TS_found == False:#"Fail to parse T*S from {}".format(os.path.join(sub_dir_name, "OUTCAR"))
-            open("__fail_to_parse_TS_from_OUTCAR_under_{}__".format(sub_dir_name), "w").close
+            open("__fail_to_parse_TS_from_OUTCAR_under_{}__".format(sub_dir_name), "w").close()
             return 0
     
     
@@ -220,7 +225,7 @@ def find_converged_sigma(argv_dict):
 
 
 if __name__ == "__main__":
-    print(__doc__)
+    #print(__doc__)
     
     argv_dict = read_and_set_default_arguments(sys.argv)
     prepare_cal_files(argv_dict)

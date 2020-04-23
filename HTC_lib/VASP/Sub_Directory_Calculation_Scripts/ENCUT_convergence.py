@@ -20,7 +20,7 @@ __doc__ = """
         It runs a series of calculations with different ENCUT and determines the ENCUT w.r.t which the total energy is reached.
         
     The command line to call this script looks like below:
-    >>>python ENCUT_convergence.py [--start:integer] --end:integer --step:integer --convergence:AB [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] --help
+    >>>python ENCUT_convergence.py [--start:integer] --end:integer --step:integer --convergence:AB [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--help]
     Arguments in a pair of brackets are optional
     * --start (integer): the starting ENCUT. Default: max(ENMAX) in POTCAR
     * --end (integer): the ending ENCUT. No default value
@@ -80,31 +80,35 @@ def read_and_set_default_arguments(argv_list):
         raw_argv_dict = {key.lower(): value for key, value in [argv.split(":") for argv in argv_list[1:]]}
         argv_dict = {}
         
-        start_value = raw_argv_dict.get("--start", enmax)
-        if isinstance(start_value, str):
-            try:
-                start_value = int(start_value)
-            except:
-                raise Exception("The value passed to --start should be an integer.")
-        argv_dict["start"] = start_value
+        
+        try:
+            argv_dict["start"] = int(raw_argv_dict.get("--start", enmax))
+        except:
+            print(__doc__)
+            raise Exception("The value passed to --start should be an integer.")
+        
         
         try:
             argv_dict["end"] = int(raw_argv_dict["--end"])
         except:
-            raise Exception("You must set the starting ENCUT via '--start' in the command line. It should be an integer")
+            print(__doc__)
+            raise Exception("You must set the ending ENCUT via '--end' in the command line. It should be an integer")
         
         try:
             argv_dict["step"] = int(raw_argv_dict.get("--step", 50))
         except:
+            print(__doc__)
             raise Exception("The value passed to --step should be an integer")
             
             
         argv_dict["incar_template"] = raw_argv_dict.get("--incar_template", "")
-        assert os.path.isfile(argv_dict["incar_template"]), "The file specified via --incar_template doesn't exist"
+        if argv_dict["incar_template"]:
+            assert os.path.isfile(argv_dict["incar_template"]), "The file specified via --incar_template doesn't exist"
         
         try:
             convergence= raw_argv_dict["--convergence"].lower()
         except:
+            print(__doc__)
             raise Exception("You must set the energy convergence criterion via '--convergence' in the command line")
         #the below if clause convert criterion to eV.
         argv_dict["criterion_unit"] = "ev"
@@ -117,18 +121,21 @@ def read_and_set_default_arguments(argv_list):
         elif "ev" in convergence:
             argv_dict["convergence"] = float(convergence.split("ev"))
         else:
+            print(__doc__)
             raise Exception("The energy convergence criterion should be set by '--convergence=AB', where A is a number and B should be ev, mev, ev/atom or mev/atom")
             
         try:
             argv_dict["no_of_consecutive_convergences"] = int(raw_argv_dict.get("--no_of_consecutive_convergences", 3))
             assert argv_dict["no_of_consecutive_convergences"] >= 2
         except:
+            print(__doc__)
             raise Exception("--no_of_consecutive_convergences should be an integer>=2")
             
         try:
             argv_dict["which"] = int(raw_argv_dict.get("--which", 2))
             assert argv_dict["which"] <= argv_dict["no_of_consecutive_convergences"]+1
         except:
+            print(__doc__)
             raise Exception("--which should be an integer=1, 2,..., --no_of_consecutive_convergences+1")
         
     
@@ -150,18 +157,20 @@ def read_and_set_default_arguments(argv_list):
 
 def prepare_cal_files(argv_dict):
     
-    is_preparation_needed = True
+    
     for encut in argv_dict["encut_list"]:
+        is_preparation_needed = True
         sub_dir_name = "encut_" + str(encut)
+        
         if not os.path.isdir(sub_dir_name):
             os.mkdir(sub_dir_name)
-        
-        file_list = os.listdir(sub_dir_name)
-        for filename in file_list:
-            if filename.startswith("__") and filename.endswith("__"):
-                #The presence of any HTC signal file indicates that the sub-dir VASP calculation input files were prepared.
-                is_preparation_needed = False
-                break
+        else:
+            file_list = os.listdir(sub_dir_name)
+            for filename in file_list:
+                if filename.startswith("__") and filename.endswith("__"):
+                    #The presence of any HTC signal file indicates that the sub-dir VASP calculation input files were prepared.
+                    is_preparation_needed = False
+                    break
         
         if is_preparation_needed:
             shutil.copy("POSCAR", os.path.join(sub_dir_name, "POSCAR"))
@@ -228,7 +237,8 @@ def find_converged_encut(argv_dict):
             energy = float(re.search("E0=([\s0-9E\.\-\+]+)d E", line)[1].strip())
             energy_list.append(energy)
         except:
-            raise Exception("Fail to parse energy E0 from {}".format(os.path.join(sub_dir_name, "OSZICAR")))
+            open("__fail_to_parse_energy_E0_from_{}__".format(os.path.join(sub_dir_name, "OSZICAR")), "w").close()
+            return 0
             
     energy_diff_list = [energy_2 - energy_1 for energy_1, energy_2 in zip(energy_list[:-1], energy_list[1:])]
     
@@ -255,7 +265,7 @@ def find_converged_encut(argv_dict):
 
 
 if __name__ == "__main__":
-    print(__doc__)
+    #print(__doc__)
     
     argv_dict = read_and_set_default_arguments(sys.argv)
     prepare_cal_files(argv_dict)
