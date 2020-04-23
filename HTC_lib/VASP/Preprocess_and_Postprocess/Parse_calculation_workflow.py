@@ -200,7 +200,8 @@ def parse_firework_block(block_str_list, step_no):
                     "ldau_cal", "ldau_u_j_table", "incar_template", "valid_incar_tags",
                     "kpoints_type", "denser_kpoints", "reciprocal_density", "kpoints_line_density",
                     "intersections", "force_gamma", "2d_system", "sort_structure", "max_ionic_step", "user_defined_cmd", 
-                    "final_user_defined_cmd", "user_defined_postprocess_cmd", "sub_dir_cal", "sub_dir_cal_cmd", "preview_vasp_inputs",
+                    "final_user_defined_cmd", "user_defined_postprocess_cmd", 
+                    "sub_dir_cal", "sub_dir_cal_cmd", "preview_vasp_inputs",
                     "job_submission_script", "job_submission_command", "job_name", "max_running_job", "where_to_parse_queue_id",
                     "re_to_parse_queue_id", "job_query_command", "job_killing_command", "queue_stdout_file_prefix", "queue_stdout_file_suffix",
                     "queue_stderr_file_prefix", "queue_stderr_file_suffix", "vasp.out"]

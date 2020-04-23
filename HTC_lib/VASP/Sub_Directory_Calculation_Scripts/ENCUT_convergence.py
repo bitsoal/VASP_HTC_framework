@@ -12,21 +12,29 @@ if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
 
-# In[73]:
+# In[3]:
 
 
 __doc__ = """
     What this script does:
-        It runs a series of calculations with different ENCUT and determines the converged ENCUT w.r.t the total energy.
+        It runs a series of calculations with different ENCUT and determines the ENCUT w.r.t which the total energy is reached.
         
     The command line to call this script looks like below:
-    >>>python ENCUT_convergence.py [--start:integer] --end:integer --step:integer --convergence:AB [--incar_template:filename] --help
+    >>>python ENCUT_convergence.py [--start:integer] --end:integer --step:integer --convergence:AB [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] --help
     Arguments in a pair of brackets are optional
     * --start (integer): the starting ENCUT. Default: max(ENMAX) in POTCAR
     * --end (integer): the ending ENCUT. No default value
     * --step (integer): the increment of ENCUT in the ENCUT testing. Default: 50
-    * --convergence : The total energy convergence. It has a form --convergence=AB, where A is the convergence criterion and B is the
+    * --convergence: The total energy convergence. It has a form --convergence=AB, where A is the convergence criterion and B is the
                     unit which could be eV/atom, meV/atom, eV or meV. No default value.
+    * --no_of_consecutive_convergences (integer>=2): If the number of consecutive convergences of the total energy w.r.t ENCUT is larger than
+                    --no_of_consecutive_convergences, the ENCUT testing is successful and you can choose ENCUT among those associated with
+                    the consecutively converged total energy using --which. Otherwise, the ENCUT testing fails.
+                    Default: 3
+    * --which (1-based integer index): choose which ENCUT among those associated with the consecutively converged total energy.
+                    Assume --no_of_consecutive_convergences = 3, --convergence=1meV and we find the first four consecutive ENCUTs for which
+                    abs(E0(n+i)-E0(n+i-1)) i=1, 2, 3 is smaller than 1meV. In this case --which=1|2|3|4 will chooses ENCUT(n|n+1|n+2|n+3).
+                    Default: 2
     * --incar_template (str): When writing INCAR, sorting INCAR tags in the same order as in the file referred by --incar_template.
     * --help: Explain how to use this script and the input arguments.
     Note that there must be no whitespace in the argument-value pair.
@@ -43,7 +51,7 @@ __doc__ = """
         """
 
 
-# In[68]:
+# In[4]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -111,6 +119,18 @@ def read_and_set_default_arguments(argv_list):
             argv_dict["convergence"] = float(convergence.split("ev"))
         else:
             raise Exception("The energy convergence criterion should be set by '--convergence=AB', where A is a number and B should be ev, mev, ev/atom or mev/atom")
+            
+        try:
+            argv_dict["no_of_consecutive_convergences"] = int(argv_dict.get("--no_of_consecutive_convergences", 3))
+            assert argv_dict["no_of_consecutive_convergences"] >= 2
+        except:
+            raise Exception("--no_of_consecutive_convergences should be an integer>=2")
+            
+        try:
+            argv_dict["which"] = int(argv_dict.get("--which", 2))
+            assert argv_dict["which"] <= argv_dict["no_of_consecutive_convergences"]+1
+        except:
+            raise Exception("--which should be an integer=1, 2,..., --no_of_consecutive_convergences+1")
         
     
     with open("encut_convergence_setup.json", "w") as setup:
@@ -176,7 +196,7 @@ def are_all_sub_dir_cal_finished(argv_dict):
     return True
 
 
-# In[62]:
+# In[6]:
 
 
 def find_converged_encut(argv_dict):
@@ -185,13 +205,15 @@ def find_converged_encut(argv_dict):
     We have calculated the total energy (E0 in OSZICAR) of a given system for a series of ENCUT(i).
     ENCUT(i) are in an ascending order
     Let's arrange these total energy, E0(i), in the same order of ENUCT(i).
+    Let's denote the parameter passed by --no_of_consecutive_convergences as NCC.
+    Let's denote the parameter passed by --which as WH
     Calculate the energy difference: dE0(i) = abs(E0(i+1)-E0(i))
-    The covergence of ENCUT w.r.t E0 is reached only if there are at least two consecutive dE0(i) that meet the pre-defined convergence criterion.
-    Assuming dE0(i)=E0(i+1)-E0(i) and dE0(i+1)=E0(i+2)-E0(i+1) are the first two consecutive satisfied dE, we choose the ENCUT corresponding to 
-        E0(i+1) as the converged ENCUT
+    The covergence of E0 w.r.t ENCUT is reached only if there are at least NCC consecutive dE0(i) that meet the pre-defined convergence criterion.
+    Assuming dE0(n+i-1)=abs(E0(n+i)-E0(n+i-1)) i=1, 2,..., NCC are the first NCC consecutive satisfied dE, the ENCUT corresponding to E0(WH) is thought
+    of as the one w.r.t which the total energy is converged.
         
     return:
-        if there is such a E0(i+1), return the corresponding ENCUT, i.e. ENUCT(i+1);
+        if there are NCC consecutive dE0(i), return the ENCUT conrresponding to E0(WH);
         otherwise, return 0
     """
     
@@ -224,8 +246,8 @@ def find_converged_encut(argv_dict):
         else:
             count = 0
             
-        if count == 2:
-            return argv_dict["encut_list"][energy_diff_ind]
+        if count == argv_dict["no_of_consecutive_convergences"]:
+            return argv_dict["encut_list"][energy_diff_ind - argv_dict["no_of_consecutive_convergences"] + argv_dict["which"]]
         
     return 0  
 
