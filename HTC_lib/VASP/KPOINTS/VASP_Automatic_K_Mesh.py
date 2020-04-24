@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
-import os, math, re
+import os, sys, re, math
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
+    
+from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
 from pymatgen import Structure
 
@@ -14,15 +19,18 @@ from pymatgen import Structure
 
 class VaspAutomaticKMesh():
     
-    def __init__(self, cal_loc, NL, kmesh_type="Auto", shift=[0, 0, 0], max_vacuum_thickness=[5, 5, 5], str_filename="POSCAR", symprec_latt_const = 0.1, symprec_angle = 1, *argvs, **kwargvs):
+    def __init__(self, cal_loc, NL, kmesh_type="Auto", shift=[0, 0, 0], max_vacuum_thickness=[5, 5, 5], str_filename="POSCAR",
+                 symprec_latt_const = 0.1, symprec_angle = 1, *argvs, **kwargvs):
         """
         cal_loc (str): the absolute or relative path to the folder under which  POSCAR is read, and KPOINTS is read or written.
         NL (int or float): the product of the real space lattice constant (L) and the subdivision (N). NL should be the same or very close along the directions
             along which the periodic boundary condition (PBC) holds. This ensures that the k-points in the BZ is equally spaced.
         kmesh_type: either "Monkhorst-Pack", "Gamma" or "Auto"
                     If kmesh_type = "Auto", "Gamma" will be chosen if any of the calculated subdivisions along the pbc axes is odd; Otherwise, "Monkhorst-Pack"
-                    If the lattice is hexagonal, kmesh_type will be internally set to "Gamma".
-                    If the calculated subdivisions are (1, 1, 1), internally set kmesh_type = "Gamma"
+                    In the following cases, kmesh_type will be internally set to "Gamma" regardless of the input value:
+                        1. The lattice is hexagonal
+                        2. The calculated subdivisions are (1, 1, 1)
+                        3. ISMEAR = -5 in INCAR
                     Default: "Auto"
         shift (list of length 3): the shift of the k-mesh
                     Default: [0, 0, 0]
@@ -226,8 +234,9 @@ class VaspAutomaticKMesh():
         """
         kpoints = VaspAutomaticKMesh.get_subdivisions(self.NL, self.structure_dict["lattice_constants"], self.pbc_type_of_xyz)
         
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         
-        if self.structure_dict["is_it_hexagonal"] or kpoints["subdivisions"] == [1, 1, 1]:
+        if self.structure_dict["is_it_hexagonal"] or kpoints["subdivisions"] == [1, 1, 1] or incar_dict["ISMEAR"] = "-5":
             kpoints["kmesh_type"] = "Gamma"
         elif self.kmesh_type == "auto":
             if 1 in [division % 2 for division in VaspAutomaticKMesh.get_pbc_sublist(kpoints["subdivisions"], self.pbc_type_of_xyz)]:
@@ -327,3 +336,21 @@ class VaspAutomaticKMesh():
         return kpoints_setup
             
 
+
+# poscar_path = "test/twoD_rectangular/rectangular_NiNC_POSCAR"
+# cal_loc, poscar_name = os.path.split(poscar_path)
+# input_arguments = {
+#     "cal_loc": cal_loc, 
+#     "NL": 55, 
+#     "kmesh_type": "Monkhorst-Pack", 
+#     "shift": [0, 0, 0], 
+#     "max_vacuum_thickness":[0.1, 0.01, 0.001], 
+#     "str_filename": poscar_name, 
+#     'symprec_latt_const': 0.1, 
+#     "symprec_angle": 1.
+# }
+# kmesher = VaspAutomaticKMesh(**input_arguments)
+# VaspAutomaticKMesh.write_KPOINTS(kmesher.get_kpoints_setup(), cal_loc=cal_loc)
+# kmesher.get_kpoints_setup()
+
+# VaspAutomaticKMesh.read_from_KPOINTS_and_POSCAR(cal_loc=cal_loc, POSCAR_filename=poscar_name, max_vacuum_thickness=[5, 10, 5])
