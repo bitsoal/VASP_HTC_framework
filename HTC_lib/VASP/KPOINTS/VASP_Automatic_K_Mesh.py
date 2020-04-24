@@ -221,7 +221,7 @@ class VaspAutomaticKMesh():
             is_it_hexagonal: bool
             equivalent_NL: a list of NLs giving the same subdivisions
             optimal_NL: a dictionary with the key and value being the optimal NL and the corresponding deviation of the subdivisions
-            max_vaccum_thickness: a list of length 3. The max vacuum layer thickness for a pbc axis
+            VaspAutomaticKMesh_input_arguments: a dictionary including all input arguments to VaspAutomaticKMesh
             
         """
         kpoints = VaspAutomaticKMesh.get_subdivisions(self.NL, self.structure_dict["lattice_constants"], self.pbc_type_of_xyz)
@@ -326,5 +326,4 @@ class VaspAutomaticKMesh():
                                                                          pbc_type_of_xyz=pbc_type_of_xyz)
         return kpoints_setup
             
-
 
