@@ -236,7 +236,7 @@ class VaspAutomaticKMesh():
         
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
         
-        if self.structure_dict["is_it_hexagonal"] or kpoints["subdivisions"] == [1, 1, 1] or incar_dict["ISMEAR"] = "-5":
+        if self.structure_dict["is_it_hexagonal"] or kpoints["subdivisions"] == [1, 1, 1] or incar_dict["ISMEAR"] == "-5":
             kpoints["kmesh_type"] = "Gamma"
         elif self.kmesh_type == "auto":
             if 1 in [division % 2 for division in VaspAutomaticKMesh.get_pbc_sublist(kpoints["subdivisions"], self.pbc_type_of_xyz)]:
