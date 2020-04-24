@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[37]:
+# In[1]:
 
 
 import os, math, re
@@ -9,19 +9,20 @@ import os, math, re
 from pymatgen import Structure
 
 
-# In[98]:
+# In[135]:
 
 
 class VaspAutomaticKMesh():
     
-    def __init__(self, cal_loc, NL, kmesh_type="Auto", shift=[0, 0, 0], max_vacuum_thickness=[5, 5, 5], str_filename="POSCAR", symprec_latt_const = 0.1, symprec_angle = 1):
+    def __init__(self, cal_loc, NL, kmesh_type="Auto", shift=[0, 0, 0], max_vacuum_thickness=[5, 5, 5], str_filename="POSCAR", symprec_latt_const = 0.1, symprec_angle = 1, *argvs, **kwargvs):
         """
         cal_loc (str): the absolute or relative path to the folder under which  POSCAR is read, and KPOINTS is read or written.
         NL (int or float): the product of the real space lattice constant (L) and the subdivision (N). NL should be the same or very close along the directions
             along which the periodic boundary condition (PBC) holds. This ensures that the k-points in the BZ is equally spaced.
         kmesh_type: either "Monkhorst-Pack", "Gamma" or "Auto"
                     If kmesh_type = "Auto", "Gamma" will be chosen if any of the calculated subdivisions along the pbc axes is odd; Otherwise, "Monkhorst-Pack"
-                    Note that if the lattice is hexagonal, kmesh_type will be internally set to "Gamma".
+                    If the lattice is hexagonal, kmesh_type will be internally set to "Gamma".
+                    If the calculated subdivisions are (1, 1, 1), internally set kmesh_type = "Gamma"
                     Default: "Auto"
         shift (list of length 3): the shift of the k-mesh
                     Default: [0, 0, 0]
@@ -57,7 +58,7 @@ class VaspAutomaticKMesh():
         alpha, beta, gamma = struct.lattice.alpha, struct.lattice.beta, struct.lattice.gamma
         
         structure_dict = {"lattice_constants": (latt_a, latt_b, latt_c), 
-                          "angles": (alpha, beta, gamma), 
+                          "lattice_angles": (alpha, beta, gamma), 
                           "frac_coords": struct.frac_coords, 
                           "lattice_matrix": struct.lattice.matrix}
         
@@ -71,6 +72,10 @@ class VaspAutomaticKMesh():
             structure_dict["is_it_hexagonal"] = False
         
         return structure_dict
+    
+    @classmethod
+    def get_pbc_sublist(cls, a_list, pbc_type_of_xyz):
+        return [item for item, pbc_type in zip(a_list, pbc_type_of_xyz) if pbc_type]
     
     @classmethod
     def does_pbc_hold_along_xyz_axes(cls, cal_loc, str_filename="POSCAR", max_vacuum_thickness=[5, 5, 5]):
@@ -91,7 +96,7 @@ class VaspAutomaticKMesh():
         max_diff_frac_y = max([y_2 - y_1 for y_1, y_2 in zip(sorted_frac_y_list[:-1], sorted_frac_y_list[1:])])
         max_diff_frac_z = max([z_2 - z_1 for z_1, z_2 in zip(sorted_frac_z_list[:-1], sorted_frac_z_list[1:])])
         
-        #hand the case like: [0.01, 0.98, 0.99]
+        #handle the case like: [0.01, 0.98, 0.99]
         max_diff_frac_x = max([max_diff_frac_x, 1 - sorted_frac_x_list[-1], sorted_frac_x_list[0]])
         max_diff_frac_y = max([max_diff_frac_y, 1 - sorted_frac_y_list[-1], sorted_frac_y_list[0]])
         max_diff_frac_z = max([max_diff_frac_z, 1 - sorted_frac_z_list[-1], sorted_frac_z_list[0]])
@@ -112,6 +117,98 @@ class VaspAutomaticKMesh():
             return number - math.floor(number)
         else:
             return number
+        
+    @classmethod
+    def get_subdivisions(cls, NL, latt_constants, pbc_type_of_xyz=[True, True, True]):
+        subdivisions, dNL = [], []
+        for axis_ind in range(len(latt_constants)):
+            if pbc_type_of_xyz[axis_ind]:
+                division = max([round(NL / latt_constants[axis_ind]), 1])
+                dnl = NL - division * latt_constants[axis_ind]
+            else:
+                division = 1
+                dnl = 0
+            subdivisions.append(division)
+            dNL.append(dnl)
+        return {"subdivisions": subdivisions, "dNL": dNL}
+    
+    @classmethod
+    def get_possible_NL(cls, subdivisions, latt_constants, pbc_type_of_xyz=[True, True, True]):
+        pbc_type_of_xyz = pbc_type_of_xyz[:len(latt_constants)]
+        if True not in pbc_type_of_xyz:
+            return []
+        
+        pbc_subdivisions = VaspAutomaticKMesh.get_pbc_sublist(subdivisions, pbc_type_of_xyz)
+        pbc_latt_constants = VaspAutomaticKMesh.get_pbc_sublist(latt_constants, pbc_type_of_xyz)
+        
+        pbc_NL = [division * latt_constant for division, latt_constant in zip(pbc_subdivisions, pbc_latt_constants)]
+        pbc_NL_floor, pbc_NL_ceil = math.floor(min(pbc_NL)), math.ceil(max(pbc_NL))+1
+        possible_NL_list = []
+        NL_step = 1
+        while possible_NL_list == [] and NL_step >= 0.1:
+            NL = pbc_NL_floor
+            while NL <= pbc_NL_ceil:
+                if pbc_subdivisions == VaspAutomaticKMesh.get_subdivisions(NL, pbc_latt_constants)["subdivisions"]:
+                    possible_NL_list.append(NL)
+                NL += NL_step
+            NL_step -= 0.1
+        
+        if possible_NL_list == []:
+            print("Warning: No possible NL given the below input parameters:")
+            print("\tsubdivisions = [{}, {}, {}]".format(*subdivisions))
+            print("\tlatt_constants = [{}, {}, {}]".format(*latt_constants))
+            print("\tpbc_type_of_xyz = [{}, {}, {}]".format(*pbc_type_of_xyz))
+            print("\treturn: []")
+        return possible_NL_list
+    
+    @classmethod
+    def optimize_NL(cls, NL, latt_constants, pbc_type_of_xyz=[True, True, True]):
+        """
+        Given an NL, the subdivisions can be caluclated and rounded to integers based on the lattice constants and the pbc type of the x-, y- and z-axis.
+        However, there might be more than one NL given a set of subdivision (n_kx, n_ky, n_kz).
+        This class method optimizes NL in such a way that min(abs(max(n_ki*latt_i-NL))) w.r.t NLs corresponding to the same (n_kx, n_ky, n_kz). If the minimum is 
+            degenerate, minimize p-norm of (abs(NL-n_kx*a), abs(NL-n_ky*b), abs(NL-n_kz*c)) from p=1 until the minimum is unique. 
+            This optimization is only w.r.t. the pbc axis/axes.
+        return a dictionary with the key and value being NL and the corresponding (NL-n_kx*a, NL-n_ky*b, NL-n_kz*c)
+        """
+        subdivisions = VaspAutomaticKMesh.get_subdivisions(NL=NL, latt_constants=latt_constants, pbc_type_of_xyz=pbc_type_of_xyz)["subdivisions"]
+        pbc_subdivisions = VaspAutomaticKMesh.get_pbc_sublist(subdivisions, pbc_type_of_xyz)
+        pbc_L = VaspAutomaticKMesh.get_pbc_sublist(latt_constants, pbc_type_of_xyz)
+        possible_NL_list = VaspAutomaticKMesh.get_possible_NL(subdivisions=pbc_subdivisions, latt_constants=pbc_L)
+        
+        min_dNL_ind_list, dNL_list, min_dNL = [], [], 1000
+        for NL_ind, NL in enumerate(possible_NL_list):
+            dNL_list.append([abs(NL - division * L) for division, L in zip(pbc_subdivisions, pbc_L)])
+            if min_dNL > max(dNL_list[-1]):
+                min_dNL = max(dNL_list[-1])
+                min_dNL_ind_list = [NL_ind]
+            elif min_dNL == max(dNL_list[-1]):
+                min_dNL_ind_list.append(NL_ind)
+        
+        p = 1
+        while len(min_dNL_ind_list) > 1 and p < 5:
+            min_p_norm, new_min_dNL_ind_list = 1000, []
+            for dNL_ind in min_dNL_ind_list:
+                p_norm = pow(sum([abs(dnl)**p for dnl in dNL_list[dNL_ind]]), 1./p)
+                if p_norm < min_p_norm:
+                    min_p_norm = p_norm
+                    new_min_dNL_ind_list.append(dNL_ind)
+            min_dNL_ind_list = new_min_dNL_ind_list
+            p += 1
+            
+        if p == 5 and len(min_dNL_ind_list) > 1:
+            print("Warning: Fail to find the best unique NL given the below parameters")
+            print("\tsubdivisions: [{}, {}, {}]".format(*subdivisions))
+            print("\tpbc_type_of_xyz: [{}, {}, {}]".format(*self.pbc_type_of_xyz))
+            print("All possilbe NLs: " + ", ".join([str(NL) for NL in possible_NL_list]))
+            print(", ".join([str(possible_NL_list[dNL_ind]) for dNL_ind in min_dNL_ind_list]) + "are the best.")
+        
+        optimal_NL_dict = {}
+        for dNL_ind in min_dNL_ind_list:
+            NL = possible_NL_list[dNL_ind]
+            optimal_NL_dict[NL] = VaspAutomaticKMesh.get_subdivisions(NL=NL, latt_constants=latt_constants, pbc_type_of_xyz=pbc_type_of_xyz)["dNL"]
+        return optimal_NL_dict
+        
     
     def get_kpoints_setup(self):
         """
@@ -121,31 +218,45 @@ class VaspAutomaticKMesh():
             shfit: a list of length 3
             NL: the product of the real lattice constant and the subdivision. It should be the same for (a, n_kx), (b, n_ky) and (c, n_kz)
             pbc_type_of_xyz: a boolean list of length 3. 
+            is_it_hexagonal: bool
+            equivalent_NL: a list of NLs giving the same subdivisions
+            optimal_NL: a dictionary with the key and value being the optimal NL and the corresponding deviation of the subdivisions
+            max_vaccum_thickness: a list of length 3. The max vacuum layer thickness for a pbc axis
+            
         """
-        kpoints = {"subdivisions": []}
-        for axis_ind in range(3):
-            if self.pbc_type_of_xyz[axis_ind]:
-                division = round(self.NL / self.structure_dict["lattice_constants"][axis_ind])
-                division = max([division, 1])
-            else:
-                division = 1
-            kpoints["subdivisions"].append(division)
+        kpoints = VaspAutomaticKMesh.get_subdivisions(self.NL, self.structure_dict["lattice_constants"], self.pbc_type_of_xyz)
         
-        if self.structure_dict["is_it_hexagonal"]:
+        
+        if self.structure_dict["is_it_hexagonal"] or kpoints["subdivisions"] == [1, 1, 1]:
             kpoints["kmesh_type"] = "Gamma"
         elif self.kmesh_type == "auto":
-            if  1 in [division % 2 for division, pbc_type in zip(kpoints["subdivisions"], self.pbc_type_of_xyz) if pbc_type]:
+            if 1 in [division % 2 for division in VaspAutomaticKMesh.get_pbc_sublist(kpoints["subdivisions"], self.pbc_type_of_xyz)]:
                 kpoints["kmesh_type"] = "Gamma"
             else:
                 kpoints["kmesh_type"] = "Monkhorst-Pack"
         else:
             kpoints["kmesh_type"] = self.kmesh_type
+        
                 
         kpoints["shift"] = self.shift
         kpoints["NL"] = self.NL
         kpoints["pbc_type_of_xyz"] = self.pbc_type_of_xyz
         
+        kpoints["equivalent_NL"] = VaspAutomaticKMesh.get_possible_NL(subdivisions=kpoints["subdivisions"], 
+                                                                      latt_constants=self.structure_dict["lattice_constants"], 
+                                                                      pbc_type_of_xyz=self.pbc_type_of_xyz)
+        kpoints["optimal_NL"] = VaspAutomaticKMesh.optimize_NL(NL=self.NL, 
+                                                               latt_constants=self.structure_dict["lattice_constants"], 
+                                                               pbc_type_of_xyz=self.pbc_type_of_xyz)
+        
+    
+        kpoints["VaspAutomaticKMesh_input_arguments"] = {}
+        for key in ["NL", "kmesh_type", "shift", "max_vacuum_thickness", "str_filename", "symprec_latt_const", "symprec_angle"]:
+            kpoints["VaspAutomaticKMesh_input_arguments"][key] = self.__dict__[key]
+
+        
         return kpoints
+    
     
     @classmethod
     def write_KPOINTS(cls, kpoints_setup, cal_loc, filename="KPOINTS"):
@@ -157,13 +268,13 @@ class VaspAutomaticKMesh():
         """
         
         with open(os.path.join(cal_loc, filename), "w") as kpoints:
-            comment = ", ".join([product for product, pbc in zip(["a*n_kx", "b*n_ky", "c*n_kz"], kpoints_setup["pbc_type_of_xyz"]) if pbc])
+            comment = ", ".join(VaspAutomaticKMesh.get_pbc_sublist(["a*n_kx", "b*n_ky", "c*n_kz"], kpoints_setup["pbc_type_of_xyz"]))
             comment += " are close to {}".format(kpoints_setup["NL"])
             kpoints.write("{}\n".format(kpoints_setup.get("comment", comment)))
             kpoints.write("0\n")
             kpoints.write("{}\n".format(kpoints_setup["kmesh_type"]))
             kpoints.write("{}\t{}\t{}\n".format(*kpoints_setup["subdivisions"]))
-            kpoints.write("{}\t{}\t{}\t\n".format(*kpoints_setup.get("shift", [0, 0, 0])))
+            kpoints.write("{}\t{}\t{}\n".format(*kpoints_setup.get("shift", [0, 0, 0])))
             
     @classmethod
     def read_from_KPOINTS_and_POSCAR(cls, cal_loc, max_vacuum_thickness, KPOINTS_filename="KPOINTS", POSCAR_filename="POSCAR"):
@@ -173,11 +284,12 @@ class VaspAutomaticKMesh():
         """
         struct = Structure.from_file(os.path.join(cal_loc, POSCAR_filename))
         latt_a, latt_b, latt_c = struct.lattice.a, struct.lattice.b, struct.lattice.c
+        alpha, beta, gamma = struct.lattice.alpha, struct.lattice.beta, struct.lattice.gamma
         
-        kpoints_setup = {}
+        kpoints_setup = {"lattice_constants": [latt_a, latt_b, latt_c], "lattice_angles": [alpha, beta, gamma]}
         with open(os.path.join(cal_loc, KPOINTS_filename), "r") as kpoints:
             kpoints_setup["comment"] = next(kpoints).strip("\n")
-            next(kpoints)
+            assert next(kpoints).strip().startswith("0"), "The second line in KPOINTS must be soley '0' indicating an automatic k-mesh grid.\nDir: {}".format(cal_loc)
             
             kmesh_type = next(kpoints).strip("\n").strip().lower()
             if kmesh_type.startswith("g"):
@@ -199,22 +311,20 @@ class VaspAutomaticKMesh():
                     raise Exception("Fail to parse the shift in the fifth line from {}\n I am only able to parse the automatic-type k-mesh".format(os.path.join(cal_loc, KPOINTS_filename)))
                 
         
+        kpoints_setup["max_vacuum_thickness"] = max_vacuum_thickness
         pbc_type_of_xyz = VaspAutomaticKMesh.does_pbc_hold_along_xyz_axes(cal_loc, POSCAR_filename, max_vacuum_thickness)
-        pbc_L = [latt_const for latt_const, pbc_type in zip([latt_a, latt_b, latt_c], pbc_type_of_xyz) if pbc_type]
-        pbc_subdivisions = [subdivision for subdivision, pbc_type in zip(kpoints_setup["subdivisions"], pbc_type_of_xyz) if pbc_type]
-        pbc_NL = [L*subdivision for L, subdivision in zip(pbc_L, pbc_subdivisions)]
-        
-        allowed_NL_list = []
-        NL_step = 1
-        pbc_NL_floor, pbc_NL_ceil = math.floor(min(pbc_NL)), math.ceil(max(pbc_NL)) + 1
-        while allowed_NL_list == [] and NL_step >= 0.1:
-            NL = pbc_NL_floor
-            while NL <= pbc_NL_ceil:
-                if pbc_subdivisions == [round(NL/L) for L in pbc_L]:
-                    allowed_NL_list.append(NL)
-                NL += NL_step
-                
-            NL_step -= 0.1
+        kpoints_setup["equivalent_NL"] = VaspAutomaticKMesh.get_possible_NL(subdivisions=kpoints_setup["subdivisions"], 
+                                                                            latt_constants=[latt_a, latt_b, latt_c], 
+                                                                            pbc_type_of_xyz=pbc_type_of_xyz)
+        if len(kpoints_setup["equivalent_NL"]) == 0:
+            kpoints_setup["optimal_NL"] = {}
+        elif len(kpoints_setup["equivalent_NL"]) == 1:
+            kpoints_setup["optimal_NL"] = kpoints_setup["equivalent_NL"]
+        else:
+            kpoints_setup["optimal_NL"] = VaspAutomaticKMesh.optimize_NL(NL=kpoints_setup["equivalent_NL"][0], 
+                                                                         latt_constants=[latt_a, latt_b, latt_c], 
+                                                                         pbc_type_of_xyz=pbc_type_of_xyz)
+        return kpoints_setup
             
-        return kpoints_setup, allowed_NL_list
-            
+
+
