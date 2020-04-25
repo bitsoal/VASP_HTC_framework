@@ -270,10 +270,18 @@ class VaspAutomaticKMesh():
     @classmethod
     def write_KPOINTS(cls, kpoints_setup, cal_loc, filename="KPOINTS"):
         """
-        kpoints_setup has a format of the output dictionary of method get_kpoints_setup.
+        Write KPOINTS under cal_loc according to kpoints_setup.
+    
+        kpoints_setup could be any dictionary containing at least the key-value pairs:
+            1. pbc_type_of_xyz: a bool list of length 3 indicating if the Periodic Boundary Condition holds along the x-, y- and z-axis
+            2. NL: a number -- the product of the subdivision along k_i and the lattice constant along the i-th axis. It should be the same or similiar for all PBC axis(axes).
+            3. kmesh_type: "Monkhorst-Pack" or "Gamma"
+            4. subdivisions: a integer list of length 3 indicating the subdivision along the k_x, k_y and k_z dirction.
+            The above information must be provided
         Two optional keys:
             1. comment: if not provided, it is set to "a*n_kx, b*n_ky and c*n_kz are close to NL"
             2. shift: if not provided, it is set to [0, 0, 0]
+        has a format of the output dictionary of method get_kpoints_setup.
         """
         
         with open(os.path.join(cal_loc, filename), "w") as kpoints:
