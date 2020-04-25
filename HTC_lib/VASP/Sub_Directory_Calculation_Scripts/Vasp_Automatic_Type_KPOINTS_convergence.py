@@ -14,16 +14,17 @@ from HTC_lib.VASP.KPOINTS.VASP_Automatic_K_Mesh import VaspAutomaticKMesh
 from pymatgen import Structure
 
 
-# In[11]:
+# In[92]:
 
 
 __doc__ = """
     What this script does:
         It runs a series of calculations with different KPOINTSs of the VASP automatic type and determines the KPOINTS w.r.t. which the total energy is converged.
         Note that the total enerngy convergence is essentially w.r.t. the number of k-points in IRBZ (denoted as Nk_IRBZ), Rather Than NL.
+        Note that it makes no sense to test the total energy convergence w.r.t. KPOINTS for 0D systems.
         
     The command line to call this script looks like below:
-    >>>python Vasp_Automatic_Type_KPOINTS_convergence [--NL_start:integer] [--NL_end:integer] [--dN:integer] [--convergence:AB] [--no_of_consecutive_convergences:integer] [--which:integer] [--max_vacuum_thickness:A_B_C] [--kmesh_type:Gamma|Monkhorst-Pack|Auto] [--shift:A_B_C] [--symprec_latt_const:float] [--symprec_angle:float] [--max_no_of_points:integer] [--help]
+    >>>python Vasp_Automatic_Type_KPOINTS_convergence.py [--NL_start:integer] [--NL_end:integer] [--dN:A|A_B_C|any_A] [--convergence:AB] [--no_of_consecutive_convergences:integer] [--which:integer] --max_vacuum_thickness:A_B_C [--kmesh_type:Gamma|Monkhorst-Pack|Auto] [--shift:A_B_C] [--symprec_latt_const:float] [--symprec_angle:float] [--max_no_of_points:integer] [--help]
     
     Arguments in a pair of brackets are optional
     * --NL_start (integer): the starting NL. N in "NL" stands for the subdivision of the k-mesh in an axis; L in "NL" stands for the lattice constant.
@@ -32,8 +33,13 @@ __doc__ = """
                     Default: 10
     * --NL_end (integer): the ending NL. 
                     Default: 100
-    * --dN (integer >=1 ): the increment of N for all PBC axes in the KPOINTS testing. 
-                    Default: 2
+    * --dN : the smallest increment of N for the PBC axis in the KPOINTS testing. 
+            Three formats are supported:
+                1. --dN:A, where A is an integer >=1. The increment along all PBC axes should be larger than or equal to A.
+                2. --dN:A_B_C, where A, B and C are integers >=1. The increment along the PBC x-, y- and z-axis should be >= A, B and C, respectively.
+                3. --dN:any_A, where A is an integer >=1. The increment along AT LEAST one PBC axis is >= A.
+            It doesn't make sence to test the total energy convergence w.r.t. KPIONTS for 0D systems.
+            Default: --dN:2
     * --convergence: The total energy convergence. It has a form --convergence=AB, where A is the convergence criterion and B is the
                     unit which could be eV/atom, meV/atom, eV or meV.
                     Note that we sort these set of calculations in an ascending order of the number k-points in the IRBZ (denoted as Nk_IRBZ).
@@ -51,7 +57,8 @@ __doc__ = """
                             The subdivision for the non-PBC axis will be set to 1.
                             This allows us to handle 0D, 1D, 2D and 3D materials simultaneously.
                             The unit is Angstrom
-                    Default: 1000_1000_1000    <-- bulk materials
+                            If you are sure PBC holds along all axes, set A, B, C to a giant number, e.g. 1000_1000_1000
+                    Default: No default. 
     * --kmesh_type: The automatic k-mesh type. It could be one of "Gamma", "Monkhorst-Pack" or "Auto". Only the first letter matters. Case-insensitive
             If it is set to "Auto", "Gamma" will be chosen if any of the calculated subdivisions along the pbc axes is odd; Otherwise, "Monkhorst-Pack"
             In the following cases, --kmesh_type will be internally set to "Gamma" regardless of the input value:
@@ -88,7 +95,7 @@ __doc__ = """
         """
 
 
-# In[8]:
+# In[91]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -112,23 +119,40 @@ def read_and_set_default_arguments(argv_list):
         
     
         try:
-            argv_dict["NL_start"] = int(raw_argv_dict.get("--NL_start", 10))
+            argv_dict["NL_start"] = int(raw_argv_dict.get("--nl_start", 10))
         except:
             print(__doc__)
             raise Exception("The value passed to --NL_start should be an integer. See more in the above document")
         
         try:
-            argv_dict["NL_end"] = int(raw_argv_dict.get("--NL_end", 60))
+            argv_dict["NL_end"] = int(raw_argv_dict.get("--nl_end", 60))
         except:
             print(__doc__)
             raise Exception("The value passed to --NL_end should be an integer. See more in the above document")
         
         try:
-            argv_dict["dN"] = int(raw_argv_dict.get("--dN", 2))
-            assert argv_dict["dN"] >= 1
+            argv = raw_argv_dict.get("--dn", "2")
+            items = re.findall("[0-9]+", argv)
+            if len(items) == 1:
+                assert int(items[0]) > 0
+                if argv == items[0]:
+                    argv = [int(argv)] * 3
+                elif argv.lower() == ("any_" + items[0]):
+                    argv = {"any": int(items[0])}
+                else:
+                    assert 1 == 2
+            elif len(items) == 3:
+                assert argv == "_".join(items)
+                argv = [int(item) for item in items]
+                assert False not in [item >= 0 for item in argv]
+                assert True in [item > 0 for item in argv]
+            else:
+                assert 1 == 2
+            
+            argv_dict["dN"] = argv
         except:
             print(__doc__)
-            raise Exception("The value passed to --dN should be an integer >= 1. See more in the above document")
+            raise Exception("Fail to parse --dN. See the above document to ensure it is set properly")
             
         try:
             argv_dict["max_no_of_points"] = int(raw_argv_dict.get("--max_no_of_points", 10))
@@ -166,11 +190,11 @@ def read_and_set_default_arguments(argv_list):
             raise Exception("Fail to parse --which or its value is invalid. See the above document to ensure it is set properly.")
         
         try:
-            argv_dict["max_vacuum_thickness"] = raw_argv_dict.get("--max_vacuum_thickness", "1000_1000_1000")
+            argv_dict["max_vacuum_thickness"] = raw_argv_dict["--max_vacuum_thickness"]
             argv_dict["max_vacuum_thickness"] = [int(thickness) for thickness in argv_dict["max_vacuum_thickness"].split("_")[:3]]
         except:
             print(__doc__)
-            raise Exception("Fail to parse the value passed to --max_vacuum_thickness. See the above document to ensure that it is set properly.")
+            raise Exception("You must set --max_vacuum_thickness. See the above document to ensure that it is set properly.")
             
         
         kmesh_type = raw_argv_dict.get("--kmesh_type", "Auto").lower()
@@ -186,7 +210,7 @@ def read_and_set_default_arguments(argv_list):
         argv_dict["kmesh_type"] = kmesh_type
         
         try:
-            argv_dict["shift"] = [float(st) for st in raw_argv_dict.get("--shift", "0_0_0").split("_")[:3]]
+            argv_dict["shift"] = [int(st) if st=="0" else float(st) for st in raw_argv_dict.get("--shift", "0_0_0").split("_")[:3]]
         except:
             print(__doc__)
             raise Exception("Fail to parse --shift. See the above document to ensure that it is set properly.")
@@ -218,16 +242,35 @@ def read_and_set_default_arguments(argv_list):
         optimal_NL = list(kpoints_setup["optimal_NL"].keys())[0]
         pbc_subdivision = VaspAutomaticKMesh.get_pbc_sublist(kpoints_setup["subdivisions"], kpoints_setup["pbc_type_of_xyz"])
         is_NL_unique = False
-        if pbc_subdivision_list == []:
+        if NL_list == []:
             is_NL_unique = True
-        elif False not in [dN < (pbc_div_1 - pbc_div_0) for pbc_div_0, pbc_div_1 in zip(pbc_subdivision_0, pbc_subdivision)]:
-            is_NL_unique = True
-        
+            if isinstance(argv_dict["dN"], list):
+                pbc_dN_list = VaspAutomaticKMesh.get_pbc_sublist(argv_dict["dN"], kpoints_setup["pbc_type_of_xyz"])
+        elif isinstance(argv_dict["dN"], list):
+            if False not in [dN <= (pbc_div_1 - pbc_div_0) for dN, pbc_div_0, pbc_div_1 in zip(pbc_dN_list, pbc_subdivision_0, pbc_subdivision)]:
+                is_NL_unique = True
+        elif isinstance(argv_dict["dN"], dict):
+            if True in [argv_dict["dN"]["any"] <= (pbc_div_1 - pbc_div_0) for pbc_div_0, pbc_div_1 in zip(pbc_subdivision_0, pbc_subdivision)]:
+                is_NL_unique = True
+          
+        #For test only
+        if False and NL_list == [] and is_NL_unique:
+            print(kpoints_setup["subdivisions"], NL, optimal_NL, kpoints_setup["equivalent_NL"])
+        elif False and is_NL_unique:
+            print(kpoints_setup["subdivisions"], NL, optimal_NL, kpoints_setup["equivalent_NL"], end=" ")
+            if isinstance(argv_dict["dN"], list):
+                print([dN <= (pbc_div_1 - pbc_div_0) for dN, pbc_div_0, pbc_div_1 in zip(pbc_dN_list, pbc_subdivision_0, pbc_subdivision)])
+            else:
+                print([argv_dict["dN"]["any"] <= (pbc_div_1 - pbc_div_0) for pbc_div_0, pbc_div_1 in zip(pbc_subdivision_0, pbc_subdivision)])
+                
+            
+        NL = max(kpoints_setup["equivalent_NL"]) + 1
         if is_NL_unique:
             pbc_subdivision_0 = pbc_subdivision
+            kpoints_setup["NL"] = optimal_NL
             kpoints_setup_list.append(kpoints_setup)
             NL_list.append(optimal_NL)
-        NL = max(kpoints_setup["equivalent_NL"]) + 1
+        
 
     argv_dict["NL_list"] = NL_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]
     argv_dict["kpoints_setup_list"] = kpoints_setup_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]

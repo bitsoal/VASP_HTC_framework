@@ -95,7 +95,7 @@ def read_and_set_default_arguments(argv_list):
         
         argv_dict["TS_convergence_unit"] = "eV"
         try:
-            argv_dict["TS_convergence"] = float(raw_argv_dict.get("--TS_convergence", 1)) / 1000. * no_of_atoms # convert meV/atom to eV
+            argv_dict["TS_convergence"] = float(raw_argv_dict.get("--ts_convergence", 1)) / 1000. * no_of_atoms # convert meV/atom to eV
         except:
             print(__doc__)
             raise Exception("The TS convergence criterion via '--TS_convergence' in the command line")

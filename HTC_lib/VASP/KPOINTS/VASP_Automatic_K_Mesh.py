@@ -282,8 +282,8 @@ class VaspAutomaticKMesh():
             kpoints.write("{}\n".format(kpoints_setup.get("comment", comment)))
             kpoints.write("0\n")
             kpoints.write("{}\n".format(kpoints_setup["kmesh_type"]))
-            kpoints.write("{}\t{}\t{}\n".format(*kpoints_setup["subdivisions"]))
-            kpoints.write("{}\t{}\t{}\n".format(*kpoints_setup.get("shift", [0, 0, 0])))
+            kpoints.write("{}  {}  {}\n".format(*kpoints_setup["subdivisions"]))
+            kpoints.write("{}  {}  {}\n".format(*kpoints_setup.get("shift", [0, 0, 0])))
             
     @classmethod
     def read_from_KPOINTS_and_POSCAR(cls, cal_loc, max_vacuum_thickness, KPOINTS_filename="KPOINTS", POSCAR_filename="POSCAR"):
