@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 import os, sys, time, pprint
 
-HTC_lib_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if HTC_lib_path not in sys.path:
-    sys.path.append(HTC_lib_path)
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+assert os.path.isdir(HTC_package_path), "Cannot find this VASP_HTC package under {}".format(HTC_package_path)
+if HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
 
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str

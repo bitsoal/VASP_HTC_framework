@@ -5,9 +5,9 @@
 
 
 import os, sys, shutil
-HTC_lib_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if HTC_lib_path not in sys.path:
-    sys.path.append(HTC_lib_path)
+HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
+if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+    sys.path.append(HTC_package_path)
     
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, find_next_name, construct_name
 
