@@ -10,7 +10,7 @@ Package requirements: [pymatgen](http://pymatgen.org/index.html)
 `upgrade_to_python_3` Branch: we are working on upgrading to python3
 
 #### Setup and Execution:
-1. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to setup this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just copy this file under the folder where the calculations are going to be run. Let's denote the folder as `HTC_root_dir`
+1. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to setup this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just copy this file to the folder where the calculations are going to be run. Let's denote the folder as `HTC_root_dir`
 2. Write up a setup file named `HTC_calculation_setup_file` under `HTC_root_dir`. See below for the composition of `HTC_calculation_setup_file`
 3. Under `HTC_root_dir`, execute `python htc_main.py >htc_out 2>&1&` OR `nohup python htc_main.py >htc_out 2>&1 &` to start this HTC program. OR you can put `python htc_main.py >htc_out 2>&1` in a batch script and submit it to the batch scheduler. 
 
