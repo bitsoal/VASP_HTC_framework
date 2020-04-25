@@ -9,10 +9,10 @@ Package requirements: [pymatgen](http://pymatgen.org/index.html)
 `Mater` Branch: stable and work well on python2.7  
 `upgrade_to_python_3` Branch: we are working on upgrading to python3
 
-#### How to run:
-1. specify `HTC_lib_path` at the beginning of htc_main.py, where `HTC_lib_path` is the absolute path to this VASP HTC package.
-2. Write up a setup file named `HTC_calculation_setup_file`. See below for the composition of `HTC_calculation_setup_file`
-3. In the directory containing `HTC_calculation_setup_file`, execute `python htc_main.py` OR `nohup python htc_main.py > log.txt 2>&1 &` to start this HTC program.
+#### Setup and Execution:
+1. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to setup this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just copy this file under the folder where the calculations are going to be run. Let's denote the folder as `HTC_root_dir`
+2. Write up a setup file named `HTC_calculation_setup_file` under `HTC_root_dir`. See below for the composition of `HTC_calculation_setup_file`
+3. Under `HTC_root_dir`, execute `python htc_main.py >htc_out 2>&1&` OR `nohup python htc_main.py >htc_out 2>&1 &` to start this HTC program. OR you can put `python htc_main.py >htc_out 2>&1` in a batch script and submit it to the batch scheduler. 
 
 </br>
 
@@ -122,7 +122,8 @@ The directory structure of a HTC is illustrated in the figure below.
 - **`${HTC_CWD}`**: The absolute path to the folder under which `htc_main.py` is  
 Any file in `HTC_calculation_setup_file` can be specified by its absolute path or the relative path to `${HTC_CWD}`  
 e.g. Suppose the absolute path ot `htc_main.py` is `/home/user0/htc_cal/htc_main.py` and we need to refer to a file named `file_1` under `/home/user0/htc_cal/folder1/`.  
-In this case, `${HTC_CWD}=/home/user0/htc_cal`. `file_1` can be specified using either `/home/user0/htc_cal/folder1/file_1` or `${HTC_CWD}/folder1/file_1`
+In this case, `${HTC_CWD}=/home/user0/htc_cal`. `file_1` can be specified using either `/home/user0/htc_cal/folder1/file_1` or `${HTC_CWD}/folder1/file_1`  
+***We strongly suggest you to use `${HTC_CWD}` to refer to any files that are needed in the calculations. This will make it easy to move the calculations from one place to another with little trouble in modifying the paths to those files.***
 
 -------------------------------------
 
