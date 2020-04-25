@@ -67,6 +67,7 @@ if __name__ == "__main__":
         os.chdir(main_dir)    
         with open("htc_job_status.dat", "w") as f:
                 f.write("\n{}:".format(get_time_str()))
+                
                 for status, folder_list in cal_status.items():
                     if status == "done_folder_list":
                         continue
@@ -92,6 +93,9 @@ if __name__ == "__main__":
         
         for i in range(60):
             if os.path.isfile(os.path.join(main_dir, "__stop__")):
+                break
+            elif os.path.isfile(os.path.join(main_dir, "__update_now__")):
+                os.remove(os.path.join(main_dir, "__update_now__"))
                 break
             else:
                 time.sleep(10)

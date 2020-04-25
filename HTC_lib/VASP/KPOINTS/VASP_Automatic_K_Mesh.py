@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 import os, sys, re, math
@@ -14,7 +14,7 @@ from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 from pymatgen import Structure
 
 
-# In[135]:
+# In[11]:
 
 
 class VaspAutomaticKMesh():
@@ -23,8 +23,8 @@ class VaspAutomaticKMesh():
                  symprec_latt_const = 0.1, symprec_angle = 1, *argvs, **kwargvs):
         """
         cal_loc (str): the absolute or relative path to the folder under which  POSCAR is read, and KPOINTS is read or written.
-        NL (int or float): the product of the real space lattice constant (L) and the subdivision (N). NL should be the same or very close along the directions
-            along which the periodic boundary condition (PBC) holds. This ensures that the k-points in the BZ is equally spaced.
+        NL (int or float): the product of the real space lattice constant (L) and the subdivision (N). NL should be the same or very close along the directions 
+                            along which the periodic boundary condition (PBC) holds. This ensures that the k-points in the BZ is equally spaced.
         kmesh_type: either "Monkhorst-Pack", "Gamma" or "Auto"
                     If kmesh_type = "Auto", "Gamma" will be chosen if any of the calculated subdivisions along the pbc axes is odd; Otherwise, "Monkhorst-Pack"
                     In the following cases, kmesh_type will be internally set to "Gamma" regardless of the input value:
@@ -343,6 +343,51 @@ class VaspAutomaticKMesh():
                                                                          pbc_type_of_xyz=pbc_type_of_xyz)
         return kpoints_setup
             
+
+
+# In[21]:
+
+
+if __name__ == "__main__":
+    
+    if "-write" in [argv.lower() for argv in sys.argv]:
+        raw_argv_dict = {}
+        for argv in sys.argv:
+            if argv.startswith("--"):
+                key, value = argv.split(":")[:2]
+                raw_argv_dict[key.strip("--").lower()] = value
+        
+        argv_dict = {}
+        
+        argv_dict["cal_loc"] = raw_argv_dict.get("cal_loc", ".")
+        assert os.path.isdir(argv_dict["cal_loc"]), "{} is not a valid directory".format(argv_dict["cal_loc"])
+        
+        try:
+            argv_dict["NL"] = int(raw_argv_dict["nl"])
+        except:
+            raise Exception("You must set --NL to determine the subdivisions along the k_x, k_y and k_z.")
+        
+        try:
+            argv_dict["max_vacuum_thickness"] = [float(thickness) for thickness in raw_argv_dict["max_vacuum_thickness"].split("_")[:3]]
+        except:
+            raise Exception("You must set --max_vacuum_thickness to tell if the periodic boundary condition holds along x-, y- and z-axis. Format: A_B_C, e.g. 5_5_5")
+            
+        argv_dict["symprec_latt_const"] = float(raw_argv_dict.get("symprec_latt_const", 0.1))
+        assert argv_dict["symprec_latt_const"] >=0 , "The value passed to --symprec_latt_const should be a non-negative number in Angstrom. Default: 0.1"
+        
+        argv_dict["symprec_angle"] = float(raw_argv_dict.get("symprec_angle", 1))
+        assert argv_dict["symprec_angle"] >= 0, "The value passed to --symprec_angle should be a non-negative number in degree. Default: 1"
+        
+        kmesher = VaspAutomaticKMesh(**argv_dict)
+        VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kmesher.get_kpoints_setup(), cal_loc=argv_dict["cal_loc"])
+    else:
+        print("If you want to write a VASP k-mesh of the automatic type, run this script like below on the command line\n")
+        print("python VASP_Automatic_K_Mesh.py -write --key_1:value_1 --key_2:value_2 ...")
+        print("\nthe (key, value) pair connected to each other by a semicolon will be parsed and used to create and write KPOINTS.")
+        print("\n***Below are the allowed (key, value) pairs, among which you must set NL and max_vacuum_thickness.")
+        print("***--shift and --str_file are disabled.")
+        print(VaspAutomaticKMesh.__init__.__doc__)
+        
 
 
 # poscar_path = "test/twoD_rectangular/rectangular_NiNC_POSCAR"

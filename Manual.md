@@ -664,9 +664,11 @@ When the workflow is running, some signal file will be present in every firework
 - If you want the program to do the job submission:
 	- All you need to do is to create the signal file `__ready__`. In this case, the program will automatically remove OUTCAR, OSZICAR, vasp.out, queue stdout & stderr files before submitting this job.  
 
+### Update the calculation status  
+By default, this program scan/update the calculations every 10 mins. If you want to ask the program to scan/update as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file in 10 s. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file** 
 
 ### How to stop the program.
-You can stop this program by creating a file named `__stop__` under the same directory where `python htc_main.py` or `nohup python htc_main.py 2>1&` was executed to start this program.
+You can stop this program by creating a file named `__stop__` under `${HTC_CWD}` where `python htc_main.py` or `nohup python htc_main.py 2>1&` was executed to start this program.
 
 
 
