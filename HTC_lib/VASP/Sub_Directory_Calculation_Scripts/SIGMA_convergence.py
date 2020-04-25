@@ -20,12 +20,15 @@ __doc__ = """
         It runs a series of calculations with different SIGMA and determines the nth largest SIGMA w.r.t which the term T*S in OUTCAR is converged.
         
     The command line to call this script looks like below:
-    >>>python SIGMA_convergence.py [--start:float] --end:float --step:float [--TS_convergence:float] [--which:integer] [--incar_template:filename] [--help]
+    >>>python SIGMA_convergence.py [--start:float] [--end:float] [--step:float] [--max_no_of_points:integer] [--TS_convergence:float] [--which:integer] [--incar_template:filename] [--help]
     
     Arguments in a pair of brackets are optional
     * --start (float): the starting SIGMA. Default: 0.01
     * --end (float): the ending SIGMA. Default: 1
     * --step (float): the increment of SIGMA in the SIGMA testing. Default: 0.02
+    * --max_no_of_points (integer>=2): the maximum number of testing points. If the number of testing points determined by --start, --end and --step is
+                                larger than the value defined here, the first --max_no_of_points will be tested only.
+                                Default: 10
     * --TS_convergence (float in meV/atom): For ISMEAR>=0 (the Gaussian or Methfessel-Paxton smearing), SIGMA should be chosen in such a way that
             the term "entropy T*S" in OUTCAR is small (i.e. < 1-2meV/atom). --TS_convergence specifies this criterion of T*S in meV/atom.
             Default: 1
@@ -47,7 +50,7 @@ __doc__ = """
         """
 
 
-# In[26]:
+# In[2]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -88,6 +91,13 @@ def read_and_set_default_arguments(argv_list):
             print(__doc__)
             raise Exception("The value passed to --step should be a floating point number. default: 0.02")
             
+        try:
+            argv_dict["max_no_of_points"] = int(raw_argv_dict.get("--max_no_of_points", 10))
+            assert argv_dict["max_no_of_points"] >= 2
+        except:
+            print(__doc__)
+            raise Exception("The value passed to --max_no_of_points should be a positive integer >= 2. default: 10")
+            
             
         argv_dict["incar_template"] = raw_argv_dict.get("--incar_template", "")
         if argv_dict["incar_template"]:
@@ -114,7 +124,7 @@ def read_and_set_default_arguments(argv_list):
     while sigma <= end:
         sigma_list.append(sigma)
         sigma += step
-    argv_dict["sigma_list"] = sigma_list
+    argv_dict["sigma_list"] = sigma_list[:min([len(sigma_list), argv_dict["max_no_of_points"]])]
     
     return argv_dict             
             
@@ -225,15 +235,17 @@ def find_converged_sigma(argv_dict):
 
 
 if __name__ == "__main__":
-    #print(__doc__)
     
-    argv_dict = read_and_set_default_arguments(sys.argv)
-    prepare_cal_files(argv_dict)
-    if are_all_sub_dir_cal_finished(argv_dict):
-        converged_sigma = find_converged_sigma(argv_dict)
-        if converged_sigma == 0:
-            os.rename("__sub_dir_cal__", "__manual__")
-        else:
-            shutil.copy(os.path.join("sigma_"+str(converged_sigma), "INCAR"), "INCAR.optimal")
-            os.rename("__sub_dir_cal__", "__done__")
+    if "--help" in [argv.lower() for argv in sys.argv]:
+        print(__doc__)
+    else:
+        argv_dict = read_and_set_default_arguments(sys.argv)
+        prepare_cal_files(argv_dict)
+        if are_all_sub_dir_cal_finished(argv_dict):
+            converged_sigma = find_converged_sigma(argv_dict)
+            if converged_sigma == 0:
+                os.rename("__sub_dir_cal__", "__manual__")
+            else:
+                shutil.copy(os.path.join("sigma_"+str(converged_sigma), "INCAR"), "INCAR.optimal")
+                os.rename("__sub_dir_cal__", "__done__")
 
