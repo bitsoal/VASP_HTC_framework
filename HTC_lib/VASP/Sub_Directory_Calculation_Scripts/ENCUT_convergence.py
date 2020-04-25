@@ -20,11 +20,14 @@ __doc__ = """
         It runs a series of calculations with different ENCUT and determines the ENCUT w.r.t which the total energy is reached.
         
     The command line to call this script looks like below:
-    >>>python ENCUT_convergence.py [--start:integer] --end:integer --step:integer --convergence:AB [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--help]
+    >>>python ENCUT_convergence.py [--start:integer] --end:integer [--step:integer] [--max_no_of_points:integer] --convergence:AB [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--help]
     Arguments in a pair of brackets are optional
     * --start (integer): the starting ENCUT. Default: max(ENMAX) in POTCAR
     * --end (integer): the ending ENCUT. No default value
     * --step (integer): the increment of ENCUT in the ENCUT testing. Default: 50
+    * --max_no_of_points (integer >=2): the maximum number of testing points. If the number of testing points determined by --start, --end and --step is largert than the 
+                                    value defined here, the first --max_no_of_points testing points will be tested only.
+                                    Default: 10
     * --convergence: The total energy convergence. It has a form --convergence=AB, where A is the convergence criterion and B is the
                     unit which could be eV/atom, meV/atom, eV or meV. No default value.
     * --no_of_consecutive_convergences (integer>=2): If the number of consecutive convergences of the total energy w.r.t ENCUT is larger than
@@ -51,7 +54,7 @@ __doc__ = """
         """
 
 
-# In[4]:
+# In[2]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -100,7 +103,14 @@ def read_and_set_default_arguments(argv_list):
             print(__doc__)
             raise Exception("The value passed to --step should be an integer")
             
-            
+        try:
+            argv_dict["max_no_of_points"] = int(raw_argv_dict.get("--max_no_of_points", 10))
+            assert argv_dict["max_no_of_points"] >= 2
+        except:
+            print(__doc__)
+            raise Exception("The value passed to --max_no_of_points should be a positive integer >= 2. default: 10")
+        
+        
         argv_dict["incar_template"] = raw_argv_dict.get("--incar_template", "")
         if argv_dict["incar_template"]:
             assert os.path.isfile(argv_dict["incar_template"]), "The file specified via --incar_template doesn't exist"
@@ -146,7 +156,7 @@ def read_and_set_default_arguments(argv_list):
     while encut <= end:
         encut_list.append(encut)
         encut += step
-    argv_dict["encut_list"] = encut_list
+    argv_dict["encut_list"] = encut_list[:min([len(encut_list), argv_dict["max_no_of_points"]])]
     
     return argv_dict             
             
@@ -265,15 +275,16 @@ def find_converged_encut(argv_dict):
 
 
 if __name__ == "__main__":
-    #print(__doc__)
-    
-    argv_dict = read_and_set_default_arguments(sys.argv)
-    prepare_cal_files(argv_dict)
-    if are_all_sub_dir_cal_finished(argv_dict):
-        converged_ENCUT = find_converged_encut(argv_dict)
-        if converged_ENCUT == 0:
-            os.rename("__sub_dir_cal__", "__manual__")
-        else:
-            shutil.copy(os.path.join("encut_"+str(converged_ENCUT), "INCAR"), "INCAR.optimal")
-            os.rename("__sub_dir_cal__", "__done__")
+    if "--help" in [argv.lower() for argv in sys.argv]:
+        print(__doc__)
+    else:
+        argv_dict = read_and_set_default_arguments(sys.argv)
+        prepare_cal_files(argv_dict)
+        if are_all_sub_dir_cal_finished(argv_dict):
+            converged_ENCUT = find_converged_encut(argv_dict)
+            if converged_ENCUT == 0:
+                os.rename("__sub_dir_cal__", "__manual__")
+            else:
+                shutil.copy(os.path.join("encut_"+str(converged_ENCUT), "INCAR"), "INCAR.optimal")
+                os.rename("__sub_dir_cal__", "__done__")
 
