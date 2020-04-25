@@ -347,7 +347,7 @@ def find_converged_NL(argv_dict):
     Nk_IRBZ_dict = {}
     
     for NL in argv_dict["NL_list"]:
-        sub_dir_name = "NL_" + str(encut)
+        sub_dir_name = "NL_" + str(NL)
             
         with open(os.path.join(sub_dir_name, "IBZKPT"), "r") as ibzkpt:
             next(ibzkpt)
@@ -409,6 +409,6 @@ if __name__ == "__main__":
             if converged_NL == 0:
                 os.rename("__sub_dir_cal__", "__manual__")
             else:
-                shutil.copy(os.path.join("NLt_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
+                shutil.copy(os.path.join("NL_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
                 os.rename("__sub_dir_cal__", "__done__")
 
