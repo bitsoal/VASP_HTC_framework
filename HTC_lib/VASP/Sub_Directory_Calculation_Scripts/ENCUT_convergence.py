@@ -293,7 +293,7 @@ def find_converged_encut(argv_dict):
                 
         with open("ENCUT_VS_E0_Summary.dat", "a") as summary:
             for start_ind in range(len(argv_dict["encut_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
-                summary.write("\nENCUT\tE0\deviation from average\n")
+                summary.write("\nENCUT\tE0\tdeviation from average\n")
                 for d_ind in range(argv_dict["no_of_consecutive_convergences"]):
                     summary.write("{}\t{}\t{}\n".format(argv_dict["encut_list"][start_ind + d_ind], energy_list[start_ind + d_ind], 
                                                     energy_list[start_ind + d_ind]-average_energy_list[start_ind]))
