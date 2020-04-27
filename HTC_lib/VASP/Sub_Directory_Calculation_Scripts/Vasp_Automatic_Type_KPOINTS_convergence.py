@@ -14,7 +14,7 @@ from HTC_lib.VASP.KPOINTS.VASP_Automatic_K_Mesh import VaspAutomaticKMesh
 from pymatgen import Structure
 
 
-# In[92]:
+# In[1]:
 
 
 __doc__ = """
@@ -24,7 +24,7 @@ __doc__ = """
         Note that it makes no sense to test the total energy convergence w.r.t. KPOINTS for 0D systems.
         
     The command line to call this script looks like below:
-    >>>python Vasp_Automatic_Type_KPOINTS_convergence.py [--NL_start:integer] [--NL_end:integer] [--dN:A|A_B_C|any_A] [--convergence:AB] [--no_of_consecutive_convergences:integer] [--which:integer] --max_vacuum_thickness:A_B_C [--kmesh_type:Gamma|Monkhorst-Pack|Auto] [--shift:A_B_C] [--symprec_latt_const:float] [--symprec_angle:float] [--max_no_of_points:integer] [--help]
+    >>>python Vasp_Automatic_Type_KPOINTS_convergence.py [--NL_start:integer] [--NL_end:integer] [--dN:A|A_B_C|any_A] [--convergence:AB] [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] --max_vacuum_thickness:A_B_C [--kmesh_type:Gamma|Monkhorst-Pack|Auto] [--shift:A_B_C] [--symprec_latt_const:float] [--symprec_angle:float] [--max_no_of_points:integer] [--help]
     
     Arguments in a pair of brackets are optional
     * --NL_start (integer): the starting NL. N in "NL" stands for the subdivision of the k-mesh in an axis; L in "NL" stands for the lattice constant.
@@ -45,9 +45,20 @@ __doc__ = """
                     Note that we sort these set of calculations in an ascending order of the number k-points in the IRBZ (denoted as Nk_IRBZ).
                     The total energy convergence is eseentially w.r.t. NK_IRBZ, NOT NL
                     Default: 1meV/atom
-    * --no_of_consecutive_convergences (integer >=2): The KPOINTS convergence is achieved only if the number of consecutive converged Nk_IRBZs is larger than or equal to
-                                                    the number defined by this argument. Otherwise, the testing fails
-                    Default: 3
+    * --convergence_type: Either chg or aver. The former means the change in the total energy w.r.t. Nk_IRBZ; The latter means the average total energy.
+                    Seee --no_of_consecutive_convergences below for the application of this paramter.
+                    Default: --convergence_type:aver
+                    
+    * --no_of_consecutive_convergences (integer>=2): Let's denote the number passed to --no_of_consecutive_convergences as NCC.
+                    1. --convergence_type:incr,
+                        If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (--convergence),
+                            the KPOINTS testing is successful;
+                        else: the testing fails.
+                    2. --convergence_type:aver,
+                        If there are NCC consecutive total energies and the maximum deviation from the average of the NCC total energies is smaller or equal to
+                            the convergence criterion (--convergence), the KPOINTS testing is successful.
+                        else: the testing fails.
+                    Default: 3 
     * --which (1-based integer index): choose Nk_IRBZ from the first ascending converged Nk_IRBZ list.
                                         The KPOINTS associated with the chosen converged Nk_IRBZ is considered as the converged/optimal one.
                     Default: 2
@@ -95,7 +106,7 @@ __doc__ = """
         """
 
 
-# In[91]:
+# In[2]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -175,6 +186,19 @@ def read_and_set_default_arguments(argv_list):
             print(__doc__)
             raise Exception("The energy convergence criterion should be set by '--convergence=AB', where A is a number and B should be ev, mev, ev/atom or mev/atom.\nSee more in the above document")
             
+        
+        if "--convergence_type" in raw_argv_dict.keys():
+            convergence_type = raw_argv_dict["[--convergence_type"].lower()
+            if convergence_type.startswith("chg"):
+                argv_dict["convergence_type"] = "chg"
+            elif convergence_type.startswith("aver"):
+                argv_dict["convergence_type"] = "aver"
+            else:
+                print(__doc__)
+                raise Exception("The value passed to --convergence_type should be either 'chg' or 'aver'. See the above document for more details.")
+        else:
+            argv_dict["convergence_type"] = "aver"
+        
         try:
             argv_dict["no_of_consecutive_convergences"] = int(raw_argv_dict.get("--no_of_consecutive_convergences", 3))
             assert argv_dict["no_of_consecutive_convergences"] >= 2
@@ -329,18 +353,21 @@ def are_all_sub_dir_cal_finished(argv_dict):
 def find_converged_NL(argv_dict):
     """ Find the converged Nk_IRBZ w.r.t. the total Energy E0 in OSZICAR.
     
-    We have calculated the total energy (E0 in OSZICAR) of a given system for a series of Nk_IRBZ(i).
-    Nk_IRBZ(i) are in an ascending order
-    Let's arrange these total energy, E0(i), in the same order of Nk_IRBZ(i).
-    Let's denote the parameter passed by --no_of_consecutive_convergences as NCC.
-    Let's denote the parameter passed by --which as WH
-    Calculate the energy difference: dE0(i) = abs(E0(i+1)-E0(i))
-    The covergence of E0 w.r.t Nk_IRBZ is reached only if there are at least NCC consecutive dE0(i) that meet the pre-defined convergence criterion.
-    Assuming dE0(n+i-1)=abs(E0(n+i)-E0(n+i-1)) i=1, 2,..., NCC are the first NCC consecutive satisfied dE, the Nk_IRBZ corresponding to E0(WH) is thought
-    of as the one w.r.t which the total energy is converged. Then find the converged NL associated with the converged Nk_IRBZ
+        Two different cases:
+        1. convergence_type:incr,
+            If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (convergence),
+                the KPOINTS testing is successful;
+            else: the testing fails.
+        2. convergence_type:aver,
+            If there are NCC consecutive total energies and the maximum deviation from the average of the NCC total energies is smaller or equal to
+                the convergence criterion (convergence), the KPOINTS testing is successful.
+            else: the testing fails.
+    
+    The paramter --which or which (1-based index) determines which Nk_IRBZ/KPOINTS is chosen as the optimal one among the NCC consecutively convgered Nk_IRBZs/KPOINTSs.
+    
         
     return:
-        if there are NCC consecutive dE0(i), return the NL/Nk_IRBZ conrresponding to E0(WH);
+        if the optimal Nk_IRBZ, return the associated NL.
         otherwise, return 0
     """
     
@@ -380,17 +407,43 @@ def find_converged_NL(argv_dict):
             summary.write("{}\t{}\t{}\t{}\n".format(nk_irbz, Nk_IRBZ_dict[nk_irbz]["NL"], 
                                                     Nk_IRBZ_dict[nk_irbz]["energy"], energy_diff_list[nk_irbz_ind]))
     energy_diff_list.pop()
-        
-    count = 0
-    for energy_diff_ind, energy_diff in enumerate(energy_diff_list):
-        if abs(energy_diff ) <= argv_dict["convergence"]:
-            count += 1
+    
+    if argv_dict["convergence_type"] == "aver":
+        compound_energy_list, average_energy_list, max_dev_list = [], [], []
+        if len(argv_dict["NL_list"]) < argv_dict["no_of_consecutive_convergences"]:
+            open("__no_enough_data_points_to_estimate_the_average_energy__", "w").close()
+            return 0
         else:
-            count = 0
+            for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
+                compound_energy_list.append([Nk_IRBZ_dict[sorted_Nk_IRBZ_list[start_ind + d_ind]]["energy"] for d_ind in range(argv_dict["no_of_consecutive_convergences"])])
+                average_energy_list.append(sum([compound_energy_list[-1]]) / argv_dict["no_of_consecutive_convergences"])
+                max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list[-1]]))
+                
+        with open("Nk_IRBZ_VS_E0_Summary.dat", "a") as summary:
+            for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
+                summary.write("\nNk_IRBZ\tNL\tE0\deviation from average\n")
+                for d_ind in range(argv_dict["no_of_consecutive_convergences"]):
+                    summary.write("{}\t{}\t{}\t{}\n".format(sorted_Nk_IRBZ_list[start_ind+d_ind], 
+                                                            Nk_IRBZ_dict[sorted_Nk_IRBZ_list[start_ind+d_ind]]["NL"], 
+                                                            compound_energy_list[start_ind][d_ind], 
+                                                            compound_energy_list[start_ind][d_ind] - max_dev_list[start_ind]))
+                summary.write("average: {}\nmax abs deviation: {}\n".format(average_energy_list[start_ind], max_dev_list[start_ind]))
+
+    if argv_dict["convergence_type"] == "chg":
+        count = 0
+        for energy_diff_ind, energy_diff in enumerate(energy_diff_list):
+            if abs(energy_diff ) <= argv_dict["convergence"]:
+                count += 1
+            else:
+                count = 0
             
-        if count == argv_dict["no_of_consecutive_convergences"]:
-            converged_nk_irbz = sorted_Nk_IRBZ_list[energy_diff_ind - argv_dict["no_of_consecutive_convergences"] + argv_dict["which"]]
-            return Nk_IRBZ_dict[converged_nk_irbz]["NL"]
+            if count == argv_dict["no_of_consecutive_convergences"]:
+                converged_nk_irbz = sorted_Nk_IRBZ_list[energy_diff_ind - argv_dict["no_of_consecutive_convergences"] + argv_dict["which"]]
+                return Nk_IRBZ_dict[converged_nk_irbz]["NL"]
+    else:
+        for ind, max_dev in enumerate(max_dev_list):
+            if max_dev <= argv_dict["convergence"]:
+                return Nk_IRBZ_dict[sorted_Nk_IRBZ_list[ind + argv_dict["which"] - 1]]["NL"]
         
     return 0  
 

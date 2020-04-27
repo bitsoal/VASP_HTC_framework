@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[69]:
+# In[4]:
 
 
 import os, sys, re, math, shutil, json
@@ -12,7 +12,7 @@ if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
 
-# In[3]:
+# In[2]:
 
 
 __doc__ = """
@@ -20,7 +20,7 @@ __doc__ = """
         It runs a series of calculations with different ENCUT and determines the ENCUT w.r.t which the total energy is reached.
         
     The command line to call this script looks like below:
-    >>>python ENCUT_convergence.py [--start:integer] --end:integer [--step:integer] [--max_no_of_points:integer] --convergence:AB [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--help]
+    >>>python ENCUT_convergence.py [--start:integer] --end:integer [--step:integer] [--max_no_of_points:integer] --convergence:AB [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--help]
     Arguments in a pair of brackets are optional
     * --start (integer): the starting ENCUT. Default: max(ENMAX) in POTCAR
     * --end (integer): the ending ENCUT. No default value
@@ -29,14 +29,22 @@ __doc__ = """
                                     value defined here, the first --max_no_of_points testing points will be tested only.
                                     Default: 10
     * --convergence: The total energy convergence. It has a form --convergence=AB, where A is the convergence criterion and B is the
-                    unit which could be eV/atom, meV/atom, eV or meV. No default value.
-    * --no_of_consecutive_convergences (integer>=2): If the number of consecutive convergences of the total energy w.r.t ENCUT is larger than
-                    --no_of_consecutive_convergences, the ENCUT testing is successful and you can choose ENCUT among those associated with
-                    the consecutively converged total energy using --which. Otherwise, the ENCUT testing fails.
-                    Default: 3
-    * --which (1-based integer index): choose which ENCUT among those associated with the consecutively converged total energy.
-                    Assume --no_of_consecutive_convergences = 3, --convergence=1meV and we find the first four consecutive ENCUTs for which
-                    abs(E0(n+i)-E0(n+i-1)) i=1, 2, 3 is smaller than 1meV. In this case --which=1|2|3|4 will chooses ENCUT(n|n+1|n+2|n+3).
+                    unit which could be eV/atom, meV/atom, eV or meV. 
+                    Default: no default value.
+    * --convergence_type: Either chg or aver. The former means the change in the total energy w.r.t. ENCUT; The latter means the average total energy.
+                    Seee --no_of_consecutive_convergences below for the application of this paramter.
+                    Default: --convergence_type:aver
+    * --no_of_consecutive_convergences (integer>=2): Let's denote the number passed to --no_of_consecutive_convergences as NCC.
+                    1. --convergence_type:incr,
+                        If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (--convergence),
+                            the ENCUT testing is successful;
+                        else: the testing fails.
+                    2. --convergence_type:aver,
+                        If there are NCC consecutive total energies and the maximum deviation from the average of the NCC total energies is smaller or equal to
+                            the convergence criterion (--convergence), the ENCUT testing is successful.
+                        else: the testing fails.
+                    Default: 3    
+    * --which (1-based integer index): choose ENCUT from those associated with the consecutively converged total energies.
                     Default: 2
     * --incar_template (str): When writing INCAR, sorting INCAR tags in the same order as in the file referred by --incar_template.
     * --help: Explain how to use this script and the input arguments.
@@ -54,7 +62,7 @@ __doc__ = """
         """
 
 
-# In[2]:
+# In[3]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -133,6 +141,18 @@ def read_and_set_default_arguments(argv_list):
         else:
             print(__doc__)
             raise Exception("The energy convergence criterion should be set by '--convergence=AB', where A is a number and B should be ev, mev, ev/atom or mev/atom")
+            
+        if "--convergence_type" in raw_argv_dict.keys():
+            convergence_type = raw_argv_dict["[--convergence_type"].lower()
+            if convergence_type.startswith("chg"):
+                argv_dict["convergence_type"] = "chg"
+            elif convergence_type.startswith("aver"):
+                argv_dict["convergence_type"] = "aver"
+            else:
+                print(__doc__)
+                raise Exception("The value passed to --convergence_type should be either 'chg' or 'aver'. See the above document for more details.")
+        else:
+            argv_dict["convergence_type"] = "aver"
             
         try:
             argv_dict["no_of_consecutive_convergences"] = int(raw_argv_dict.get("--no_of_consecutive_convergences", 3))
@@ -220,18 +240,20 @@ def are_all_sub_dir_cal_finished(argv_dict):
 def find_converged_encut(argv_dict):
     """ Find the converged ENCUT w.r.t. the total Energy E0 in OSZICAR.
     
-    We have calculated the total energy (E0 in OSZICAR) of a given system for a series of ENCUT(i).
-    ENCUT(i) are in an ascending order
-    Let's arrange these total energy, E0(i), in the same order of ENUCT(i).
-    Let's denote the parameter passed by --no_of_consecutive_convergences as NCC.
-    Let's denote the parameter passed by --which as WH
-    Calculate the energy difference: dE0(i) = abs(E0(i+1)-E0(i))
-    The covergence of E0 w.r.t ENCUT is reached only if there are at least NCC consecutive dE0(i) that meet the pre-defined convergence criterion.
-    Assuming dE0(n+i-1)=abs(E0(n+i)-E0(n+i-1)) i=1, 2,..., NCC are the first NCC consecutive satisfied dE, the ENCUT corresponding to E0(WH) is thought
-    of as the one w.r.t which the total energy is converged.
+    Two different cases:
+        1. convergence_type:incr,
+            If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (convergence),
+                the ENCUT testing is successful;
+            else: the testing fails.
+        2. convergence_type:aver,
+            If there are NCC consecutive total energies and the maximum deviation from the average of the NCC total energies is smaller or equal to
+                the convergence criterion (convergence), the ENCUT testing is successful.
+            else: the testing fails.
+    
+    The paramter --which or which (1-based index) determines which ENCUT is chosen as the optimal one among the NCC consecutively convgered ENCUTs.
         
     return:
-        if there are NCC consecutive dE0(i), return the ENCUT conrresponding to E0(WH);
+        if optimal ENCUT is found, return it;
         otherwise, return 0
     """
     
@@ -257,16 +279,41 @@ def find_converged_encut(argv_dict):
         for encut, energy, energy_diff in zip(argv_dict["encut_list"], energy_list, energy_diff_list):
             summary.write("{}\t{}\t{}\n".format(encut, energy, energy_diff))
         summary.write("{}\t{}\n".format(argv_dict["encut_list"][-1], energy_list[-1]))
-    
-    count = 0
-    for energy_diff_ind, energy_diff in enumerate(energy_diff_list):
-        if abs(energy_diff ) <= argv_dict["convergence"]:
-            count += 1
+        
+    if argv_dict["convergence_type"] == "aver":
+        compound_energy_list, average_energy_list, max_dev_list = [], [], []
+        if len(argv_dict["encut_list"]) < argv_dict["no_of_consecutive_convergences"]:
+            open("__no_enough_data_points_to_estimate_the_average_energy__", "w").close()
+            return 0
         else:
-            count = 0
+            for start_ind in range(len(argv_dict["encut_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
+                compound_energy_list.append([energy_list[start_ind + d_ind] for d_ind in range(argv_dict["no_of_consecutive_convergences"])])
+                average_energy_list.append(sum(compound_energy_list[-1]) / argv_dict["no_of_consecutive_convergences"])
+                max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list[-1]]))
+                
+        with open("ENCUT_VS_E0_Summary.dat", "a") as summary:
+            for start_ind in range(len(argv_dict["encut_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
+                summary.write("\nENCUT\tE0\deviation from average\n")
+                for d_ind in range(argv_dict["no_of_consecutive_convergences"]):
+                    summary.write("{}\t{}\t{}\n".format(argv_dict["encut_list"][start_ind + d_ind], energy_list[start_ind + d_ind], 
+                                                    energy_list[start_ind + d_ind]-average_energy_list[start_ind]))
+                summary.write("average: {}\nmax abs deviation: {}\n".format(average_energy_list[start_ind], max_dev_list[start_ind]))
+                    
+                
+    if argv_dict["convergence_type"] == "chg":
+        count = 0
+        for energy_diff_ind, energy_diff in enumerate(energy_diff_list):
+            if abs(energy_diff ) <= argv_dict["convergence"]:
+                count += 1
+            else:
+                count = 0
             
-        if count == argv_dict["no_of_consecutive_convergences"]:
-            return argv_dict["encut_list"][energy_diff_ind - argv_dict["no_of_consecutive_convergences"] + argv_dict["which"]]
+            if count == argv_dict["no_of_consecutive_convergences"]:
+                return argv_dict["encut_list"][energy_diff_ind - argv_dict["no_of_consecutive_convergences"] + argv_dict["which"]]
+    else:
+        for ind, max_dev in enumerate(max_dev_list):
+            if max_dev <= argv_dict["convergence"]:
+                return argv_dict["encut_list"][ind + argv_dict["which"] - 1]
         
     return 0  
 
