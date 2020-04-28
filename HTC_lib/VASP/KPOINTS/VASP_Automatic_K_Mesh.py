@@ -14,7 +14,7 @@ from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 from pymatgen import Structure
 
 
-# In[11]:
+# In[14]:
 
 
 class VaspAutomaticKMesh():
@@ -150,7 +150,9 @@ class VaspAutomaticKMesh():
         pbc_latt_constants = VaspAutomaticKMesh.get_pbc_sublist(latt_constants, pbc_type_of_xyz)
         
         pbc_NL = [division * latt_constant for division, latt_constant in zip(pbc_subdivisions, pbc_latt_constants)]
-        pbc_NL_floor, pbc_NL_ceil = math.floor(min(pbc_NL)), math.ceil(max(pbc_NL))+1
+        pbc_NL_ceil = math.ceil(max([NL + latt_ for NL, latt_ in zip(pbc_NL, pbc_latt_constants)]))
+        pbc_NL_floor = math.floor(min([NL - latt_ for NL, latt_ in zip(pbc_NL, pbc_latt_constants)]))
+        #pbc_NL_floor, pbc_NL_ceil = math.floor(min(pbc_NL)), math.ceil(max(pbc_NL))+1
         possible_NL_list = []
         NL_step = 1
         while possible_NL_list == [] and NL_step >= 0.1:
@@ -254,6 +256,7 @@ class VaspAutomaticKMesh():
         kpoints["equivalent_NL"] = VaspAutomaticKMesh.get_possible_NL(subdivisions=kpoints["subdivisions"], 
                                                                       latt_constants=self.structure_dict["lattice_constants"], 
                                                                       pbc_type_of_xyz=self.pbc_type_of_xyz)
+        assert self.NL in kpoints["equivalent_NL"], "Under {}\n\tNL={} is not in the equivalent NL list {}".format(os.getcwd(), NL, kpoints["equivalent_NL"])
         kpoints["optimal_NL"] = VaspAutomaticKMesh.optimize_NL(NL=self.NL, 
                                                                latt_constants=self.structure_dict["lattice_constants"], 
                                                                pbc_type_of_xyz=self.pbc_type_of_xyz)
