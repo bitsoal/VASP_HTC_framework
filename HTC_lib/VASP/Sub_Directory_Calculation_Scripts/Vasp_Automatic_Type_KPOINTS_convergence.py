@@ -308,8 +308,8 @@ def read_and_set_default_arguments(argv_list):
 
 def prepare_cal_files(argv_dict):
     
-    is_preparation_needed = True
     for kpoints_setup, NL in zip(argv_dict["kpoints_setup_list"], argv_dict["NL_list"]):
+        is_preparation_needed = True
         sub_dir_name = "NL_" + str(NL)
         if not os.path.isdir(sub_dir_name):
             os.mkdir(sub_dir_name)
@@ -416,7 +416,7 @@ def find_converged_NL(argv_dict):
         else:
             for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
                 compound_energy_list.append([Nk_IRBZ_dict[sorted_Nk_IRBZ_list[start_ind + d_ind]]["energy"] for d_ind in range(argv_dict["no_of_consecutive_convergences"])])
-                average_energy_list.append(sum([compound_energy_list[-1]]) / argv_dict["no_of_consecutive_convergences"])
+                average_energy_list.append(sum(compound_energy_list[-1]) / argv_dict["no_of_consecutive_convergences"])
                 max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list[-1]]))
                 
         with open("Nk_IRBZ_VS_E0_Summary.dat", "a") as summary:
