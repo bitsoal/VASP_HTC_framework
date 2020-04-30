@@ -504,7 +504,10 @@ class Vasp_out_pricel(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         if ISYM != 0 or SYMPREC > 1.1e-9:
             super(Vasp_out_pricel, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1e-8, "ISYM": 0}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1e-8, "ISYM": 0}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1e-8, "ISYM": 0}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_pricel, self).write_correction_log(new_incar_tags={"SYMPREC": 1e-8, "ISYM": 0})
             return True
         else:
@@ -579,7 +582,10 @@ class Vasp_out_too_few_bands(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             NBANDS_ += 1
         
         super(Vasp_out_too_few_bands, self).backup()
-        modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"NBANDS": NBANDS_}, rename_old_incar=False)
+        #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"NBANDS": NBANDS_}, rename_old_incar=False)
+        modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"NBANDS": NBANDS_}, rename_old_incar=False, 
+                          incar_template=self.workflow[0]["incar_template_list"], 
+                          valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
         super(Vasp_out_too_few_bands, self).write_correction_log(new_incar_tags={"NBANDS": NBANDS_})
         return True
 
@@ -641,7 +647,10 @@ class Vasp_out_too_few_kpoints(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         if ISMEAR == -5:     
             super(Vasp_out_too_few_kpoints, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISMEAR": 0, "SIGMA":0.05}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISMEAR": 0, "SIGMA":0.05}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISMEAR": 0, "SIGMA":0.05}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_too_few_kpoints, self).write_correction_log(new_incar_tags={"ISMEAR": 0, "SIGMA":0.05})
             return True
         else:
@@ -709,7 +718,10 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         if SYMPREC > 1e-7:
             super(Vasp_out_posmap, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC/10.}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC/10.}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC/10.}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_posmap, self).write_correction_log(new_incar_tags={"SYMPREC": SYMPREC/10.})
             return True
         else:
@@ -854,7 +866,10 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         if SYMPREC_ < 0.9e-4:
             super(Vasp_out_invgrp, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC_}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC_}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": SYMPREC_}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_invgrp, self).write_correction_log(new_incar_tags={"SYMPREC": SYMPREC_})
             return True
         else:
@@ -943,7 +958,10 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if IBRION != 1:
             new_tags["IBRION"] = 1
         
-        modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
+        #modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
+        modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False, 
+                          incar_template=self.workflow[0]["incar_template_list"], 
+                          valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
         
         shutil.copyfile(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
         
@@ -1017,12 +1035,18 @@ class Vasp_out_rhosyg(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         if 1.0e-4 > SYMPREC:
             super(Vasp_out_rhosyg, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1.0e-4}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1.0e-4}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"SYMPREC": 1.0e-4}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_rhosyg, self).write_correction_log(new_incar_tags={"SYMPREC": 1.0e-4})
             return True
         elif ISYM != 0:
             super(Vasp_out_rhosyg, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISYM": 0}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISYM": 0}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ISYM": 0}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_rhosyg, self).write_correction_log(new_incar_tags={"ISYM": 0})
             return True
         else:
@@ -1119,7 +1143,10 @@ class Vasp_out_zpotrf(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                         os.remove(os.path.join(self.cal_loc, file_))
                         delete_files.append(file_)
             super(Vasp_out_zpotrf, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_zpotrf, self).write_correction_log(new_incar_tags=new_tags, remove_files=delete_files)
             return True
                             
@@ -1198,7 +1225,10 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 os.remove(os.path.join(self.cal_loc, "CHGCAR"))
         if ALGO != "all":
             super(Vasp_out_edddav, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"}, remove_tags=["AMIX", "BMIX", "AMIN"], rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"}, remove_tags=["AMIX", "BMIX", "AMIN"], rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "All"}, remove_tags=["AMIX", "BMIX", "AMIN"], rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_edddav, self).write_correction_log(new_incar_tags={"ALGO": "All"}, remove_incar_tags=["AMIX", "BMIX", "AMIN"], 
                                                               remove_files=["CHGCAR"])
             return True
@@ -1262,7 +1292,10 @@ class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         target_str = "Therefore set LREAL=.FALSE. in the  INCAR file"
         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str):
             super(Vasp_out_real_optlay, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": ".FALSE."}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": ".FALSE."}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": ".FALSE."}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_real_optlay, self).write_correction_log(new_incar_tags={"LREAL": ".FALSE."})
             return True
         
@@ -1328,7 +1361,10 @@ class Vasp_out_pzunmtr_or_pzstein(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         IALGO = find_incar_tag_from_OUTCAR(tag="IALGO", cal_loc=self.cal_loc) # IALGO=38 <--> ALGO=Normal
         if IALGO != 38:
             super(Vasp_out_pzunmtr_or_pzstein, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Vasp_out_pzunmtr_or_pzstein, self).write_correction_log(new_incar_tags={"ALGO": "Normal"})
             return True
         
@@ -1435,7 +1471,10 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                     new_incar_tags["DIPOL"] = "0.5 0.5 {:.3}".format(mean_c)
                     new_incar_tags["ICHARG"] = 2
                     
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
             return True
         
@@ -1448,7 +1487,10 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 mean_c = np.mean(struct.frac_coords[:, 2])
                 new_incar_tags["DIPOL"] = "0.5 0.5 {:.3}".format(mean_c)
                 new_incar_tags["ICHARG"] = 2
-                modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+                #modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+                modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False, 
+                                  incar_template=self.workflow[0]["incar_template_list"], 
+                                  valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
                 super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
                 return True
         
@@ -1461,7 +1503,10 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             new_incar_tags["AMIX"] = 0.1
             new_incar_tags["BMIX"] = 0.01
             new_incar_tags["ICHARG"] = 2
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags)
             return True
         
@@ -1471,7 +1516,10 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             new_incar_tags["AMIN"] = 0.01
             new_incar_tags["BMIX"] = 3.0
             new_incar_tags["ICHARG"] = 2
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, remove_tags=["AMIX"], rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, remove_tags=["AMIX"], rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, remove_tags=["AMIX"], rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Electronic_divergence, self).write_correction_log(new_incar_tags=new_incar_tags, remove_incar_tags=["AMIX"])
             return True
         
@@ -1562,7 +1610,10 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if os.path.isfile(os.path.join(self.cal_loc, "__converged_but_exceeded_specified_max_ionic_step__")):
             super(Ionic_divergence, self).backup()
             shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             with open(os.path.join(self.cal_loc, "__converged_but_exceeded_specified_max_ionic_step__"), "r") as f:
                 max_ionic_iteration_no = int(next(f))
             os.remove(os.path.join(self.cal_loc, "__converged_but_exceeded_specified_max_ionic_step__"))
@@ -1605,7 +1656,10 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         elif IBRION in [2, 3]:
             super(Ionic_divergence, self).backup()
             shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             with open(self.log_txt, "a") as f:
                 f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\t\tThe ionic step reaches the preset maximum step ({})\n".format(NSW))
@@ -1684,7 +1738,10 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         if IALGO != 38:
             super(Positive_energy, self).backup()
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False)
+            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False)
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
             super(Positive_energy, self).write_correction_log(new_incar_tags={"ALGO": "Normal"})
             #with open(self.log_txt, "a") as f:
             #    f.write("{} Correction: ALGO --> Normal\n".format(get_time_str()))
@@ -1764,7 +1821,10 @@ class Bader_Charge(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             new_incar_tags = get_bader_charge_tags(cal_loc=prev_cal)
         
         super(Bader_Charge, self).backup()
-        modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge")
+        #modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge")
+        modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.no_bader_charge", 
+                          incar_template=self.workflow[0]["incar_template_list"], 
+                          valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
         super(Bader_Charge, self).write_correction_log(new_incar_tags=new_incar_tags)
         return True
         
