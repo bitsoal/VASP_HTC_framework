@@ -421,7 +421,7 @@ def find_converged_NL(argv_dict):
                 
         with open("Nk_IRBZ_VS_E0_Summary.dat", "a") as summary:
             for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
-                summary.write("\nNk_IRBZ\tNL\tE0\deviation from average\n")
+                summary.write("\nNk_IRBZ\tNL\tE0\tdeviation from average\n")
                 for d_ind in range(argv_dict["no_of_consecutive_convergences"]):
                     summary.write("{}\t{}\t{}\t{}\n".format(sorted_Nk_IRBZ_list[start_ind+d_ind], 
                                                             Nk_IRBZ_dict[sorted_Nk_IRBZ_list[start_ind+d_ind]]["NL"], 
