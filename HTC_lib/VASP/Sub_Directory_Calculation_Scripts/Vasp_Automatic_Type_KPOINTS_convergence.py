@@ -24,7 +24,7 @@ __doc__ = """
         Note that it makes no sense to test the total energy convergence w.r.t. KPOINTS for 0D systems.
         
     The command line to call this script looks like below:
-    >>>python Vasp_Automatic_Type_KPOINTS_convergence.py [--NL_start:integer] [--NL_end:integer] [--dN:A|A_B_C|any_A] [--convergence:AB] [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] --max_vacuum_thickness:A_B_C [--kmesh_type:Gamma|Monkhorst-Pack|Auto] [--shift:A_B_C] [--symprec_latt_const:float] [--symprec_angle:float] [--max_no_of_points:integer] [--help]
+    >>>python Vasp_Automatic_Type_KPOINTS_convergence.py [--NL_start:integer] [--NL_end:integer] [--dN:A|A_B_C|any_A] [--convergence:AB] [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] --max_vacuum_thickness:A_B_C [--kmesh_type:Gamma|Monkhorst-Pack|Auto] [--shift:A_B_C] [--symprec_latt_const:float] [--symprec_angle:float] [--max_no_of_points:integer] [--extra_copy] [--help]
     
     Arguments in a pair of brackets are optional
     * --NL_start (integer): the starting NL. N in "NL" stands for the subdivision of the k-mesh in an axis; L in "NL" stands for the lattice constant.
@@ -91,6 +91,11 @@ __doc__ = """
     * --max_no_of_points (integer): the maximum number of testing points. If the number of testing points determined by --NL_start, --NL_end and --dN is largert than the 
                                     value defined here, the first --max_no_of_points testing points will be tested only.
                                     Default: 10
+    * --extra_copy: The additional file needed to be copied into each of the sub-directories where VASP calculations with different KPOINTSs are performed. 
+                    Separate them by + if there are more than one.
+                    INCAR, POTCAR, KPOINTS and POSCAR are implicitly copied. So no need to set them here.
+                    Default: Nothing
+
     * --help: Explain how to use this script and the input arguments.
     Note that there must be no whitespace in the argument-value pair.
     Note that after the first execution of this script, the parsed arguments will be saved into a file named as "kpoints_convergence_setup.json".
@@ -106,7 +111,7 @@ __doc__ = """
         """
 
 
-# In[2]:
+# In[4]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -250,6 +255,13 @@ def read_and_set_default_arguments(argv_list):
         except:
             print(__doc__)
             raise Exception("Fail to parse --symprec_angle. See the above document to ensure that it is set properly.")
+            
+        argv_dict["extra_copy"] = [file for file in raw_argv_dict.get("--extra_copy", "").split("+") if file]
+        for file in argv_dict["extra_copy"]:
+            assert os.path.isfile(file), "{} doesn't exist under {}".format(file, os.getcwd())
+            for std_vasp_input in ["INCAR", "POTCAR", "POSCAR", "KPOINTS"]:
+                assert not file.endswith(std_vasp_input), "INCAR, POTCAR, POSCAR and KPOINTS will be copied implicitly. Don't set them via --extra_copy"
+            
                 
     with open("kpoints_convergence_setup.json", "w") as setup:
         json.dump(argv_dict, setup, indent=4)
@@ -303,7 +315,7 @@ def read_and_set_default_arguments(argv_list):
             
 
 
-# In[9]:
+# In[2]:
 
 
 def prepare_cal_files(argv_dict):
@@ -326,6 +338,10 @@ def prepare_cal_files(argv_dict):
             shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
             shutil.copy("POTCAR", os.path.join(sub_dir_name, "POTCAR"))
             shutil.copy("INCAR", os.path.join(sub_dir_name, "INCAR"))
+            
+            if argv_dict["extra_copy"]:
+                for file in argv_dict["extra_copy"]:
+                    shutil.copy2(file, sub_dir_name)
             
             VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kpoints_setup, cal_loc=sub_dir_name)
             

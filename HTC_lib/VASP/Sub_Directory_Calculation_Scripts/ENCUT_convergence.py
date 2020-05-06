@@ -12,7 +12,7 @@ if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
 
-# In[2]:
+# In[1]:
 
 
 __doc__ = """
@@ -20,7 +20,7 @@ __doc__ = """
         It runs a series of calculations with different ENCUT and determines the ENCUT w.r.t which the total energy is reached.
         
     The command line to call this script looks like below:
-    >>>python ENCUT_convergence.py [--start:integer] --end:integer [--step:integer] [--max_no_of_points:integer] --convergence:AB [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--help]
+    >>>python ENCUT_convergence.py [--start:integer] --end:integer [--step:integer] [--max_no_of_points:integer] --convergence:AB [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--extra_copy] [--help]
     Arguments in a pair of brackets are optional
     * --start (integer): the starting ENCUT. Default: max(ENMAX) in POTCAR
     * --end (integer): the ending ENCUT. No default value
@@ -47,6 +47,10 @@ __doc__ = """
     * --which (1-based integer index): choose ENCUT from those associated with the consecutively converged total energies.
                     Default: 2
     * --incar_template (str): When writing INCAR, sorting INCAR tags in the same order as in the file referred by --incar_template.
+    * --extra_copy: The additional file needed to be copied into each of the sub-directories where VASP calculations with different ENCUTs are performed. 
+                    Separate them by + if there are more than one.
+                    INCAR, POTCAR, KPOINTS and POSCAR are implicitly copied. So no need to set them here.
+                    Default: Nothing
     * --help: Explain how to use this script and the input arguments.
     Note that there must be no whitespace in the argument-value pair.
     Note that after the first execution of this script, the parsed arguments will be saved into a file named as "encut_convergence_setup.json".
@@ -167,6 +171,13 @@ def read_and_set_default_arguments(argv_list):
         except:
             print(__doc__)
             raise Exception("--which should be an integer=1, 2,..., --no_of_consecutive_convergences+1")
+            
+        
+        argv_dict["extra_copy"] = [file for file in raw_argv_dict.get("--extra_copy", "").split("+") if file]
+        for file in argv_dict["extra_copy"]:
+            assert os.path.isfile(file), "{} doesn't exist under {}".format(file, os.getcwd())
+            for std_vasp_input in ["INCAR", "POTCAR", "POSCAR", "KPOINTS"]:
+                assert not file.endswith(std_vasp_input), "INCAR, POTCAR, POSCAR and KPOINTS will be copied implicitly. Don't set them via --extra_copy"
         
     
     with open("encut_convergence_setup.json", "w") as setup:
@@ -207,6 +218,10 @@ def prepare_cal_files(argv_dict):
             shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
             shutil.copy("POTCAR", os.path.join(sub_dir_name, "POTCAR"))
             shutil.copy("INCAR", os.path.join(sub_dir_name, "INCAR"))
+            
+            if argv_dict["extra_copy"]:
+                for file in argv_dict["extra_copy"]:
+                    shutil.copy2(file, sub_dir_name)
             
             if argv_dict["incar_template"] == "":
                 modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False)
