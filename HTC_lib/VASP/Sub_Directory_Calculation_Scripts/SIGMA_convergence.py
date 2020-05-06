@@ -204,6 +204,8 @@ def are_all_sub_dir_cal_finished(argv_dict):
 
 def find_converged_sigma(argv_dict):
     """ Find the "--which"th largest SIGMA w.r.t. which T*S in OUTCAR is converged.
+    
+    Note that every electronic iteration gives a T*S. We take the T*S of the last electronic iteration.
         
     return:
         if such SIGMA is found, return such SIGMA;
@@ -219,12 +221,13 @@ def find_converged_sigma(argv_dict):
         with open(os.path.join(sub_dir_name, "OUTCAR"), "r") as outcar:
             for line in outcar:
                 if "entropy T*S    EENTRO =" in line:
-                    TS_list.append(float(line.split("=")[1].strip()))
+                    last_TS = float(line.split("=")[1].strip())
                     is_TS_found = True
-                    break
         if is_TS_found == False:#"Fail to parse T*S from {}".format(os.path.join(sub_dir_name, "OUTCAR"))
             open("__fail_to_parse_TS_from_OUTCAR_under_{}__".format(sub_dir_name), "w").close()
             return 0
+        else:
+            TS_list.append(last_TS)
     
     
     with open("SIGMA_VS_TS_Summary.dat", "w") as summary:
