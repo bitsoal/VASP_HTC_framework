@@ -112,7 +112,7 @@ The directory structure of a HTC is illustrated in the figure below.
 		* ...  
 
 
-![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/HTC_directory_structure.png)
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/HTC_directory_structure.png)
 </br>
 
 --------------------------------------------------------------------------------------
@@ -132,9 +132,9 @@ In this case, `${HTC_CWD}=/home/user0/htc_cal`. `file_1` can be specified using 
 ## Tag list - below are tags that can be set in HTC\_calculation\_setup\_file
 ### (Note that for boolean data type, we use 'Yes' and 'No')
 ----------------------
-![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_input_file_preparations.png)
+![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_input_file_preparations.png)
 </br>
-![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_input_file_preparations_2.png)
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_input_file_preparations_2.png)
 
 
 - **structure\_folder** (str), **required for the first firework**  
@@ -288,7 +288,7 @@ Default: `Must be specified in the case where partial charge_cal is set to Yes. 
 
 **It doesn't make sense that you reset an INCAR tag in `add_new_incar_tags` sub-block while simultaneously trying to remove this INCAR tag using `remove_incar_tags`. If such a contradiction takes place, an error will be incurred.**  
 Default: `empty`  
-  ![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_specific_calculation.png)
+  ![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_specific_calculation.png)
 
 ----------------
 - **bader\_charge**, optional.
@@ -633,7 +633,7 @@ e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is
 ## How to control job status
 ### We use signal files to control job submission, job termination, error detection and error correction
 
-![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/signal_file_response.PNG)
+![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/signal_file_response.PNG)
 
 
 When the workflow is running, some signal file will be present in every firework folder. The program will respond to these signal files as listed below:
