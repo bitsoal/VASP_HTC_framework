@@ -442,7 +442,7 @@ def find_converged_NL(argv_dict):
                     summary.write("{}\t{}\t{}\t{}\n".format(sorted_Nk_IRBZ_list[start_ind+d_ind], 
                                                             Nk_IRBZ_dict[sorted_Nk_IRBZ_list[start_ind+d_ind]]["NL"], 
                                                             compound_energy_list[start_ind][d_ind], 
-                                                            compound_energy_list[start_ind][d_ind] - max_dev_list[start_ind]))
+                                                            compound_energy_list[start_ind][d_ind] - average_energy_list[start_ind]))
                 summary.write("average: {}\nmax abs deviation: {}\n".format(average_energy_list[start_ind], max_dev_list[start_ind]))
 
     if argv_dict["convergence_type"] == "chg":
