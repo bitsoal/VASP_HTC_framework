@@ -296,7 +296,7 @@ def find_converged_encut(argv_dict):
         summary.write("{}\t{}\n".format(argv_dict["encut_list"][-1], energy_list[-1]))
         
     if argv_dict["convergence_type"] == "aver":
-        compound_energy_list, average_energy_list, max_dev_list = [], [], []
+        compound_energy_list, average_energy_list, max_dev_list, max_diff_list = [], [], [], []
         if len(argv_dict["encut_list"]) < argv_dict["no_of_consecutive_convergences"]:
             open("__no_enough_data_points_to_estimate_the_average_energy__", "w").close()
             return 0
@@ -304,6 +304,7 @@ def find_converged_encut(argv_dict):
             for start_ind in range(len(argv_dict["encut_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
                 compound_energy_list.append([energy_list[start_ind + d_ind] for d_ind in range(argv_dict["no_of_consecutive_convergences"])])
                 average_energy_list.append(sum(compound_energy_list[-1]) / argv_dict["no_of_consecutive_convergences"])
+                max_diff_list.append(max(compound_energy_list[-1]) - min(compound_energy_list[-1]))
                 max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list[-1]]))
                 
         with open("ENCUT_VS_E0_Summary.dat", "a") as summary:
@@ -313,6 +314,7 @@ def find_converged_encut(argv_dict):
                     summary.write("{}\t{}\t{}\n".format(argv_dict["encut_list"][start_ind + d_ind], energy_list[start_ind + d_ind], 
                                                     energy_list[start_ind + d_ind]-average_energy_list[start_ind]))
                 summary.write("average: {}\nmax abs deviation: {}\n".format(average_energy_list[start_ind], max_dev_list[start_ind]))
+                summary.write("max difference: {}\n".format(max_diff_list[start_ind]))
                     
                 
     if argv_dict["convergence_type"] == "chg":
@@ -327,7 +329,7 @@ def find_converged_encut(argv_dict):
                 return argv_dict["encut_list"][energy_diff_ind - argv_dict["no_of_consecutive_convergences"] + argv_dict["which"]]
     else:
         for ind, max_dev in enumerate(max_dev_list):
-            if max_dev <= argv_dict["convergence"]:
+            if max_dev <= argv_dict["convergence"] and max_diff_list[ind] <= argv_dict["convergence"]:
                 return argv_dict["encut_list"][ind + argv_dict["which"] - 1]
         
     return 0  

@@ -425,7 +425,7 @@ def find_converged_NL(argv_dict):
     energy_diff_list.pop()
     
     if argv_dict["convergence_type"] == "aver":
-        compound_energy_list, average_energy_list, max_dev_list = [], [], []
+        compound_energy_list, average_energy_list, max_dev_list, max_diff_list = [], [], [], []
         if len(argv_dict["NL_list"]) < argv_dict["no_of_consecutive_convergences"]:
             open("__no_enough_data_points_to_estimate_the_average_energy__", "w").close()
             return 0
@@ -433,6 +433,7 @@ def find_converged_NL(argv_dict):
             for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
                 compound_energy_list.append([Nk_IRBZ_dict[sorted_Nk_IRBZ_list[start_ind + d_ind]]["energy"] for d_ind in range(argv_dict["no_of_consecutive_convergences"])])
                 average_energy_list.append(sum(compound_energy_list[-1]) / argv_dict["no_of_consecutive_convergences"])
+                max_diff_list.append(max(compound_energy_list[-1]) - min(compound_energy_list[-1]))
                 max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list[-1]]))
                 
         with open("Nk_IRBZ_VS_E0_Summary.dat", "a") as summary:
@@ -444,6 +445,7 @@ def find_converged_NL(argv_dict):
                                                             compound_energy_list[start_ind][d_ind], 
                                                             compound_energy_list[start_ind][d_ind] - average_energy_list[start_ind]))
                 summary.write("average: {}\nmax abs deviation: {}\n".format(average_energy_list[start_ind], max_dev_list[start_ind]))
+                summary.write("max difference: {}\n".format(max_diff_list[start_ind]))
 
     if argv_dict["convergence_type"] == "chg":
         count = 0
@@ -458,7 +460,7 @@ def find_converged_NL(argv_dict):
                 return Nk_IRBZ_dict[converged_nk_irbz]["NL"]
     else:
         for ind, max_dev in enumerate(max_dev_list):
-            if max_dev <= argv_dict["convergence"]:
+            if max_dev <= argv_dict["convergence"] and max_diff_list[ind] <= argv_dict["convergence"]:
                 return Nk_IRBZ_dict[sorted_Nk_IRBZ_list[ind + argv_dict["which"] - 1]]["NL"]
         
     return 0  
