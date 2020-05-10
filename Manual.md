@@ -10,9 +10,10 @@ Package requirements: [pymatgen](http://pymatgen.org/index.html)
 `upgrade_to_python_3` Branch: we are working on upgrading to python3
 
 #### Setup and Execution:
-1. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to setup this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just copy this file to the folder where the calculations are going to be run. Let's denote the folder as `${HTC_CWD}`
+1. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to set up this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just **COPY (DO NOT MOVE)** this file to the folder where the calculations are going to be run. Let's denote the folder as `${HTC_CWD}`
 2. Write up a setup file named `HTC_calculation_setup_file` under `${HTC_CWD}`. See below for the composition of `HTC_calculation_setup_file`
-3. Under `${HTC_CWD}`, execute `python htc_main.py >htc_out 2>&1&` OR `nohup python htc_main.py >htc_out 2>&1 &` to start this HTC program. OR you can put `python htc_main.py >htc_out 2>&1` in a batch script and submit it to the batch scheduler. 
+3. Under `${HTC_CWD}`, execute `python htc_main.py >htc_out 2>&1&` OR `nohup python htc_main.py >htc_out 2>&1 &` to start this HTC program. OR you can put `python htc_main.py >htc_out 2>&1` in a batch script and submit it to the batch scheduler.   
+**Note that whenever this package is moved/copied to a new place, you NEED TO DO step 1. This is to ensure that `VASP/htc_main.py` is updated and the moved/copied package can be found properly. Otherwise, `VASP/htc_main.py` would still call the package in the old place.** 
 
 </br>
 
