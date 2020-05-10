@@ -27,5 +27,3 @@
 7. set DIPOL
 
 8. read e_fermi and set EMIN & EMAX for DOS calculations.
-
-9. backup the content of HTC_calculation_setup_file in Parsed_HTC_setup.JSON
