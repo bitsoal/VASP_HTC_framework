@@ -372,9 +372,9 @@ This tag refers to a file of which each line is a incar tag. Comments (starting 
 
 
 ----------------------------
-![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_kpoints_type_1.png)
-![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_kpoints_type_II.png)
-![](https://github.com/bitsoal/VASP_HTC_framework/blob/master/figs/VASP_kpoints_type_III.png)
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_kpoints_type_1.png)
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_kpoints_type_II.png)
+![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_kpoints_type_III.png)
 --------------------------------------
 - **kpoints\_type**, **case sensitive**, **required for every firework**  
 options - MPRelaxSet, MPStaticSet, MPNonSCFSet\_line, MPNonSCFSet\_uniform, Line-mode:
