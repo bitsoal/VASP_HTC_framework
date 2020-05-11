@@ -6,7 +6,7 @@
 * Dr. Yang Ming  
 	yangm@imre.a-star.edu.sg  
 	Institute of Materials Science and Engineering, Singapore  
-* Prof. Feng Yuanping  
+* Prof. [Feng Yuanping](https://www.physics.nus.edu.sg/phyfyp/)  
 	phyfyp@nus.edu.sg  
 	Department of Physics, National University of Singapore  
 
