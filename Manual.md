@@ -1,20 +1,30 @@
-## VASP HTC Framework  
-Yang Tong   
-bitsoal@gmail.com;yangtong@u.nus.edu  
-Department of Physics, National University of Singapore
+## `VASP_HTC_Framework`: a Python Framework for First-Principles Hight-throughput Calculations Using the Vienna Ab Initio Simulation Packages (VASP)  
+### Authors:  
+* Yang Tong  
+	bitsoal@gmail.com; yangtong@u.nus.edu  
+	Department of Physics, National University of Singapore  
+* Dr. Yang Ming  
+	yangm@imre.a-star.edu.sg  
+	Institute of Materials Science and Engineering, Singapore  
+* Prof. Feng Yuanping  
+	phyfyp@nus.edu.sg  
+	Department of Physics, National University of Singapore  
 
+-----------------
 
-### This is a simple framework designed for high-throughput calculation based on VASP.
-Package requirements: [pymatgen](http://pymatgen.org/index.html)  
-`Mater` Branch: stable and work well on python2.7  
-`upgrade_to_python_3` Branch: we are working on upgrading to python3
+#### python version:
+* python_2 for the [`Master` Branch](https://github.com/bitsoal/VASP_HTC_framework/tree/master)
+* python_3 for the `upgrade_to_python_3` Branch (**current branch**)    
 
-#### Setup and Execution:
-1. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to set up this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just **COPY (DO NOT MOVE)** this file to the folder where the calculations are going to be run. Let's denote the folder as `${HTC_CWD}`
+---------------------------
+
+### Package Setup and Execution:  
+1. This package currently relies on [pymatgen](http://pymatgen.org/index.html). Make sure it has been installed.
+2. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to set up this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just **COPY (DO NOT MOVE)** this file to the folder where the calculations are going to be run. Let's denote the folder as `${HTC_CWD}`
 2. Write up a setup file named `HTC_calculation_setup_file` under `${HTC_CWD}`. See below for the composition of `HTC_calculation_setup_file`
 3. Under `${HTC_CWD}`, execute `python htc_main.py >htc_out 2>&1&` OR `nohup python htc_main.py >htc_out 2>&1 &` to start this HTC program. OR you can put `python htc_main.py >htc_out 2>&1` in a batch script and submit it to the batch scheduler.   
 
-**Note that whenever this package is moved/copied to a new place, you NEED TO DO step 1. This is to ensure that `VASP/htc_main.py` is updated and the moved/copied package can be found properly. Otherwise, `VASP/htc_main.py` would still call the package in the old place.** 
+**Note that whenever this package is moved/copied to a new place, you NEED TO DO step 2. This is to ensure that `VASP/htc_main.py` is updated and the moved/copied package can be found properly. Otherwise, `VASP/htc_main.py` would still call the package in the old place.** 
 
 </br>
 
@@ -28,7 +38,9 @@ Package requirements: [pymatgen](http://pymatgen.org/index.html)
 * **Partial charge around CBM and VBM**
 * **Bader charge calculation**
 * **Other calculations that can be setup by simply changing INCAR (e.g. phonon dispersions)**
-* **Sub-folder calculations (for e.g. lattice constant optimization)**
+* **Sub-folder calculations**
+	* **Convergence of essential paramters (ENCUT, SIGMA and KPOINTS) (Debug is underway)**
+	* **lattice constant optimization**
 * **Can facilitate split-mode [CALYPSO](http://www.calypso.cn/) for structure predictions (refer to HTC tag `sort_structure` below)**
 
 ------------------------------------------

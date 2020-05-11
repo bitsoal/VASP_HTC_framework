@@ -1,11 +1,11 @@
-# `VASP_HTC_framework`： a Python Package for First-Principles Hight-throughput Calculations Using the Vienna Ab Initio Simulation Packages (VASP)
+# `VASP_HTC_framework`： a Python Framework for First-Principles Hight-throughput Calculations Using the Vienna Ab Initio Simulation Packages (VASP)
 
 ### `Master` Branch: stable and work well on python2.7
 ### `upgrading_to_python_3` Branch: The branch we are working on to upgrade to python3
 
 ### Package requirements: pymatgen
 
-### Please refer to Manual for how to use and run this package.
+### Please refer to [Manual](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/Manual.md) for how to use and run this package.
 
   
 ## A series of things to be added
