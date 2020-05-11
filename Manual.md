@@ -12,12 +12,16 @@
 
 -----------------
 
-#### python version:
+### python version:
 * python_2 for the [`Master` Branch](https://github.com/bitsoal/VASP_HTC_framework/tree/master)
 * python_3 for the `upgrade_to_python_3` Branch (**current branch**)    
 
 ---------------------------
 
+### Potential Users:
+#### A few calculations are cheap, but hundreds of thousands of calculations are definitely not! So this package might be useful only to experienced VASP users who know what they are doing.
+
+---------------------------
 ### Package Setup and Execution:  
 1. This package currently relies on [pymatgen](http://pymatgen.org/index.html). Make sure it has been installed.
 2. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to set up this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just **COPY (DO NOT MOVE)** this file to the folder where the calculations are going to be run. Let's denote the folder as `${HTC_CWD}`
