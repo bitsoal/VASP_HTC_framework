@@ -3,10 +3,10 @@
 * Yang Tong  
 	bitsoal@gmail.com; yangtong@u.nus.edu  
 	Department of Physics, National University of Singapore  
-* Dr. Yang Ming  
+* Dr. Yang Ming (co-supervisor)  
 	yangm@imre.a-star.edu.sg  
 	Institute of Materials Science and Engineering, Singapore  
-* Prof. [Feng Yuanping](https://www.physics.nus.edu.sg/phyfyp/)  
+* Prof. [Feng Yuanping](https://www.physics.nus.edu.sg/phyfyp/) (supervisor))  
 	phyfyp@nus.edu.sg  
 	Department of Physics, National University of Singapore  
 
