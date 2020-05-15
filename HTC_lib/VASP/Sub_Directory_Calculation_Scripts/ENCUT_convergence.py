@@ -35,14 +35,19 @@ __doc__ = """
                     Seee --no_of_consecutive_convergences below for the application of this paramter.
                     Default: --convergence_type:aver
     * --no_of_consecutive_convergences (integer>=2): Let's denote the number passed to --no_of_consecutive_convergences as NCC.
-                    1. --convergence_type:incr,
-                        If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (--convergence),
-                            the ENCUT testing is successful;
-                        else: the testing fails.
-                    2. --convergence_type:aver,
-                        If there are NCC consecutive total energies and the maximum deviation from the average of the NCC total energies is smaller or equal to
-                            the convergence criterion (--convergence), the ENCUT testing is successful.
-                        else: the testing fails.
+            1. convergence_type:incr,
+                If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (convergence),
+                    the ENCUT testing is successful;
+                else: the testing fails.
+            2. convergence_type:aver,
+                1. Arrange E0s in an ascending order of the corresponding ENCUTs.
+                2. Construct a list of E0 subsets: the i-th subset consists of all E0s whose index is equal to or larger than i.
+                3. For each E0 subset, evaluate the average, the maximum deviation from the average (max_dev) and the maximum difference between any two E0s (max_diff)
+                4. Find the first E0 subset for which both max_dev and max_diff is smaller than or equal to the convergence criterion, and its set size is at least NCC.            
+                    If there is a such kind of E0 subset, the testing is successful/converged. The paramter --which or which (1-based index) determines which E0 in the E0 subset is considered optimal,
+                        and the corresponding ENCUT is said to be the optimal ENCUT.
+                    else:
+                        the testing fails.
                     Default: 3    
     * --which (1-based integer index): choose ENCUT from those associated with the consecutively converged total energies.
                     Default: 2
@@ -261,11 +266,14 @@ def find_converged_encut(argv_dict):
                 the ENCUT testing is successful;
             else: the testing fails.
         2. convergence_type:aver,
-            If there are NCC consecutive total energies and the maximum deviation from the average of the NCC total energies is smaller or equal to
-                the convergence criterion (convergence), the ENCUT testing is successful.
-            else: the testing fails.
-    
-    The paramter --which or which (1-based index) determines which ENCUT is chosen as the optimal one among the NCC consecutively convgered ENCUTs.
+            1. Arrange E0s in an ascending order of the corresponding ENCUTs.
+            2. Construct a list of E0 subsets: the i-th subset consists of all E0s whose index is equal to or larger than i.
+            3. For each E0 subset, evaluate the average, the maximum deviation from the average (max_dev) and the maximum difference between any two E0s (max_diff)
+            4. Find the first E0 subset for which both max_dev and max_diff is smaller than or equal to the convergence criterion, and its set size is at least NCC.            
+                If there is a such kind of E0 subset, the testing is successful/converged. The paramter --which or which (1-based index) determines which E0 in the E0 subset is considered optimal,
+                    and the corresponding ENCUT is said to be the optimal ENCUT.
+                else:
+                    the testing fails.
         
     return:
         if optimal ENCUT is found, return it;
@@ -296,23 +304,23 @@ def find_converged_encut(argv_dict):
         summary.write("{}\t{}\n".format(argv_dict["encut_list"][-1], energy_list[-1]))
         
     if argv_dict["convergence_type"] == "aver":
-        compound_energy_list, average_energy_list, max_dev_list, max_diff_list = [], [], [], []
+        average_energy_list, max_dev_list, max_diff_list = [], [], []
         if len(argv_dict["encut_list"]) < argv_dict["no_of_consecutive_convergences"]:
             open("__no_enough_data_points_to_estimate_the_average_energy__", "w").close()
             return 0
         else:
             for start_ind in range(len(argv_dict["encut_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
-                compound_energy_list.append([energy_list[start_ind + d_ind] for d_ind in range(argv_dict["no_of_consecutive_convergences"])])
-                average_energy_list.append(sum(compound_energy_list[-1]) / argv_dict["no_of_consecutive_convergences"])
-                max_diff_list.append(max(compound_energy_list[-1]) - min(compound_energy_list[-1]))
-                max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list[-1]]))
+                average_energy_list.append(sum(energy_list[start_ind:]) / len(energy_list[start_ind:]))
+                max_diff_list.append(max(energy_list[start_ind:]) - min(energy_list[start_ind:]))
+                max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in energy_list[start_ind:]]))
                 
         with open("ENCUT_VS_E0_Summary.dat", "a") as summary:
             for start_ind in range(len(argv_dict["encut_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
                 summary.write("\nENCUT\tE0\tdeviation from average\n")
-                for d_ind in range(argv_dict["no_of_consecutive_convergences"]):
-                    summary.write("{}\t{}\t{}\n".format(argv_dict["encut_list"][start_ind + d_ind], energy_list[start_ind + d_ind], 
-                                                    energy_list[start_ind + d_ind]-average_energy_list[start_ind]))
+                for d_ind, energy_ in enumerate(energy_list[start_ind:]):
+                    encut_ = argv_dict["encut_list"][start_ind + d_ind]
+                    deviation_ = energy_ - average_energy_list[start_ind]
+                    summary.write("{}\t{}\t{}\n".format(encut_, energy_, deviation_))
                 summary.write("average: {}\nmax abs deviation: {}\n".format(average_energy_list[start_ind], max_dev_list[start_ind]))
                 summary.write("max difference: {}\n".format(max_diff_list[start_ind]))
                     

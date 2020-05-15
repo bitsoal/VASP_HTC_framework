@@ -55,9 +55,14 @@ __doc__ = """
                             the KPOINTS testing is successful;
                         else: the testing fails.
                     2. --convergence_type:aver,
-                        If there are NCC consecutive total energies and the maximum deviation from the average of the NCC total energies is smaller or equal to
-                            the convergence criterion (--convergence), the KPOINTS testing is successful.
-                        else: the testing fails.
+                        1. Arrange E0s in an ascending order of the corresponding Nk_IRBZ.
+                        2. Construct a list of E0 subsets: the i-th subset consists of all E0s whose index is equal to or larger than i.
+                        3. For each E0 subset, evaluate the average, the maximum deviation from the average (max_dev) and the maximum difference between any two E0s (max_diff)
+                        4. Find the first E0 subset for which both max_dev and max_diff is smaller than or equal to the convergence criterion, and its set size is at least NCC.            
+                            If there is a such kind of E0 subset, the testing is successful/converged. The paramter --which or which (1-based index) determines which E0 in the E0 subset is considered optimal,
+                                and the corresponding Nk_IRBZ|NL|KPOINTS is said to be the optimal Nk_IRBZ|NL|KPOINTS.
+                            else:
+                                the testing fails.
                     Default: 3 
     * --which (1-based integer index): choose Nk_IRBZ from the first ascending converged Nk_IRBZ list.
                                         The KPOINTS associated with the chosen converged Nk_IRBZ is considered as the converged/optimal one.
@@ -375,11 +380,14 @@ def find_converged_NL(argv_dict):
                 the KPOINTS testing is successful;
             else: the testing fails.
         2. convergence_type:aver,
-            If there are NCC consecutive total energies and the maximum deviation from the average of the NCC total energies is smaller or equal to
-                the convergence criterion (convergence), the KPOINTS testing is successful.
-            else: the testing fails.
-    
-    The paramter --which or which (1-based index) determines which Nk_IRBZ/KPOINTS is chosen as the optimal one among the NCC consecutively convgered Nk_IRBZs/KPOINTSs.
+            1. Arrange E0s in an ascending order of the corresponding Nk_IRBZ.
+            2. Construct a list of E0 subsets: the i-th subset consists of all E0s whose index is equal to or larger than i.
+            3. For each E0 subset, evaluate the average, the maximum deviation from the average (max_dev) and the maximum difference between any two E0s (max_diff)
+            4. Find the first E0 subset for which both max_dev and max_diff is smaller than or equal to the convergence criterion, and its set size is at least NCC.            
+                If there is a such kind of E0 subset, the testing is successful/converged. The paramter --which or which (1-based index) determines which E0 in the E0 subset is considered optimal,
+                    and the corresponding Nk_IRBZ|NL|KPOINTS is said to be the optimal Nk_IRBZ|NL|KPOINTS.
+                else:
+                    the testing fails.
     
         
     return:
@@ -425,25 +433,26 @@ def find_converged_NL(argv_dict):
     energy_diff_list.pop()
     
     if argv_dict["convergence_type"] == "aver":
-        compound_energy_list, average_energy_list, max_dev_list, max_diff_list = [], [], [], []
+        average_energy_list, max_dev_list, max_diff_list = [], [], []
         if len(argv_dict["NL_list"]) < argv_dict["no_of_consecutive_convergences"]:
             open("__no_enough_data_points_to_estimate_the_average_energy__", "w").close()
             return 0
         else:
             for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
-                compound_energy_list.append([Nk_IRBZ_dict[sorted_Nk_IRBZ_list[start_ind + d_ind]]["energy"] for d_ind in range(argv_dict["no_of_consecutive_convergences"])])
-                average_energy_list.append(sum(compound_energy_list[-1]) / argv_dict["no_of_consecutive_convergences"])
-                max_diff_list.append(max(compound_energy_list[-1]) - min(compound_energy_list[-1]))
-                max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list[-1]]))
+                compound_energy_list = [Nk_IRBZ_dict[nk_irbz]["energy"] for nk_irbz in sorted_Nk_IRBZ_list[start_ind:]]
+                average_energy_list.append(sum(compound_energy_list) / len(compound_energy_list))
+                max_diff_list.append(max(compound_energy_list) - min(compound_energy_list))
+                max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list]))
                 
         with open("Nk_IRBZ_VS_E0_Summary.dat", "a") as summary:
             for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
                 summary.write("\nNk_IRBZ\tNL\tE0\tdeviation from average\n")
-                for d_ind in range(argv_dict["no_of_consecutive_convergences"]):
-                    summary.write("{}\t{}\t{}\t{}\n".format(sorted_Nk_IRBZ_list[start_ind+d_ind], 
-                                                            Nk_IRBZ_dict[sorted_Nk_IRBZ_list[start_ind+d_ind]]["NL"], 
-                                                            compound_energy_list[start_ind][d_ind], 
-                                                            compound_energy_list[start_ind][d_ind] - average_energy_list[start_ind]))
+                for d_ind in range(len(sorted_Nk_IRBZ_list[start_ind:])):
+                    nk_irbz_ = sorted_Nk_IRBZ_list[start_ind+d_ind]
+                    nl_ =  Nk_IRBZ_dict[nk_irbz_]["NL"]
+                    energy_ = Nk_IRBZ_dict[nk_irbz_]["energy"]
+                    dev_ = energy_ - average_energy_list[start_ind]
+                    summary.write("{}\t{}\t{}\t{}\n".format(nk_irbz_, nl_, energy_, dev_))
                 summary.write("average: {}\nmax abs deviation: {}\n".format(average_energy_list[start_ind], max_dev_list[start_ind]))
                 summary.write("max difference: {}\n".format(max_diff_list[start_ind]))
 
