@@ -125,14 +125,26 @@ def check_calculations_status(cal_folder):
     
     for job in job_list:
         file_list = os.listdir(job)
-        file_belong_to_other = True
+        is_it_categorized = False
         for signal_file, status_type in zip(signal_file_list, job_status_folder_list):
             if signal_file in file_list:
                 job_status_dict[status_type].append(job)
-                file_belong_to_other = False
+                is_it_categorized = True
                 break
-        if file_belong_to_other:
-            job_status_dict["other_folder_list"].append(job)
+        if not is_it_categorized:
+            file_belong_to_other = True
+            #Also search for other unknown signal files starting and ending with double underscores ("__")
+            for file_ in file_list:
+                if file_.startswith("__") and file_.endswith("__"):
+                    unknown_job_status = file_.strip("_") + "_folder_list"
+                    if unknown_job_status not in job_status_dict.keys():
+                        job_status_dict[unknown_job_status] = [job]
+                    else:
+                        job_status_dict[unknown_job_status].append(job)
+                    file_belong_to_other = False
+                    break
+            if file_belong_to_other:
+                job_status_dict["other_folder_list"].append(job)
     
     return job_status_dict
 

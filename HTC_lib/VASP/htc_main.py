@@ -84,8 +84,7 @@ if __name__ == "__main__":
             pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
-        cal_status = check_calculations_status(cal_folder=cal_folder)
-                
+        cal_status = check_calculations_status(cal_folder=cal_folder)      
         
         os.chdir(main_dir)
         write_cal_status(cal_status, "htc_job_status.dat")

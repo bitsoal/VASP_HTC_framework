@@ -684,6 +684,8 @@ When the workflow is running, some **built-in** signal file will be present in e
 
 **Note that the program only responds to the above built-in signal files. Users can define new signal files to tag some calculations. But the program will do nothing to those calculations.**  
 
+**If you take a look at `${HTC_CWD}/htc_job_status.job`, you will find some calculations may be categorized into a non-built-in type, say `xyz_folder_list`. This is because for a given calculation, the program will first search for any of the above built-in signal files. If none of them is found, the program will then check whether there is any file starting and ending with double underscores (`__`). If found, such a file will be treated as an *unknown* signal file and the calculation will be categorized into such a type. Otherwise, put it into `other_folder_list`. Note that if there are more than one unknown signal files detected for one calculation, say `__xyz__` and `__abc__`, this calculation will be put into both `xyz_folder_list` and `abc_folder_list`. But for any calculation tagged by a built-in signal file, it is unique in `${HTC_CWD}/htc_job_status.job`.**
+
 ### Update the calculation status  
 By default, this program scan/update the calculations every 10 mins. If you want to ask the program to scan/update as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file in 10 s. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**  
 
