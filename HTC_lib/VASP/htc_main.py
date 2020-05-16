@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[8]:
 
 
 import os, sys, time, pprint
@@ -18,7 +18,7 @@ if HTC_package_path not in sys.path:
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str
 from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_files, backup_a_file
-from HTC_lib.VASP.Miscellaneous.change_signal_tag import change_signal_file
+from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
 from HTC_lib.VASP.Preprocess_and_Postprocess.Parse_calculation_workflow import parse_calculation_workflow
 from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process, preview_HTC_vasp_inputs
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, update_job_status
