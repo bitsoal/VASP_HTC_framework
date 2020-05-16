@@ -698,7 +698,8 @@ The above setup means to randomly pick at most 20 calculations originally tagged
 
 * Note that `original_signal_file` must be one of the existent signal files (See above for all valid|built-in signal files), whereas `target_signal_file` could be anything.  
 * We also ask you to define `original_signal_file` and `target_signal_file` in such a way that they start and end with double underscores (`__`)
-* If `target_signal_file` is not in the builit-in signal file list, this program will do nothing to the calculations tagged by `target_signal_file`
+* If `target_signal_file` is not in the builit-in signal file list, this program will do nothing to the calculations tagged by `target_signal_file`  
+* `__change_signal_file__` is a **one-time** signal file. After the program responds to this signal file, it will be removed and the response to it will be written into `${HTC_CWD}/__change_signal_file__.log`
 
 
 ### How to stop the program.

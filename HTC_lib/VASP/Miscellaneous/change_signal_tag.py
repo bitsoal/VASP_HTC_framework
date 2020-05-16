@@ -71,7 +71,7 @@ def read_setup_of_changing_signal_file(filename, log_filename):
 
 
 def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
-    log_filename = filename + "_log"
+    log_filename = filename + ".log"
     with open(filename, "r") as f:
         lines = list(f)
     with open(log_filename, "w") as log_f:
