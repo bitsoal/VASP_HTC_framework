@@ -25,6 +25,26 @@ from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import chec
 from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 
 
+# In[6]:
+
+
+def write_cal_status(cal_status, filename):
+    to_be_written_status_list = ["manual_folder_list", "skipped_folder_list", "error_folder_list", "killed_folder_list", 
+                                 "sub_dir_cal_folder_list", "running_folder_list"]
+    last_written_status_list = ["vis_folder_list", "prior_ready_folder_list", "ready_folder_list", "done_folder_list"]
+    for status_key in cal_status.keys():
+        if status_key not in to_be_written_status_list and status_key not in last_written_status_list:
+            to_be_written_status_list.append(status_key)
+    to_be_written_status_list.extend(last_written_status_list)
+    
+    with open(filename, "w") as f:
+        f.write("\n{}:".format(get_time_str()))
+        for status_key in to_be_written_status_list:
+            f.write("\n{}:\n".format(status_key))
+            for folder in cal_status[status_key]:
+                f.write("\t{}\n".format(folder))
+
+
 # In[2]:
 
 
@@ -52,6 +72,7 @@ if __name__ == "__main__":
 
 
     main_dir = os.getcwd()
+    no_of_same_cal_status, cal_status_0 = 0, {}
     while not workflow[0]["preview_vasp_inputs"]:
         os.chdir(main_dir)
         if os.path.isfile("__stop__"):
@@ -65,47 +86,42 @@ if __name__ == "__main__":
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
         cal_status = check_calculations_status(cal_folder=cal_folder)
                 
-        #print("\n")
-        #print(get_time_str())
-        #pprint.pprint(cal_status)
         
-        os.chdir(main_dir)    
-        with open("htc_job_status.dat", "w") as f:
-                f.write("\n{}:".format(get_time_str()))
-                
-                for status, folder_list in cal_status.items():
-                    if status == "done_folder_list":
-                        continue
-                    f.write("\n{}:\n".format(status))
-                    for folder in folder_list:
-                        f.write("\t{}\n".format(folder))
-                f.write("\n{}:\n".format("done_folder_list"))
-                for folder in cal_status["done_folder_list"]:
-                    f.write("\t{}\n".format(folder))
+        os.chdir(main_dir)
+        write_cal_status(cal_status, "htc_job_status.dat")
                         
-        #check if all calculations are complete
-        #At the end, all calculations should be labeled by signal file __done__ or __skipped__
-        
-        no_of_done_or_skipped_cal = len(cal_status["done_folder_list"]) + len(cal_status["skipped_folder_list"])
-        no_of_ongoing_jobs = sum([len(job_list) for job_status, job_list in cal_status.items() 
-                                  if job_status not in ["done_folder_list", "skipped_folder_list"]])
+        #check if all calculations are complete. If this is the case, stop. At the end, all calculations should be labeled by signal file __done__ or __skipped__
+        no_of_ongoing_jobs = sum([len(job_list) for job_status, job_list in cal_status.items() if job_status not in ["done_folder_list", "skipped_folder_list"]])
         if no_of_ongoing_jobs == 0:
-            print("All calculations have finished --> Stop this program.")
+            output_str = "All calculations have finished --> Stop this program."
+            print(output_str)
             os.chdir(main_dir)
             with open("htc_job_status.dat", "a") as f:
-                f.write("\n***All calculations have finished --> Stop this program.***")
+                f.write("\n***" + output_str + "***")
+            break
+        #If cal_status is unchanged for the 5 consecutive scannings, also stop.
+        if cal_status == cal_status_0:
+            no_of_same_cal_status += 1
+        else:
+            cal_status_0 = cal_status
+            no_of_same_cal_status = 0
+        if no_of_same_cal_status == 5:
+            output_str = "The status of all calculations remains unchanged for the 5 consecutive scannings --> Stop this program."
+            print(output_str)
+            with open("htc_job_status.dat", "a") as f:
+                f.write("\n***" + output_str + "***")
             break
         
         for i in range(60):
-            if os.path.isfile(os.path.join(main_dir, "__stop__")):
+            if os.path.isfile("__stop__"):
                 break
-            elif os.path.isfile(os.path.join(main_dir, "__update_now__")):
-                os.remove(os.path.join(main_dir, "__update_now__"))
+            elif os.path.isfile("__update_now__"):
+                os.remove("__update_now__")
                 break
-            elif os.path.isfile(os.path.join(main_dir, "__change_signal_file__")):
-                cal_status = change_signal_file(cal_status, os.path.join(main_dir, "__change_signal_file__"))
-                os.remove(os.path.join(main_dir, "__change_signal_file__"))
-                break
+            elif os.path.isfile("__change_signal_file__"):
+                cal_status = change_signal_file(cal_status, "__change_signal_file__")
+                os.remove("__change_signal_file__")
+                write_cal_status(cal_status, "htc_job_status.dat")
             else:
                 time.sleep(10)
 

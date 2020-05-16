@@ -76,9 +76,10 @@ def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
         lines = list(f)
     with open(log_filename, "w") as log_f:
         log_f.write(get_time_str()+"\n")
-        log_f.write("\t{} is copied here:\n".format(filename))
+        log_f.write("\t{} is copied here:\n".format(filename) + "-"*50 + "\n")
         for line in lines:
             log_f.write(line)
+        log_f.write("-"*50 + "\n")
     
     setup_dict = read_setup_of_changing_signal_file(filename=filename, log_filename=log_filename)
     if setup_dict == {}:
@@ -95,7 +96,7 @@ def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
     target_cal_folder_list = []
     if target_status_key not in cal_status_dict.keys():
         cal_status_dict[target_status_key] = []
-    for i in range(min([len(cal_status_dict[original_status_key], setup_dict["no_of_changes"])])):
+    for i in range(min([len(cal_status_dict[original_status_key]), setup_dict["no_of_changes"]])):
         target_cal_folder_list.append(cal_status_dict[original_status_key].pop())
     
     with open(log_filename, "a") as log_f:
@@ -110,7 +111,7 @@ def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
         cal_status_dict[target_status_key].append(target_cal_folder)
         
         with open(log_filename, "a") as log_f:
-            log_f.write(get_time_str() + " ")
+            log_f.write(get_time_str() + " Done ")
             log_f.write(target_cal_folder + "\n")
     
     return cal_status_dict

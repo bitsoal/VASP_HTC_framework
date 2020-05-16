@@ -649,13 +649,15 @@ e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is
 <br>
 
 ## How to control job status
-### We use signal files to control job submission, job termination, error detection and error correction
+### We use ***built-in*** signal files to control job submission, job termination, error detection and error correction
 
 ![Alt Text](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/signal_file_response.PNG)
 
 
-When the workflow is running, some signal file will be present in every firework folder. The program will respond to these signal files as listed below:
+When the workflow is running, some **built-in** signal file will be present in every firework folder. The program will respond to these signal files as listed below:  
   
+- **Format requirement of any signal file**: It must start and end with double underscores (`__`) 
+- **In `${HTC_CWD}/htc_job_status.dat`, the calculation tagged by signal file `__xyz__` is categorized into `xyz_folder_list`**  
 - `__vis__`: The program will prepare the vasp input files according to the workflow. Once it is done, `__vis__` --> `__ready__`
 - `__ready__`: The program will submit the job by using the command defined in the workflow. Once submitted, `__ready__` --> `__running__`
 - `__prior_ready__`: The program will first submit the jobs with this signal file compared to those labeled by `__ready__`
@@ -671,8 +673,6 @@ When the workflow is running, some signal file will be present in every firework
 ***Signal file priority:*** `__manual__` > `__vis__` > `__skipped__` > `__ready__` > `prior_ready__` > `__sub_dir_cal__` > `__error__` > `__running__` > `__done__` > `__killed__`  
 
 
-
-
 **Note that when you manually fix an error or tune VASP input files under a filework folder, DO remove these signal tags so that the program has nothing to do with this firework folder. After modifications, you have two ways to bring it back to the program scope (_The second way is recommended_):**
 
 - If you want to manually submit the job:
@@ -680,10 +680,26 @@ When the workflow is running, some signal file will be present in every firework
   - step II: submit the job
   - step III: create the signal file `__running__`.
 - If you want the program to do the job submission:
-	- All you need to do is to create the signal file `__ready__`. In this case, the program will automatically remove OUTCAR, OSZICAR, vasp.out, queue stdout & stderr files before submitting this job.  
+	- All you need to do is to create the signal file `__ready__`. In this case, the program will automatically remove OUTCAR, OSZICAR, vasp.out, queue stdout & stderr files before submitting this job.    
+
+**Note that the program only responds to the above built-in signal files. Users can define new signal files to tag some calculations. But the program will do nothing to those calculations.**  
 
 ### Update the calculation status  
-By default, this program scan/update the calculations every 10 mins. If you want to ask the program to scan/update as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file in 10 s. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file** 
+By default, this program scan/update the calculations every 10 mins. If you want to ask the program to scan/update as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file in 10 s. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**  
+
+### How to change a certain number of calculations from their original status to a target status  
+Under `${HTC_CWD}`, you can create a signal file named `__change_signal_file__` to change a certain number of calculations from their original status (signal file) to a target status (signal file). In `__change_signal_file__`, three parameters should be defined in the following format, e.g.
+>`original_signal_file = __ready__`  
+>`target_signal_file = __null__`  
+>`no_of_changes = 20`  
+
+The above setup means to randomly pick at most 20 calculations originally tagged by `__ready__` (`ready_folder_list` in `htc_job_status.dat`) and change them to `__null__`.   
+
+
+* Note that `original_signal_file` must be one of the existent signal files (See above for all valid|built-in signal files), whereas `target_signal_file` could be anything.  
+* We also ask you to define `original_signal_file` and `target_signal_file` in such a way that they start and end with double underscores (`__`)
+* If `target_signal_file` is not in the builit-in signal file list, this program will do nothing to the calculations tagged by `target_signal_file`
+
 
 ### How to stop the program.
 You can stop this program by creating a file named `__stop__` under `${HTC_CWD}` where `python htc_main.py` or `nohup python htc_main.py 2>1&` was executed to start this program.
