@@ -701,7 +701,21 @@ The above setup means to randomly pick at most 20 calculations originally tagged
 * Note that `original_signal_file` must be one of the existent signal files (See above for all valid|built-in signal files), whereas `target_signal_file` could be anything.  
 * We also ask you to define `original_signal_file` and `target_signal_file` in such a way that they start and end with double underscores (`__`)
 * If `target_signal_file` is not in the builit-in signal file list, this program will do nothing to the calculations tagged by `target_signal_file`  
-* `__change_signal_file__` is a **one-time** signal file. After the program responds to this signal file, it will be removed and the response to it will be written into `${HTC_CWD}/__change_signal_file__.log`
+* `__change_signal_file__` is a **one-time** signal file. After the program responds to this signal file, it will be removed and the response to it will be written into `${HTC_CWD}/__change_signal_file__.log`  
+
+### Pack many small calculation jobs into one. (alpha phase)  
+Normally, one job, one submission. On the other hand, you can also pack a bunch of small jobs into one, and just submit once. Let's call those to-be-packed small jobs `sub-jobs`. `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` may help you to create a job submision script to pack `sub-jobs` for PBS batch scheduler. **The idea is to request a certain number of CPUs and memory at once, and then re-allocate them to a bunch of sub-jobs.** You need to change the parameters needed at the beginning of `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py`, which are well self-explained. Let's call the created submission script `packed_jobs_script.pbs`  
+`packed_jobs_script.pbs` assumes that the status of each to-be-packed sub-job is `__packed__`. Prior to run VASP, it directs `${PBS_JOBID}` to a file named `job_id` under each sub-job and changes the status of each sub-job from `__packed__` to `__packed_running__`. If the VASP calculation associated with a sub-job finishes before running out of time, `__packed_running__` will be changed to `__runing__`. So, those finished sub-jobs can be handled directly by the program.  
+We suggest you to use `__change_signal_file__` to change a certain number of calculation jobs from `__ready__` to `__packed__`. For exmaple, you want to pack 20 calculation jobs:  
+>`__change_signal_file__`
+>>`original_signal_file = __ready__`  
+>>`target_signal_file = __packed__`  
+>>`no_of_changes = 20`  
+
+Then you can find the absolute path to those calculations tagged by `__packed__` in `${HTC_CWD}/htc_job_status.dat`. Copy|save them into a file, and feed this file to `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` by setting parameter `filename` at the beginning.
+
+
+
 
 
 ### How to stop the program.
