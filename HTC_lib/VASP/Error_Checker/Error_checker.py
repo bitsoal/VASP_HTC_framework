@@ -5,9 +5,16 @@
 
 
 import os, time, shutil, sys, re, subprocess
+
+
+##############################################################################################################
+##DO NOT change this part.
+##../setup.py will update this variable
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+assert os.path.isdir(HTC_package_path), "Cannot find this VASP_HTC package under {}".format(HTC_package_path)
+if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
+##############################################################################################################
 
 from pymatgen.io.vasp.outputs import Oszicar, Vasprun
 from pymatgen import Structure
@@ -1399,14 +1406,22 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")) or not os.path.isfile(os.path.join(self.cal_loc, "OSZICAR")):
             return True
         
-        try:
-            NELM = find_incar_tag_from_OUTCAR(tag="NELM", cal_loc=self.cal_loc)
-            EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
-        except:
-            return True
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        NELM = int(incar_dict.get("NELM", 60))
+        EDIFF = float(incar_dict.get("EDIFF", 1.0e-4))
         
         #print(NELM, EDIFF)
-        oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
+        try:
+            oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
+        except Exception as inst:
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
+            with open(self.log_txt, "a") as log_f:
+                log_f.write("{}: ".format(get_time_str()))
+                log_f.write(" An error occurs when parsing OSZICAR using pymatgen.io.vasp.outputs.Oszicar. See below:\n")
+                log_f.write("\t{}".format(inst))
+                log_f.write("\t__running__ --> __manual__\n")
+            return False
+            
         for electronic_steps in oszicar.electronic_steps:
             #print(len(electronic_steps))
             if len(electronic_steps) == NELM:

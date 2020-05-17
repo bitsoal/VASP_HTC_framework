@@ -5,9 +5,15 @@
 
 
 import os, sys
+
+##############################################################################################################
+##DO NOT change this part.
+##../setup.py will update this variable
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+assert os.path.isdir(HTC_package_path), "Cannot find this VASP_HTC package under {}".format(HTC_package_path)
+if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
+##############################################################################################################
 
 import pprint
 
@@ -71,7 +77,7 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
                                 if valid_incar_tags is empty, this tag will do nothing.
                                 default: []
     return:
-        * the valid INCAR dictionary if no modification is made.
+        * the valid INCAR dictionary if no modification (new_tags and remove_tags are not set) is made.
         * write INCAR under the folder specified by cal_loc otherwise.
     """
     
@@ -96,7 +102,6 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
 
     incar_dict = {}
     with open(os.path.join(cal_loc, "INCAR"), "r") as incar_f:
-        lines = []
         for line in incar_f:
             pairs = line.strip().split("#")[0].strip().strip(";")
             if pairs == "":
@@ -113,6 +118,10 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
                 tag, value = tag_value_pair.strip().split("=")
                 incar_dict[tag.upper().strip()] = value.strip()
                 
+    if new_tags == {} and remove_tags == []:
+        return incar_dict
+    
+    
     incar_dict.update(new_tags)
     for remove_tag in remove_tags:
         if remove_tag in incar_dict.keys():
@@ -136,8 +145,6 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
         for incar_tag in incar_dict.keys():
             assert incar_tag in valid_incar_tags, "under {}\n ".format(cal_loc) +             "When we are modifying INCAR as pre-defined, {} is not found in ".format(incar_tag) +             "the valid incar tags defined by valid_incar_tags in HTC_calculation_setup_file.\n" +             "If this is not a spelling error and you want to validize this incar tag, add it in the file specified by valid_incar_tags in HTC_calculation_setup_file."
     
-    if new_tags == {} and remove_tags == []:
-        return incar_dict
 
     if isinstance(rename_old_incar, bool):
         if rename_old_incar:
