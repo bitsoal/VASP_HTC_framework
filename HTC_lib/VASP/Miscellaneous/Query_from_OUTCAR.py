@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python
 # coding: utf-8
 
 # # a series of functions to extract various data from VASP OUTCAR
@@ -537,7 +537,11 @@ def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
                      }
     tag = tag.upper()
     assert tag in find_func_dict.keys(), "Error: currently don't support the search for {} in OUTCAR".format(tag)
-    return find_func_dict[tag](cal_loc)
+    try:
+        return find_func_dict[tag](cal_loc)
+    except:
+        print("\n\n When retrieving {} from OUTCAR, an error occurs @ {}\n See below for the detailed error info\n\n".format(tag, cal_loc))
+        raise
         
 
 
@@ -571,3 +575,9 @@ def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
 #     #pprint.pprint(find_cart_coords_from_OUTCAR())
 #     #pprint.pprint(find_frac_coords_from_OUTCAR())
 #     #pprint.pprint(find_vector_kpoints_from_OUTCAR())
+
+# In[ ]:
+
+
+
+
