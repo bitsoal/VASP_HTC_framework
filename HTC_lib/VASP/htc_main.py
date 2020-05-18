@@ -85,7 +85,7 @@ if __name__ == "__main__":
             no_of_ready_jobs = len(cal_status["prior_ready_folder_list"]) + len(cal_status["ready_folder_list"])
             if no_of_ready_jobs >= workflow[0]["max_no_of_ready_jobs"]:
                 break
-            no_of_ready_jobs += pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
+            pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
         cal_status = check_calculations_status(cal_folder=cal_folder)      
