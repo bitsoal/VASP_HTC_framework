@@ -5,9 +5,15 @@
 
 
 import os, pprint, sys, shutil
+
+##############################################################################################################
+##DO NOT change this part.
+##../setup.py will update this variable
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+assert os.path.isdir(HTC_package_path), "Cannot find this VASP_HTC package under {}".format(HTC_package_path)
+if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
+##############################################################################################################
 
 from pymatgen import Structure
 
@@ -82,6 +88,7 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
         prepare_input_files(cif_filename=cif_filename, cif_folder=cif_folder, mater_cal_folder=mater_cal_folder, 
                             current_firework=current_firework, workflow=workflow)
         post_process(mater_cal_folder=mater_cal_folder, current_firework=current_firework, workflow=workflow)
+    return len(current_firework_list)
 
 
 # In[1]:

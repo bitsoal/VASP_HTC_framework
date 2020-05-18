@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[8]:
+# In[1]:
 
 
 import os, sys, time, pprint
@@ -81,7 +81,11 @@ if __name__ == "__main__":
         
         update_job_status(cal_folder=cal_folder, workflow=workflow)
         for structure_file in os.listdir(structure_file_folder):
-            pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
+            cal_status = check_calculations_status(cal_folder=cal_folder)
+            no_of_ready_jobs = len(cal_status["prior_ready_folder_list"]) + len(cal_status["ready_folder_list"])
+            if no_of_ready_jobs >= workflow[0]["max_no_of_ready_jobs"]:
+                break
+            no_of_ready_jobs += pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
         cal_status = check_calculations_status(cal_folder=cal_folder)
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
         cal_status = check_calculations_status(cal_folder=cal_folder)      
@@ -104,8 +108,8 @@ if __name__ == "__main__":
         else:
             cal_status_0 = cal_status
             no_of_same_cal_status = 0
-        if no_of_same_cal_status == 5:
-            output_str = "The status of all calculations remains unchanged for the 5 consecutive scannings --> Stop this program."
+        if no_of_same_cal_status == 1000:
+            output_str = "The status of all calculations remains unchanged for around one week --> Stop this program."
             print(output_str)
             with open("htc_job_status.dat", "a") as f:
                 f.write("\n***" + output_str + "***")

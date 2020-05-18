@@ -166,6 +166,14 @@ Default: `cal_folder= where the htc_main.py is called + \cal_folder`
   
 -------------------
 
+- **max\_no\_of\_ready\_jobs** (a positive integer), optional for the first firework.  
+We don't prepare the VASP input files for **all** available calculatoins **at once**. Instead, the available calculations are prepared in such a way that there are up to *around* `max_no_of_ready_jobs` calculations tagged by `__ready__` or `__prior_ready__`. Nevertheless, set `max_no_of_ready_jobs` to a huge number if you want to prepare all available calculations at once.  
+Note that in some cases, the number of calculations tagged by `__ready__` or `__prior_ready__` may exceed `max_no_of_ready_jobs`, because all subsequent independent calculations are prepared simultaneously when the preceeding calculation is finished.   
+Default: `max_no_of_ready_jobs=50` 
+
+
+-------------------
+
 - **step\_no** (integer), **required for every firework**.  
 start from 1.  
 for the n-th firework, step\_no must be n.
