@@ -5,9 +5,15 @@
 
 
 import os, sys
+
+##############################################################################################################
+##DO NOT change this part.
+##../setup.py will update this variable
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+assert os.path.isdir(HTC_package_path), "Cannot find this VASP_HTC package under {}".format(HTC_package_path)
+if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
+##############################################################################################################
 
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename, decorated_subprocess_check_output, get_current_firework_from_cal_loc
@@ -214,15 +220,15 @@ def update_running_jobs_status(running_jobs_list, workflow):
                             f.write(str(times+1))
                         continue
                 
-                cal_name = os.path.split(job_path)[-1]
-                with open(os.path.join(job_path, "log.txt"), "a") as f:
-                    f.write("{} Queue Error: {}\n".format(get_time_str(), cal_name))
-                    f.write("\t\t\tThe running job is not found in queue.\n")
-                    f.write("\t\t\t__running__ --> __manual__\n")
-                    f.write("\t\t\tCreate file __running_job_not_in_queue__.\n")
-                    open(os.path.join(job_path, "__running_job_not_in_queue__"), "w").close()
-                    decorated_os_rename(loc=job_path, old_filename="__running__", new_filename="__manual__")
-                    #os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))                
+                    cal_name = os.path.split(job_path)[-1]
+                    with open(os.path.join(job_path, "log.txt"), "a") as f:
+                        f.write("{} Queue Error: {}\n".format(get_time_str(), cal_name))
+                        f.write("\t\t\tThe running job is not found in queue.\n")
+                        f.write("\t\t\t__running__ --> __manual__\n")
+                        f.write("\t\t\tCreate file __running_job_not_in_queue__.\n")
+                        open(os.path.join(job_path, "__running_job_not_in_queue__"), "w").close()
+                        decorated_os_rename(loc=job_path, old_filename="__running__", new_filename="__manual__")
+                        #os.rename(os.path.join(job_path, "__running__"), os.path.join(job_path, "__manual__"))                
             else:
                 if os.path.isfile(os.path.join(job_path, "__no_of_times_not_in_queue__")):
                     os.remove(os.path.join(job_path, "__no_of_times_not_in_queue__"))
