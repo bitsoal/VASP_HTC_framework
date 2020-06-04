@@ -131,7 +131,7 @@ class VaspAutomaticKMesh():
         subdivisions, dNL = [], []
         for axis_ind in range(len(latt_constants)):
             if pbc_type_of_xyz[axis_ind]:
-                division = max([round(NL / latt_constants[axis_ind]), 1])
+                division = int(max([round(NL / latt_constants[axis_ind]), 1]))
                 dnl = NL - division * latt_constants[axis_ind]
             else:
                 division = 1
