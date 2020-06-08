@@ -5,9 +5,15 @@
 
 
 import os, sys, re, math
+
+##############################################################################################################
+##DO NOT change this part.
+##../setup.py will update this variable
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+assert os.path.isdir(HTC_package_path), "Cannot find this VASP_HTC package under {}".format(HTC_package_path)
+if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
+##############################################################################################################
     
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
@@ -273,7 +279,15 @@ class VaspAutomaticKMesh():
     @classmethod
     def write_KPOINTS(cls, kpoints_setup, cal_loc, filename="KPOINTS"):
         """
-        Write KPOINTS under cal_loc according to kpoints_setup.
+        Write KPOINTS under cal_loc according to kpoints_setup. 
+        In addition, ISMEAR and SIGMA in INCAR will also be reset if the following conditions are satisfied:
+            condition I: When writing KPOINTS, INCAR already exists
+            condition II. KPOINTS has less than 3 k-points
+            condition III: INCAR is found to be -5 (tetrahedron method with Blöchl corrections need more than 2 k-points)
+            If condition I-III are satisfied and pbc_type_ofxyz indicates that this system is 0-dimensional:
+                reset ISMEAR = -5 and SIGMA = 0.01 in INCAR
+            If condition I-III are satisfied and pbc_type_ofxyz indicates that this system is not 0-dimensional:
+            reset ISMEAR = -5 and SIGMA = 0.05 in INCAR
     
         kpoints_setup could be any dictionary containing at least the key-value pairs:
             1. pbc_type_of_xyz: a bool list of length 3 indicating if the Periodic Boundary Condition holds along the x-, y- and z-axis
@@ -295,6 +309,18 @@ class VaspAutomaticKMesh():
             kpoints.write("{}\n".format(kpoints_setup["kmesh_type"]))
             kpoints.write("{}  {}  {}\n".format(*kpoints_setup["subdivisions"]))
             kpoints.write("{}  {}  {}\n".format(*kpoints_setup.get("shift", [0, 0, 0])))
+        print("type={}\tNL={}\tdivisions={}".format(kpoints_setup["kmesh_type"],kpoints_setup["NL"],kpoints_setup["subdivisions"]))
+            
+        #if there are less than 3 k-points and ISMEAR is found to be -5 in INCAR, change it ISMEAR = 0 and set SIGMA as below
+        if os.path.isfile(os.path.join(cal_loc, "INCAR")):
+            incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+            if sum(kpoints_setup["subdivisions"]) < 4.5 and incar_dict["ISMEAR"] == "-5":
+                if kpoints_setup["pbc_type_of_xyz"] == [False, False, False]:
+                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.01"}, incar_template=os.path.join(cal_loc, "INCAR"))
+                    print("This is a 0D system. However, ISMEAR is found to be -5. Set ISMEAR = 0 and SIGMA = 0.01")
+                else:
+                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.05"}, incar_template=os.path.join(cal_loc, "INCAR"))
+                    print("There are less than 3 k-points. However, ISMEAR is found to be -5. Set ISMEAR = 0 and SIGMA = 0.05")
             
     @classmethod
     def read_from_KPOINTS_and_POSCAR(cls, cal_loc, max_vacuum_thickness, KPOINTS_filename="KPOINTS", POSCAR_filename="POSCAR"):

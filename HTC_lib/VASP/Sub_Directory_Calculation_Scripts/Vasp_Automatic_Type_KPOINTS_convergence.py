@@ -1,15 +1,22 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[6]:
 
 
 import os, sys, re, math, shutil, json
+
+##############################################################################################################
+##DO NOT change this part.
+##../setup.py will update this variable
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+assert os.path.isdir(HTC_package_path), "Cannot find this VASP_HTC package under {}".format(HTC_package_path)
+if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
+##############################################################################################################
     
 from HTC_lib.VASP.KPOINTS.VASP_Automatic_K_Mesh import VaspAutomaticKMesh
+
 
 from pymatgen import Structure
 
@@ -68,12 +75,13 @@ __doc__ = """
                                         The KPOINTS associated with the chosen converged Nk_IRBZ is considered as the converged/optimal one.
                     Default: 2
     * --max_vacuum_thickness: A, B, C in "A_B_C" are the maximum vacuum thickness along the x-, y- and z-axis, respectively.
-                            If the vacuum thickness along the i-th axis is larger than the value defined here, the i-th axis is considered non-PBC.
+                            If the vacuum thickness along the i-th axis is larger than the value defined here, the i-th axis is considered non-periodic.
                             If the vacuum thickness along the i-th axis is smaller than or equal to the value defined here, the i-th axis is considered PBC.
                             The subdivision for the non-PBC axis will be set to 1.
                             This allows us to handle 0D, 1D, 2D and 3D materials simultaneously.
                             The unit is Angstrom
                             If you are sure PBC holds along all axes, set A, B, C to a giant number, e.g. 1000_1000_1000
+                            For 0D systems, no need to converge the total energy w.r.t. KPOINTS. So this script directly changes __sub_dir_cal__ to __done__
                     Default: No default. 
     * --kmesh_type: The automatic k-mesh type. It could be one of "Gamma", "Monkhorst-Pack" or "Auto". Only the first letter matters. Case-insensitive
             If it is set to "Auto", "Gamma" will be chosen if any of the calculated subdivisions along the pbc axes is odd; Otherwise, "Monkhorst-Pack"
@@ -116,7 +124,7 @@ __doc__ = """
         """
 
 
-# In[4]:
+# In[3]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -278,8 +286,13 @@ def read_and_set_default_arguments(argv_list):
     input_kwargvs["cal_loc"] = "."
 
     NL_list, kpoints_setup_list, NL, dN, NL_end = [], [], argv_dict["NL_start"], argv_dict["dN"], argv_dict["NL_end"]
+    is_it_0D = False
     while NL <= NL_end:
         kpoints_setup = VaspAutomaticKMesh(NL=NL, **input_kwargvs).get_kpoints_setup()
+        if kpoints_setup.pbc_type_of_xyz == [False, False, False]:
+            #If it is 0D, KPOINTS must be Gamma point only.
+            is_it_0D = True
+            break
         optimal_NL = list(kpoints_setup["optimal_NL"].keys())[0]
         pbc_subdivision = VaspAutomaticKMesh.get_pbc_sublist(kpoints_setup["subdivisions"], kpoints_setup["pbc_type_of_xyz"])
         is_NL_unique = False
@@ -315,6 +328,7 @@ def read_and_set_default_arguments(argv_list):
 
     argv_dict["NL_list"] = NL_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]
     argv_dict["kpoints_setup_list"] = kpoints_setup_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]
+    argv_dict["is_it_0D"] = is_it_0D
     
     return argv_dict             
             
@@ -324,6 +338,7 @@ def read_and_set_default_arguments(argv_list):
 
 
 def prepare_cal_files(argv_dict):
+    
     
     for kpoints_setup, NL in zip(argv_dict["kpoints_setup_list"], argv_dict["NL_list"]):
         is_preparation_needed = True
@@ -347,10 +362,21 @@ def prepare_cal_files(argv_dict):
             if argv_dict["extra_copy"]:
                 for file in argv_dict["extra_copy"]:
                     shutil.copy2(file, sub_dir_name)
+            print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
+            print(argv_dict["extra_copy"])
             
+            print("write KPOINTS under {}: ".format(sub_dir_name), end=" ")
+            #The detail of KPOINTS will be printed by the bellow function.
             VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kpoints_setup, cal_loc=sub_dir_name)
             
+            
             open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+
+
+# In[7]:
+
+
+help(print)
 
 
 # In[10]:
@@ -483,12 +509,17 @@ if __name__ == "__main__":
         print(__doc__)
     else:
         argv_dict = read_and_set_default_arguments(sys.argv)
-        prepare_cal_files(argv_dict)
-        if are_all_sub_dir_cal_finished(argv_dict):
-            converged_NL = find_converged_NL(argv_dict)
-            if converged_NL == 0:
-                os.rename("__sub_dir_cal__", "__manual__")
-            else:
-                shutil.copy(os.path.join("NL_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
-                os.rename("__sub_dir_cal__", "__done__")
+        if argv_dict["is_it_0D"]:
+            print("The system is 0-dimensional. KPOINTS should be Gamma-point only. No need to converge the total energy w.r.t. KPOINTS.")
+            os.rename("__sub_dir_cal__", "__done__")
+            print("__sub_dir_cal__ --> __done__")
+        else:
+            prepare_cal_files(argv_dict)
+            if are_all_sub_dir_cal_finished(argv_dict):
+                converged_NL = find_converged_NL(argv_dict)
+                if converged_NL == 0:
+                    os.rename("__sub_dir_cal__", "__manual__")
+                else:
+                    shutil.copy(os.path.join("NL_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
+                    os.rename("__sub_dir_cal__", "__done__")
 

@@ -1,13 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[1]:
 
 
 import os, sys, re, math, shutil, json
+
+##############################################################################################################
+##DO NOT change this part.
+##../setup.py will update this variable
 HTC_package_path = "C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3"
-if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
+assert os.path.isdir(HTC_package_path), "Cannot find this VASP_HTC package under {}".format(HTC_package_path)
+if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
+##############################################################################################################
 
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
@@ -227,11 +233,14 @@ def prepare_cal_files(argv_dict):
             if argv_dict["extra_copy"]:
                 for file in argv_dict["extra_copy"]:
                     shutil.copy2(file, sub_dir_name)
+            print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
+            print(argv_dict["extra_copy"])
             
             if argv_dict["incar_template"] == "":
                 modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False)
             else:
                 modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
+            print("Set ENCUT = {} in {}/INCAR".format(encut, sub_dir_name))
             
             open(os.path.join(sub_dir_name, "__ready__"), "w").close()
             
