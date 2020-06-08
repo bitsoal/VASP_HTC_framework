@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[8]:
+# In[3]:
 
 
 import os, pprint, sys, shutil
@@ -133,6 +133,7 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                     f.write("\t\t\t{}\n".format(file))
                     
         if current_firework["step_no"] == 1:
+            shutil.copy(src=os.path.join(cif_folder, cif_filename), dst=os.path.join(mater_cal_folder, cif_filename))
             Write_Vasp_POSCAR(cal_loc=current_cal_loc, structure_filename=cif_filename, structure_file_folder=cif_folder, 
                               workflow=workflow)
         else:
