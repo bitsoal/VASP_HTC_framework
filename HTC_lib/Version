@@ -1,0 +1,10 @@
+Package name: VASP_HTC_Framework: a Python Framework for First-Principles Hight-throughput Calculations Using the Vienna Ab Initio Simulation Packages (VASP)
+Github: https://github.com/bitsoal/VASP_HTC_framework/tree/upgrade_to_python_3
+Package manual: can be found on Github
+Languages: Python3 + Bash
+Requirements: Pymatgen
+Authors:
+    Yang Tong (yangtong@u.nus.edu; bitsoal@gmail.com);
+    Yang Ming (yangm@imre.a-star.edu.sg);
+    Feng Yuan Ping (phyfyp@nus.edu.sg)
+Last edit time: Mon Jun 08 17:34:18 2020

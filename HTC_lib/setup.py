@@ -29,42 +29,32 @@ if setup == False:
 
 
 if setup:
-    
-    old_HTC_package_path = None
-    with open("VASP/htc_main.py", "r") as f:
-        for line in f:
-            if "HTC_package_path =" in line:
-                old_HTC_package_path = line.split("=")[1].strip().strip("\"")
-                break
-    assert old_HTC_package_path, "Seems you have touched|changed the variable 'HTC_package_path' in VASP/htc_main.py. Reset it as it was originally and re-run this script."
         
     new_HTC_package_path = os.path.split(os.getcwd())[0]
     
-    if new_HTC_package_path == old_HTC_package_path:
-        print("\n***This package was already set up some time ago...\n")
-    else:
-        for python_file in Path(".").glob("**/*.py"):
-            if "__init__.py" == python_file:
-                continue
-            else:
-                with open(python_file, "r") as f:
-                    lines = list(f)
-        
-                is_it_found = False
-                for line_ind in range(len(lines)):
-                    #if "HTC_package_path = \"C:/Users/tyang/Documents/Jupyter_workspace/HTC/python_3\"" in lines[line_ind]:
-                    if "HTC_package_path = \"{}\"".format(old_HTC_package_path) in lines[line_ind]:
+    for python_file in Path("VASP").glob("**/*.py"):
+        if "__init__.py" == python_file:
+            continue
+        else:
+            with open(python_file, "r") as f:
+                lines = list(f)
+    
+            is_update_needed = False
+            for line_ind in range(len(lines)):
+                if "HTC_package_path =" in lines[line_ind]:
+                    old_HTC_package_path = lines[line_ind].split("=")[1].strip().strip("\"")
+                    if new_HTC_package_path != old_HTC_package_path:
                         lines[line_ind] = "HTC_package_path = \"{}\"\n".format(new_HTC_package_path)
-                        is_it_found = True
-                        break
-                    
-                if is_it_found:
-                    with open(python_file, "w") as f:
-                        for line in lines:
-                            f.write(line)
-                    print("***Successfully update HTC_package_path to {} in {}".format(new_HTC_package_path, python_file))
+                        is_update_needed = True
+                    break
                 
-        print("\n***Done***\n")
+            if is_update_needed:
+                with open(python_file, "w") as f:
+                    for line in lines:
+                        f.write(line)
+                print("***Successfully update HTC_package_path to {} in {}".format(new_HTC_package_path, python_file))
+    
+    print("\n***Done***\n")
         
     print("You can find the main python sript htc_main.py under {}".format(os.path.join(os.getcwd(), "VASP")))
     print("What's next:")
