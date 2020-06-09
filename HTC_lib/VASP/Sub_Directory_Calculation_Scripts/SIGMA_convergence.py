@@ -179,13 +179,13 @@ def prepare_cal_files(argv_dict):
                 for file in argv_dict["extra_copy"]:
                     shutil.copy2(file, sub_dir_name)
             print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
-            print(argv_dict["extra_copy"])
+            [print(extra_file, end=" ") for extra_file in argv_dict["extra_copy"]]
             
             if argv_dict["incar_template"] == "":
                 modify_vasp_incar(sub_dir_name, new_tags={"SIGMA": sigma}, rename_old_incar=False)
             else:
                 modify_vasp_incar(sub_dir_name, new_tags={"SIGMA": sigma}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
-            print("Set SIGMA = {} in {}/INCAR".format(sigma, sub_dir_name))
+            print(" && Set SIGMA = {} in {}/INCAR".format(sigma, sub_dir_name))
             
             open(os.path.join(sub_dir_name, "__ready__"), "w").close()
             
@@ -271,7 +271,13 @@ if __name__ == "__main__":
             converged_sigma = find_converged_sigma(argv_dict)
             if converged_sigma == 0:
                 os.rename("__sub_dir_cal__", "__manual__")
+                print("All sub-dir calculations finished but covergence is not reached. __sub_dir_cal__ --> __manual__")
             else:
                 shutil.copy(os.path.join("sigma_"+str(converged_sigma), "INCAR"), "INCAR.optimal")
                 os.rename("__sub_dir_cal__", "__done__")
+                print("All sub-dir calculations finished and covergence is reached.")
+                print("INCAR.optimal is created with optimal SIGMA = {}".format(converged_sigma))
+                print("__sub_dir_cal__ --> __done__")
+        else:
+            print("Some sub-dir calculations are still running...")
 

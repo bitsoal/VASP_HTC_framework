@@ -363,20 +363,14 @@ def prepare_cal_files(argv_dict):
                 for file in argv_dict["extra_copy"]:
                     shutil.copy2(file, sub_dir_name)
             print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
-            print(argv_dict["extra_copy"])
+            [print(extra_file, end=" ") for extra_file in argv_dict["extra_copy"]]
             
-            print("write KPOINTS under {}: ".format(sub_dir_name), end=" ")
+            print(" && write KPOINTS under {}: ".format(sub_dir_name), end=" ")
             #The detail of KPOINTS will be printed by the bellow function.
             VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kpoints_setup, cal_loc=sub_dir_name)
             
             
             open(os.path.join(sub_dir_name, "__ready__"), "w").close()
-
-
-# In[7]:
-
-
-help(print)
 
 
 # In[10]:
@@ -519,7 +513,13 @@ if __name__ == "__main__":
                 converged_NL = find_converged_NL(argv_dict)
                 if converged_NL == 0:
                     os.rename("__sub_dir_cal__", "__manual__")
+                    print("All sub-dir calculations finished but covergence is not reached. __sub_dir_cal__ --> __manual__")
                 else:
                     shutil.copy(os.path.join("NL_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
                     os.rename("__sub_dir_cal__", "__done__")
+                    print("All sub-dir calculations finished and covergence is reached.")
+                    print("KPOINTS.optimal is created with optimal NL = {}".format(converged_NL))
+                    print("__sub_dir_cal__ --> __done__")
+            else:
+                print("Some sub-dir calculations are still running...")
 

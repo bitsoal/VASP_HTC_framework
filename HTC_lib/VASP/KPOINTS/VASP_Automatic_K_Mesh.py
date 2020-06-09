@@ -313,7 +313,7 @@ class VaspAutomaticKMesh():
             
         #if there are less than 3 k-points and ISMEAR is found to be -5 in INCAR, change it ISMEAR = 0 and set SIGMA as below
         if os.path.isfile(os.path.join(cal_loc, "INCAR")):
-            incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+            incar_dict = modify_vasp_incar(cal_loc=cal_loc)
             if sum(kpoints_setup["subdivisions"]) < 4.5 and incar_dict["ISMEAR"] == "-5":
                 if kpoints_setup["pbc_type_of_xyz"] == [False, False, False]:
                     modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.01"}, incar_template=os.path.join(cal_loc, "INCAR"))
