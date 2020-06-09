@@ -433,7 +433,7 @@ def parse_firework_block(block_str_list, step_no):
         if "incar_template" in firework.keys():
             assert os.path.isfile(firework["incar_template"]), "Fail to find a file specified by tag incar_template"
             with open(firework["incar_template"], "r") as incar_template_f:
-                incar_template = [incar_tag.split("#")[0].strip().upper() for incar_tag in incar_template_f]
+                incar_template = [incar_tag.split("#")[0].split("=")[0].strip().upper() for incar_tag in incar_template_f]
             for incar_tag in incar_template:
                 if incar_tag != "":
                     assert incar_template.count(incar_tag) == 1,                     "You set {} more than once in {}. Pls remove the duplica".format(incar_tag, firework["incar_template"])
@@ -447,7 +447,7 @@ def parse_firework_block(block_str_list, step_no):
         if "valid_incar_tags" in firework.keys():
             assert os.path.isfile(firework["valid_incar_tags"]), "Fail to find a file specified by tag valid_incar_tags"
             with open(firework["valid_incar_tags"], "r") as valid_incar_tags_f:
-                valid_incar_tags = [incar_tag.split("#")[0].strip().upper() for incar_tag in valid_incar_tags_f if incar_tag.strip()]
+                valid_incar_tags = [incar_tag.split("#")[0].split("=")[0].strip().upper() for incar_tag in valid_incar_tags_f if incar_tag.strip()]
             for incar_tag in valid_incar_tags:
                 assert valid_incar_tags.count(incar_tag) == 1,                 "You set {} more than once in {}. Pls reomve the duplica".format(incar_tag, firework["valid_incar_tags"])
         firework["valid_incar_tags_list"] = valid_incar_tags

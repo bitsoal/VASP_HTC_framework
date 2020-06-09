@@ -55,6 +55,15 @@ if setup:
                 print("***Successfully update HTC_package_path to {} in {}".format(new_HTC_package_path, python_file))
     
     print("\n***Done***\n")
+    
+    print("***Note that due to the requirement of the VASP license, we are unable to distribute POTCAR.")
+    print("Nevertheless, we provide a bash script named write_potcar.sh under /HTC_lib/VASP/POTCAR.")
+    print("write_potcar.sh reads the atomic species list from POSCAR, retrives POTCAR of each atomic species from a POTCAR folder", end=" ")
+    print("and concatenates them into POTCAR in the same order as in POSCAR.")
+    print("You need to set variable 'POTCAR_loc' in write_potcar.sh to the absolute path to the POTCAR folder")
+    print("Pls ensure that the POTCAR of each atomic species in the POTCAR folder is named as merely the name of that atomic species.")
+    print("e.g. O is the POTCAR associated with Oxygen; V is the POTCAR associated with Vanadium")
+    print("If you want to use V_sv, also rename it as V.\n")
         
     print("You can find the main python sript htc_main.py under {}".format(os.path.join(os.getcwd(), "VASP")))
     print("What's next:")

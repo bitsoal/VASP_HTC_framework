@@ -4,7 +4,7 @@
 # In[1]:
 
 
-import os, sys, re, math
+import os, sys, re, math, shutil
 
 ##############################################################################################################
 ##DO NOT change this part.
@@ -187,6 +187,7 @@ class VaspAutomaticKMesh():
             This optimization is only w.r.t. the pbc axis/axes.
         return a dictionary with the key and value being NL and the corresponding (NL-n_kx*a, NL-n_ky*b, NL-n_kz*c)
         """
+        
         subdivisions = VaspAutomaticKMesh.get_subdivisions(NL=NL, latt_constants=latt_constants, pbc_type_of_xyz=pbc_type_of_xyz)["subdivisions"]
         pbc_subdivisions = VaspAutomaticKMesh.get_pbc_sublist(subdivisions, pbc_type_of_xyz)
         pbc_L = VaspAutomaticKMesh.get_pbc_sublist(latt_constants, pbc_type_of_xyz)
@@ -262,10 +263,12 @@ class VaspAutomaticKMesh():
         kpoints["equivalent_NL"] = VaspAutomaticKMesh.get_possible_NL(subdivisions=kpoints["subdivisions"], 
                                                                       latt_constants=self.structure_dict["lattice_constants"], 
                                                                       pbc_type_of_xyz=self.pbc_type_of_xyz)
-        assert self.NL in kpoints["equivalent_NL"], "Under {}\n\tNL={} is not in the equivalent NL list {}".format(os.getcwd(), NL, kpoints["equivalent_NL"])
+        
+        assert self.NL in kpoints["equivalent_NL"] or True not in self.pbc_type_of_xyz, "Under {}\n\tNL={} is not in the equivalent NL list {}".format(os.getcwd(), self.NL, kpoints["equivalent_NL"])
         kpoints["optimal_NL"] = VaspAutomaticKMesh.optimize_NL(NL=self.NL, 
                                                                latt_constants=self.structure_dict["lattice_constants"], 
                                                                pbc_type_of_xyz=self.pbc_type_of_xyz)
+            
         
     
         kpoints["VaspAutomaticKMesh_input_arguments"] = {}
@@ -315,13 +318,16 @@ class VaspAutomaticKMesh():
         if os.path.isfile(os.path.join(cal_loc, "INCAR")):
             incar_dict = modify_vasp_incar(cal_loc=cal_loc)
             if sum(kpoints_setup["subdivisions"]) < 4.5 and incar_dict["ISMEAR"] == "-5":
+                shutil.copy(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, "INCAR_template"))
                 if kpoints_setup["pbc_type_of_xyz"] == [False, False, False]:
-                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.01"}, incar_template=os.path.join(cal_loc, "INCAR"))
+                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.01"}, incar_template=os.path.join(cal_loc, "INCAR_template"))
                     print("This is a 0D system. However, ISMEAR is found to be -5. Set ISMEAR = 0 and SIGMA = 0.01")
                 else:
-                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.05"}, incar_template=os.path.join(cal_loc, "INCAR"))
+                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.05"}, incar_template=os.path.join(cal_loc, "INCAR_template"))
                     print("There are less than 3 k-points. However, ISMEAR is found to be -5. Set ISMEAR = 0 and SIGMA = 0.05")
-            
+                os.remove(os.path.join(cal_loc, "INCAR_template"))
+                
+                
     @classmethod
     def read_from_KPOINTS_and_POSCAR(cls, cal_loc, max_vacuum_thickness, KPOINTS_filename="KPOINTS", POSCAR_filename="POSCAR"):
         """

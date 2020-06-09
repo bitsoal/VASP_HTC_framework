@@ -132,7 +132,7 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
     if isinstance(valid_incar_tags, str):
         valid_incar_tags_str = valid_incar_tags
         with open(valid_incar_tags_str, "r") as valid_incar_tags_f:
-            valid_incar_tags = [incar_tag.split("#")[0].strip().upper() for incar_tag in valid_incar_tags_f if incar_tag.strip()]
+            valid_incar_tags = [incar_tag.split("#")[0].split("=")[0].strip().upper() for incar_tag in valid_incar_tags_f if incar_tag.strip()]
         duplicate = return_duplicate(valid_incar_tags)
         assert duplicate == "", "{} appears more than once in {}. Pls remove the duplicate".format(duplicate, valid_incar_tags_str)
     valid_incar_tags = [incar_tag.upper() for incar_tag in valid_incar_tags]
@@ -159,7 +159,7 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
     if isinstance(incar_template, str):
         incar_template_str = incar_template
         with open(incar_template_str, "r") as incar_template_f:
-            incar_template = [incar_tag.split("#")[0].strip().upper() for incar_tag in incar_template_f]
+            incar_template = [incar_tag.split("#")[0].split("=")[0].strip().upper() for incar_tag in incar_template_f]
         duplicate = return_duplicate(incar_template, excluded_strs=[""])
         assert duplicate == "", "You set {} more than once in {}. Pls remove the duplicate".format(duplicate, incar_template_str)
     incar_template = [incar_tag.upper() for incar_tag in incar_template]
