@@ -17,7 +17,7 @@ if HTC_package_path not in sys.path:
 
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename, decorated_subprocess_check_output, get_current_firework_from_cal_loc
-from HTC_lib.VASP.Miscellaneous.Execute_user_defined_cmd import Execute_user_defined_cmd
+from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 
 from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import Job_management, kill_error_jobs
 
@@ -300,7 +300,8 @@ def update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list, workflow):
     for sub_dir_cal_path in sub_dir_cal_jobs_list:
         current_firework = get_current_firework_from_cal_loc(sub_dir_cal_path, workflow)
         
-        Execute_user_defined_cmd(cal_loc=sub_dir_cal_path, user_defined_cmd_list=current_firework["sub_dir_cal_cmd"],                                 where_to_execute=sub_dir_cal_path)
+        Execute_shell_cmd(cal_loc=sub_dir_cal_path, user_defined_cmd_list=current_firework["sub_dir_cal_cmd"],
+                          where_to_execute=sub_dir_cal_path, defined_by_which_htc_tag="sub_dir_cal_cmd")
     
     
 

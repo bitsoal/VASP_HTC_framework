@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 import os, pprint, sys, shutil
@@ -18,7 +18,7 @@ if HTC_package_path not in sys.path:
 from pymatgen import Structure
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename
-from HTC_lib.VASP.Miscellaneous.Execute_user_defined_cmd import Execute_user_defined_cmd
+from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 
 from HTC_lib.VASP.INCAR.Write_VASP_INCAR import Write_Vasp_INCAR
 from HTC_lib.VASP.KPOINTS.Write_VASP_KPOINTS import Write_Vasp_KPOINTS
@@ -161,8 +161,8 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
         
         
         input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["user_defined_cmd"],
-                           "where_to_execute": current_cal_loc}
-        if not Execute_user_defined_cmd(**input_args_list):
+                           "where_to_execute": current_cal_loc, "defined_by_which_htc_tag": "user_defined_cmd"}
+        if not Execute_shell_cmd(**input_args_list):
             return False
         
         assert os.path.isfile(os.path.join(current_cal_loc, "POSCAR")), "Error: POSCAR is missing!"
@@ -185,22 +185,16 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
         
         
         input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["final_user_defined_cmd"],
-                           "where_to_execute": current_cal_loc}
-        if not Execute_user_defined_cmd(**input_args_list):
+                           "where_to_execute": current_cal_loc, "user_defined_cmd": "final_user_defined_cmd"}
+        if not Execute_shell_cmd(**input_args_list):
             return False
         
         if current_firework["sub_dir_cal"]:
-            #input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["sub_dir_cal_cmd"],
-            #                  "where_to_execute": current_cal_loc}
-            #if not Execute_user_defined_cmd(**input_args_list):
-            #    return False
-            #else:
-                decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__sub_dir_cal__")
-                with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:
-                    f.write("{} INFO: All VASP input files needed for sub-directory calculations are ready at {}\n".format(get_time_str(), 
-                                                                                                                    current_firework["firework_folder_name"]))
-                    f.write("\t\t\t__vis__ --> __sub_dir_cal__\n")
-                return True
+            decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__sub_dir_cal__")
+            with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:
+                f.write("{} INFO: All VASP input files needed for sub-directory calculations are ready at {}\n".format(get_time_str(), current_firework["firework_folder_name"]))
+                f.write("\t\t\t__vis__ --> __sub_dir_cal__\n")
+            return True
         
         decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__ready__")
         with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:
@@ -233,8 +227,8 @@ def post_process(mater_cal_folder, current_firework, workflow):
         
         
         input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["user_defined_postprocess_cmd"],
-                           "where_to_execute": current_cal_loc}
-        if not Execute_user_defined_cmd(**input_args_list):
+                           "where_to_execute": current_cal_loc, "defined_by_which_htc_tag": "user_defined_postprocess_cmd"}
+        if not Execute_shell_cmd(**input_args_list):
             return False
     
         decorated_os_rename(loc=current_cal_loc, old_filename="__post_process__", new_filename="__post_process_done__")
