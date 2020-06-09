@@ -145,15 +145,6 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
         for incar_tag in incar_dict.keys():
             assert incar_tag in valid_incar_tags, "under {}\n ".format(cal_loc) +             "When we are modifying INCAR as pre-defined, {} is not found in ".format(incar_tag) +             "the valid incar tags defined by valid_incar_tags in HTC_calculation_setup_file.\n" +             "If this is not a spelling error and you want to validize this incar tag, add it in the file specified by valid_incar_tags in HTC_calculation_setup_file."
     
-
-    if isinstance(rename_old_incar, bool):
-        if rename_old_incar:
-            rename_old_incar = find_next_name(cal_loc=cal_loc, orig_name="INCAR")["next_name"]
-            decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
-    elif isinstance(rename_old_incar, str):
-        decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
-    else:
-        raise Exception("input argument rename_old_incar of modify_vasp_incar must be either bool or str.")
         
 
     if isinstance(incar_template, str):
@@ -190,6 +181,16 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
         consumed_incar_tags.append(incar_tag)
     assert sorted(to_be_written_incar_tags) == sorted(consumed_incar_tags), "Something wrong with writing INCAR"    
     
+    
+    if isinstance(rename_old_incar, bool):
+        if rename_old_incar:
+            rename_old_incar = find_next_name(cal_loc=cal_loc, orig_name="INCAR")["next_name"]
+            decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
+    elif isinstance(rename_old_incar, str):
+        decorated_os_rename(loc=cal_loc, old_filename="INCAR", new_filename=rename_old_incar)
+    else:
+        raise Exception("input argument rename_old_incar of modify_vasp_incar must be either bool or str.")
+
             
     with open(os.path.join(cal_loc, "INCAR"), "w") as incar_f:
         incar_f.write(output_incar_str)

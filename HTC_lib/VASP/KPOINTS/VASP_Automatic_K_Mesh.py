@@ -318,14 +318,14 @@ class VaspAutomaticKMesh():
         if os.path.isfile(os.path.join(cal_loc, "INCAR")):
             incar_dict = modify_vasp_incar(cal_loc=cal_loc)
             if sum(kpoints_setup["subdivisions"]) < 4.5 and incar_dict["ISMEAR"] == "-5":
-                shutil.copy(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, "INCAR_template"))
+                #shutil.copy(os.path.join(cal_loc, "INCAR"), os.path.join(cal_loc, "INCAR_template"))
                 if kpoints_setup["pbc_type_of_xyz"] == [False, False, False]:
-                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.01"}, incar_template=os.path.join(cal_loc, "INCAR_template"))
+                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.01"}, incar_template=os.path.join(cal_loc, "INCAR"))
                     print("This is a 0D system. However, ISMEAR is found to be -5. Set ISMEAR = 0 and SIGMA = 0.01")
                 else:
-                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.05"}, incar_template=os.path.join(cal_loc, "INCAR_template"))
+                    modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISMEAR": "0", "SIGMA": "0.05"}, incar_template=os.path.join(cal_loc, "INCAR"))
                     print("There are less than 3 k-points. However, ISMEAR is found to be -5. Set ISMEAR = 0 and SIGMA = 0.05")
-                os.remove(os.path.join(cal_loc, "INCAR_template"))
+                #os.remove(os.path.join(cal_loc, "INCAR_template"))
                 
                 
     @classmethod
