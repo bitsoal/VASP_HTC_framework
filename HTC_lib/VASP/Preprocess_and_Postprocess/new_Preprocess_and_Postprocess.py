@@ -125,7 +125,7 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
         
         if current_firework["extra_copy"]:
             with open(log_txt, "a") as f:
-                f.write("{} INFO: copy defined by tag extra_tag to {}\n".format(get_time_str(), current_firework["firework_folder_name"]))
+                f.write("{} INFO: copy defined by tag extra_copy to {}\n".format(get_time_str(), current_firework["firework_folder_name"]))
             for file in current_firework["extra_copy"]:
                 filename = os.path.split(file)[1]
                 shutil.copyfile(src=file, dst=os.path.join(current_cal_loc, filename))
@@ -185,7 +185,7 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
         
         
         input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["final_user_defined_cmd"],
-                           "where_to_execute": current_cal_loc, "user_defined_cmd": "final_user_defined_cmd"}
+                           "where_to_execute": current_cal_loc, "defined_by_which_htc_tag": "final_user_defined_cmd"}
         if not Execute_shell_cmd(**input_args_list):
             return False
         

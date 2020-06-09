@@ -47,7 +47,7 @@ def Execute_shell_cmd(cal_loc, user_defined_cmd_list, where_to_execute, defined_
             
         for cmd_ind, cmd_ in enumerate(user_defined_cmd_list):
             with open(os.path.join(cal_loc, "log.txt"), "a") as f:
-                f.write("\n\t\t\tCommand {}: {}\n".format(cmd_ind, cmd_))
+                f.write("\t\t\t>>>Command {}: {}\n".format(cmd_ind, cmd_))
                 
             os.chdir(where_to_execute)
             for i in range(10): #To avoid the case where the server is too busy to respond to the command. Hope the server is able to respond to either of the 10 trails.
