@@ -26,42 +26,39 @@ from HTC_lib.VASP.POTCAR.Write_VASP_POTCAR import Write_Vasp_POTCAR
 from HTC_lib.VASP.POSCAR.Write_VASP_POSCAR import Write_Vasp_POSCAR
 
 
-# In[2]:
-
-
-def preview_HTC_vasp_inputs(cif_filename, cif_folder, workflow):
-    """
-    Preview vasp inputs of each firework defined in workflow
-    input arguments:
-        - cif_filename (str): the cif file of a structure.
-        - cif_folder (str): the absolute path of the folder where cif_filename is stored.
-        - cal_folder (str): Under cal_folder, a sub-folder will be created where a set of DFT calculations defined by workflow will be made.
-                        Note that the absolute path should be provided.
-        - workflow: the return of function parse_calculation_workflow, which define a set of DFT calculations and related pre- and post- processes
-    """
-    preview_HTC_dir = os.path.join(os.getcwd(), "preview_HTC")
-    if os.path.isdir(preview_HTC_dir):
-        shutil.rmtree(preview_HTC_dir)
-    os.mkdir(preview_HTC_dir)
-    for current_firework in workflow:
-        try:
-            prepare_input_files(cif_filename=cif_filename, cif_folder=cif_folder, mater_cal_folder=preview_HTC_dir, 
-                                current_firework=current_firework, workflow=workflow)
-        except:
-            pass
-        finally:
-            append_info_to_a_file(current_firework["firework_folder_name"], os.path.join(preview_HTC_dir, current_firework["firework_folder_name"]))
-    
-            
-    
-
-def append_info_to_a_file(firework_name, cal_loc, file_list=["WAVECAR", "CHGCAR", "CONTCAR", "POSCAR", "KPOINTS", "INCAR"]):
-    shutil.copyfile(os.path.join(cal_loc, "POSCAR"), os.path.join(cal_loc, "CONTCAR"))
-    for filename in file_list:
-        with open(os.path.join(cal_loc, filename), "a") as f:
-            f.write("#{}: {} of {}\n".format(get_time_str(), filename, firework_name))
-    
-
+# def preview_HTC_vasp_inputs(cif_filename, cif_folder, workflow):
+#     """
+#     Preview vasp inputs of each firework defined in workflow
+#     input arguments:
+#         - cif_filename (str): the cif file of a structure.
+#         - cif_folder (str): the absolute path of the folder where cif_filename is stored.
+#         - cal_folder (str): Under cal_folder, a sub-folder will be created where a set of DFT calculations defined by workflow will be made.
+#                         Note that the absolute path should be provided.
+#         - workflow: the return of function parse_calculation_workflow, which define a set of DFT calculations and related pre- and post- processes
+#     """
+#     preview_HTC_dir = os.path.join(os.getcwd(), "preview_HTC")
+#     if os.path.isdir(preview_HTC_dir):
+#         shutil.rmtree(preview_HTC_dir)
+#     os.mkdir(preview_HTC_dir)
+#     for current_firework in workflow:
+#         try:
+#             prepare_input_files(cif_filename=cif_filename, cif_folder=cif_folder, mater_cal_folder=preview_HTC_dir, 
+#                                 current_firework=current_firework, workflow=workflow)
+#         except:
+#             pass
+#         finally:
+#             append_info_to_a_file(current_firework["firework_folder_name"], os.path.join(preview_HTC_dir, current_firework["firework_folder_name"]))
+#     
+#             
+#     
+# 
+# def append_info_to_a_file(firework_name, cal_loc, file_list=["WAVECAR", "CHGCAR", "CONTCAR", "POSCAR", "KPOINTS", "INCAR"]):
+#     shutil.copyfile(os.path.join(cal_loc, "POSCAR"), os.path.join(cal_loc, "CONTCAR"))
+#     for filename in file_list:
+#         with open(os.path.join(cal_loc, filename), "a") as f:
+#             f.write("#{}: {} of {}\n".format(get_time_str(), filename, firework_name))
+#     
+# 
 
 # In[2]:
 
@@ -167,9 +164,9 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
         
         assert os.path.isfile(os.path.join(current_cal_loc, "POSCAR")), "Error: POSCAR is missing!"
         
+        Write_Vasp_POTCAR(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
         Write_Vasp_INCAR(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
         Write_Vasp_KPOINTS(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
-        Write_Vasp_POTCAR(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
             
         
         if current_firework["final_extra_copy"]:

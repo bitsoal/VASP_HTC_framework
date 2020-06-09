@@ -539,12 +539,13 @@ Default: **No default command. Any command that can be executed in the linux ter
 
 -------------------------------------------------
 **preview\_vasp\_inputs**, **optional for the first firework**  
-This tag enables you to preview the vasp inputs of each firework defined in `HTC_calculation_setup`. **This tag is designed to check whether the input setting defined in `HTC_calculation_setup` is correct before the real HTC calculation is carried out.**   
+**This tag has been obsolete. Not matter what the user sets to `preview_vasp_inputs`, it will eventually be set to `No`. The best way to check whether your `HTC_calculation_setup` works or not should be to feed one small/test structure to it and let the pre-defined calculations run for the test structure.**  
+~~This tag enables you to preview the vasp inputs of each firework defined in `HTC_calculation_setup`. **This tag is designed to check whether the input setting defined in `HTC_calculation_setup` is correct before the real HTC calculation is carried out.**~~   
 
 
-- `Yes`: When `python htc_main.py` is executed, a folder named `preview_HTC` will be created under the same directory where `python htc_main.py` is executed. Under `preview_HTC`, the vasp inputs of each firework will be written. ***In this case, the real HTC calculation won't be carried out.***  
-- `No`: ***The real HTC calculation will be carried out***  
-default: `No`
+- ~~`Yes`: When `python htc_main.py` is executed, a folder named `preview_HTC` will be created under the same directory where `python htc_main.py` is executed. Under `preview_HTC`, the vasp inputs of each firework will be written. ***In this case, the real HTC calculation won't be carried out.***~~  
+- ~~`No`: ***The real HTC calculation will be carried out***~~  
+~~default: `No`~~
 
 -----------------------------------
 - **error\_backup\_files**, optional.  

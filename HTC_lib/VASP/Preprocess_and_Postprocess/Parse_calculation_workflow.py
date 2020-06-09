@@ -412,6 +412,9 @@ def parse_firework_block(block_str_list, step_no):
         firework["preview_vasp_inputs"] = firework.get("preview_vasp_inputs", "No").lower()
         for tag in ["force_gamma", "2d_system", "sort_structure", "preview_vasp_inputs"]:
             firework[tag] = True if 'y' in firework[tag] else False
+        if firework["preview_vasp_inputs"]:
+            print("preview_vasp_inputs has been obsolete. Reset it to False|No")
+            print("The best way to check whether your HTC_calculation_setup works is to feed a cheap|small system to it, and see if it really works.")
             
                 
                     

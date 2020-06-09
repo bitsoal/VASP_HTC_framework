@@ -20,7 +20,7 @@ from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str
 from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_files, backup_a_file
 from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
 from HTC_lib.VASP.Preprocess_and_Postprocess.Parse_calculation_workflow import parse_calculation_workflow
-from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process, preview_HTC_vasp_inputs
+from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, update_job_status
 from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 
@@ -66,14 +66,10 @@ if __name__ == "__main__":
     
     if not os.path.isdir(cal_folder):
         os.mkdir(cal_folder)
-    
-    if workflow[0]["preview_vasp_inputs"]:
-        preview_HTC_vasp_inputs(cif_filename=os.listdir(structure_file_folder)[0], cif_folder=structure_file_folder, workflow=workflow)
-
 
     main_dir = os.getcwd()
     no_of_same_cal_status, cal_status_0 = 0, {}
-    while not workflow[0]["preview_vasp_inputs"]:
+    while True:
         os.chdir(main_dir)
         if os.path.isfile("__stop__"):
             print(">>>Detect file __stop__ in {}\n ---->stop this program.".format(main_dir))
