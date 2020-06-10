@@ -288,8 +288,9 @@ def read_and_set_default_arguments(argv_list):
     NL_list, kpoints_setup_list, NL, dN, NL_end = [], [], argv_dict["NL_start"], argv_dict["dN"], argv_dict["NL_end"]
     is_it_0D = False
     while NL <= NL_end:
-        kpoints_setup = VaspAutomaticKMesh(NL=NL, **input_kwargvs).get_kpoints_setup()
-        if kpoints_setup.pbc_type_of_xyz == [False, False, False]:
+        automatic_kmesh = VaspAutomaticKMesh(NL=NL, **input_kwargvs)#.get_kpoints_setup()
+        kpoints_setup = automatic_kmesh.get_kpoints_setup()
+        if automatic_kmesh.pbc_type_of_xyz == [False, False, False]:
             #If it is 0D, KPOINTS must be Gamma point only.
             is_it_0D = True
             break
