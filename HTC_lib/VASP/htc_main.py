@@ -15,6 +15,8 @@ if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
 ##############################################################################################################
 
+from pathlib import Path
+
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str
 from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_files, backup_a_file
@@ -112,10 +114,12 @@ if __name__ == "__main__":
             break
         
         for i in range(60):
+            update_now_list = list(Path(main_dir).glob("**/__update_now__"))
             if os.path.isfile("__stop__"):
-                break
-            elif os.path.isfile("__update_now__"):
-                os.remove("__update_now__")
+                break  
+            elif update_now_list:
+                for update_now in update_now_list:
+                    os.remove(update_now)
                 break
             elif os.path.isfile("__change_signal_file__"):
                 cal_status = change_signal_file(cal_status, "__change_signal_file__")
