@@ -496,6 +496,23 @@ def find_converged_NL(argv_dict):
     return 0  
 
 
+# In[1]:
+
+
+def write_optimal_kpoints_setup(converged_NL, argv_dict):
+    """save the optimal NL, the kmesh type and max_vacuum_thickness into a json file named optimal_kpoints_setup.json"""
+    kpoints_setup_dict = {"optimal_NL": converged_NL, "NL": converged_NL}
+    
+    for key in ["shift", "max_vacuum_thickness", "symprec_latt_const", "symprec_angle"]:
+        kpoints_setup_dict[key] = argv_dict[key]
+    
+    with open("KPOINTS.optimal", "r") as opt_kpoints:
+        kpoints_setup_dict["kmesh_type"] = list(opt_kpoints)[2].strip("\n").strip()
+        
+    with open("optimal_kpoints_setup.json", "w") as setup:
+        json.dump(kpoints_setup_dict, setup, indent=4)
+
+
 # In[74]:
 
 
@@ -517,9 +534,11 @@ if __name__ == "__main__":
                     print("All sub-dir calculations finished but covergence is not reached. __sub_dir_cal__ --> __manual__")
                 else:
                     shutil.copy(os.path.join("NL_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
+                    write_optimal_kpoints_setup(converged_NL=converged_NL, argv_dict=argv_dict)
                     os.rename("__sub_dir_cal__", "__done__")
                     print("All sub-dir calculations finished and covergence is reached.")
                     print("KPOINTS.optimal is created with optimal NL = {}".format(converged_NL))
+                    print("Also write optimal kpoints setup into file optimal_kpoints_setup.json")
                     print("__sub_dir_cal__ --> __done__")
             else:
                 print("Some sub-dir calculations are still running...")
