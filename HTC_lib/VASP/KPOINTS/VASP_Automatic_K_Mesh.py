@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
-import os, sys, re, math, shutil
+import os, sys, re, math, shutil, json
 
 ##############################################################################################################
 ##DO NOT change this part.
@@ -397,21 +397,26 @@ if __name__ == "__main__":
         argv_dict["cal_loc"] = raw_argv_dict.get("cal_loc", ".")
         assert os.path.isdir(argv_dict["cal_loc"]), "{} is not a valid directory".format(argv_dict["cal_loc"])
         
-        try:
-            argv_dict["NL"] = int(raw_argv_dict["nl"])
-        except:
-            raise Exception("You must set --NL to determine the subdivisions along the k_x, k_y and k_z.")
-        
-        try:
-            argv_dict["max_vacuum_thickness"] = [float(thickness) for thickness in raw_argv_dict["max_vacuum_thickness"].split("_")[:3]]
-        except:
-            raise Exception("You must set --max_vacuum_thickness to tell if the periodic boundary condition holds along x-, y- and z-axis. Format: A_B_C, e.g. 5_5_5")
+        if "opt_kpoints_setup" in raw_argv_dict.keys():
+            assert os.path.isfile(raw_argv_dict["opt_kpoints_setup"]), "The json file specified by --opt_kpoints_setup does not exist."
+            with open(raw_argv_dict["opt_kpoints_setup"], "r") as opt_setup:
+                argv_dict.update(json.load(opt_setup))
+        else:            
+            try:
+                argv_dict["NL"] = int(raw_argv_dict["nl"])
+            except:
+                raise Exception("You must set --NL to determine the subdivisions along the k_x, k_y and k_z.")
             
-        argv_dict["symprec_latt_const"] = float(raw_argv_dict.get("symprec_latt_const", 0.1))
-        assert argv_dict["symprec_latt_const"] >=0 , "The value passed to --symprec_latt_const should be a non-negative number in Angstrom. Default: 0.1"
-        
-        argv_dict["symprec_angle"] = float(raw_argv_dict.get("symprec_angle", 1))
-        assert argv_dict["symprec_angle"] >= 0, "The value passed to --symprec_angle should be a non-negative number in degree. Default: 1"
+            try:
+                argv_dict["max_vacuum_thickness"] = [float(thickness) for thickness in raw_argv_dict["max_vacuum_thickness"].split("_")[:3]]
+            except:
+                raise Exception("You must set --max_vacuum_thickness to tell if the periodic boundary condition holds along x-, y- and z-axis. Format: A_B_C, e.g. 5_5_5")
+                
+            argv_dict["symprec_latt_const"] = float(raw_argv_dict.get("symprec_latt_const", 0.1))
+            assert argv_dict["symprec_latt_const"] >=0 , "The value passed to --symprec_latt_const should be a non-negative number in Angstrom. Default: 0.1"
+            
+            argv_dict["symprec_angle"] = float(raw_argv_dict.get("symprec_angle", 1))
+            assert argv_dict["symprec_angle"] >= 0, "The value passed to --symprec_angle should be a non-negative number in degree. Default: 1"
         
         raw_argv_dict.update(argv_dict)
         kmesher = VaspAutomaticKMesh(**raw_argv_dict)
@@ -422,6 +427,10 @@ if __name__ == "__main__":
         print("\nthe (key, value) pair connected to each other by a semicolon will be parsed and used to create and write KPOINTS.")
         print("\n***Below are the allowed (key, value) pairs, among which you must set NL and max_vacuum_thickness.")
         print("***--shift and --str_file are disabled.")
+        print("***Note that if the optimal KPOINTS has been successfully obtained by Vasp_Automatic_Type_KPOINTS_convergence.py, ", end=" ")
+        print("a json file named optimal_kpoints_setup.json was also created by that script, which contains the optimal kpoints setup for the tested material.")
+        print("If you decide to use that optimal kpoints setup, JUST set --opt_kpoints_setup to pass the location of optimal_kpoints_setup.json to the current script (VASP_Automatic_K_Mesh.py)", end=" ")
+        print("In this case, other input parameters will be ignored.")
         print(VaspAutomaticKMesh.__init__.__doc__)
         
 
