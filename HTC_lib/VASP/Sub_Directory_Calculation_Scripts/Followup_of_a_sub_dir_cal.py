@@ -21,10 +21,10 @@ if HTC_package_path not in sys.path:
 
 __doc__ = """
     What this script does:
-        This script prepares VASP input files of a sub-dir calculations following a sub-dirc structural optimizations.
+        This script prepares VASP input files of a sub-dir calculations following a sub-dir calculations.
         
     The command line to call this script looks like below:
-    >>>python Followup_of_sub_dir_structural_optimization --files_from_parent_dir --prev_sub_dir_cal --sub_dir_names:filename [--files_from_prev_sub_dir_cal] [--contcar_to_poscar:Yes] [--extra_copy] [--help]
+    >>>python Followup_of_a_sub_dir_cal --files_from_parent_dir --prev_sub_dir_cal --sub_dir_names:filename [--files_from_prev_sub_dir_cal] [--contcar_to_poscar:Yes] [--extra_copy] [--help]
     Arguments in a pair of brackets are optional
     * --files_from_parent_dir: files to be copied to sub-directories. parent_dir is the directory where the current script is executed.
                             If more than one files to be copied, separate them with plus signs "+"
