@@ -1,0 +1,60 @@
+#!/bin/sh
+#PBS -q normal
+#PBS -N "htc_packed"
+#PBS -l select=25:ncpus=24:mpiprocs=24:ompthreads=1:mem=96g
+#PBS -l walltime=24:00:00
+##PBS -j oe
+#PBS -l place=scatter
+
+
+# change directory to the one where the job was submitted
+cd ${PBS_O_WORKDIR}
+
+module purge
+module load VASP
+
+packed_job_list_file=packed_cal_list
+
+
+if [ -e ${PBS_O_WORKDIR}/finished_job_list ]
+then
+	rm ${PBS_O_WORKDIR}/finished_job_list
+fi
+
+
+line_ind=1
+while [ ${line_ind} -le `cat ${packed_job_list_file} | wc -l` ]
+do
+	cal_folder=`head -n ${line_ind} ${packed_job_list_file}| tail -n 1`
+	if [ -e $cal_folder/__packed__ ]
+	then
+		cd $cal_folder
+		echo ${PBS_JOBID} > job_id
+		mv __packed__ __packed_running__
+
+		cp INCAR INCAR_0
+		grep -v NPAR INCAR_0 > INCAR
+		echo "NPAR = 25" >> INCAR
+
+		if [[ $cal_folder == *"step_1_str_opt"* ]]
+		then
+			mpirun vasp_gam > out
+		else
+			mpirun vasp_std > out
+		fi
+
+		cp INCAR INCAR_for_packed_job
+		mv INCAR_0 INCAR
+
+		echo $cal_folder >> ${PBS_O_WORKDIR}/finished_job_list
+
+		touch ${PBS_JOBNAME}.o 
+		touch ${PBS_JOBNAME}.e
+		mv __packed_running__ __running__
+		line_ind=1
+	else
+		line_ind=$(($line_ind+1))
+	fi
+
+
+done
