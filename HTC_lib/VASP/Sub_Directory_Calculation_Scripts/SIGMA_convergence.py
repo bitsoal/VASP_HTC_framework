@@ -142,6 +142,11 @@ def read_and_set_default_arguments(argv_list):
         sigma += step
     argv_dict["sigma_list"] = sigma_list[:min([len(sigma_list), argv_dict["max_no_of_points"]])]
     
+    sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
+    sub_dir_creation_summary_dict["sub_dir_name_list"] = ["sigma_" + str(sigma) for sigma in argv_dict["sigma_list"]]
+    with open("sub_dir_creation_summary.json", "w") as summary_df:
+        json.dump(sub_dir_creation_summary_dict, summary_df, indent=4)
+    
     return argv_dict             
             
 

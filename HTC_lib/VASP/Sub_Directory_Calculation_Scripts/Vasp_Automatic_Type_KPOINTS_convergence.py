@@ -331,6 +331,11 @@ def read_and_set_default_arguments(argv_list):
     argv_dict["kpoints_setup_list"] = kpoints_setup_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]
     argv_dict["is_it_0D"] = is_it_0D
     
+    sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
+    sub_dir_creation_summary_dict["sub_dir_name_list"] = ["NL_" + str(NL) for NL in argv_dict["NL_list"]]
+    with open("sub_dir_creation_summary.json", "w") as summary_df:
+        json.dump(sub_dir_creation_summary_dict, summary_df, indent=4)
+    
     return argv_dict             
             
 

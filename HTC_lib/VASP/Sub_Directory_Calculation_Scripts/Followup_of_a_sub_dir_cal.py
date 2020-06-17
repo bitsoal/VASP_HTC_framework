@@ -133,6 +133,11 @@ def read_and_set_default_arguments(argv_list):
     with open("followup_sub_dir_setup.json", "w") as setup:
         json.dump(argv_dict, setup, indent=4)
         
+    sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
+    sub_dir_creation_summary_dict["sub_dir_name_list"] = argv_dict["sub_dir_names_list"]
+    with open("sub_dir_creation_summary.json", "w") as summary_df:
+        json.dump(sub_dir_creation_summary_dict, summary_df, indent=4)
+        
     return argv_dict             
             
 

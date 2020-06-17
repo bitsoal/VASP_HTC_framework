@@ -200,6 +200,11 @@ def read_and_set_default_arguments(argv_list):
         encut += step
     argv_dict["encut_list"] = encut_list[:min([len(encut_list), argv_dict["max_no_of_points"]])]
     
+    sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
+    sub_dir_creation_summary_dict["sub_dir_name_list"] = ["encut_" + str(encut) for encut in argv_dict["encut_list"]]
+    with open("sub_dir_creation_summary.json", "w") as summary_df:
+        json.dump(sub_dir_creation_summary_dict, summary_df, indent=4)
+    
     return argv_dict             
             
 
