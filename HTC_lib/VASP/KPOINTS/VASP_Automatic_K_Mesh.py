@@ -429,7 +429,7 @@ if __name__ == "__main__":
         print("***--shift and --str_file are disabled.")
         print("***Note that if the optimal KPOINTS has been successfully obtained by Vasp_Automatic_Type_KPOINTS_convergence.py, ", end=" ")
         print("a json file named optimal_kpoints_setup.json was also created by that script, which contains the optimal kpoints setup for the tested material.")
-        print("If you decide to use that optimal kpoints setup, JUST set --opt_kpoints_setup to pass the location of optimal_kpoints_setup.json to the current script (VASP_Automatic_K_Mesh.py)", end=" ")
+        print("If you decide to use that optimal kpoints setup, JUST set -write and --opt_kpoints_setup. Via the latter, the location of optimal_kpoints_setup.json is passed to the current script (VASP_Automatic_K_Mesh.py)", end=" ")
         print("In this case, other input parameters will be ignored.")
         print(VaspAutomaticKMesh.__init__.__doc__)
         
