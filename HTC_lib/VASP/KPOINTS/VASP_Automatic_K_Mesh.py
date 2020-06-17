@@ -413,7 +413,8 @@ if __name__ == "__main__":
         argv_dict["symprec_angle"] = float(raw_argv_dict.get("symprec_angle", 1))
         assert argv_dict["symprec_angle"] >= 0, "The value passed to --symprec_angle should be a non-negative number in degree. Default: 1"
         
-        kmesher = VaspAutomaticKMesh(**argv_dict)
+        raw_argv_dict.update(argv_dict)
+        kmesher = VaspAutomaticKMesh(**raw_argv_dict)
         VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kmesher.get_kpoints_setup(), cal_loc=argv_dict["cal_loc"])
     else:
         print("If you want to write a VASP k-mesh of the automatic type, run this script like below on the command line\n")
