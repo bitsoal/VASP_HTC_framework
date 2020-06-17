@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[10]:
 
 
 import os, sys, re, math, shutil, json
@@ -35,6 +35,7 @@ __doc__ = """
                             Note that --prev_sub_dir_cal should be specified relative to where the current script is executed.
                             If you are using VASP_HTC_framework (https://github.com/bitsoal/VASP_HTC_framework), it should look like ../step_x_xxxx
     * --sub_dir_names: a json filename storing a python dict. The dict has a key "sub_dir_name_list" and the corresponding value is a list of sub-dir names.
+                        We assume this json file is under the folder specified by --prev_sub_dir_cal. So JUST pass the the name of the json file to this tag.
                         Also see --prev_sub_dir_cal
                         Note that the sub-dir names of the current sub-dir calculations should be exactly same at the previous sub-dir calculations, i.e. 1-1 mapping
     * --files_from_prev_sub_dir_cal: see --prev_sub_dir_cal.

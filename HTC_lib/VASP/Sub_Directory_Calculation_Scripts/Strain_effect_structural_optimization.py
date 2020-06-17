@@ -175,7 +175,7 @@ def prepare_cal_files(argv_dict):
             for axis_ind in argv_dict["which_axis"]:
                 line_ind = 2 + axis_ind
                 new_latt_vec = [float(latt_vec_i) * strain for latt_vec_i in poscar_list[line_ind].split("#")[0].split("!")[0].split() if latt_vec_i]
-                poscar_list[line_ind] = "    ".join([str(latt_vec_i) for latt_vec_i in new_latt_vec]) + "\n"
+                poscar_list[line_ind] = "    ".join(["%.16f" % latt_vec_i for latt_vec_i in new_latt_vec]) + "\n"
             
             with open(os.path.join(sub_dir_name, "POSCAR"), "w") as poscar_f:
                 [poscar_f.write(poscar_line) for poscar_line in poscar_list]

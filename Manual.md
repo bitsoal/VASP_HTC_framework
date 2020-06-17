@@ -535,6 +535,8 @@ As shown in the second figure (`The procedure of preparing VASP input files and 
 
 **commands defined by `sub_dir_cal_cmd` is going to be called repeatedly by the program to detect and change the status of the sub-folder calculation. We suggest you to write all commands into a script and copy that script to the specific calculation folder using HTC tag `extra_copy` or `final_extra_copy`. Then just execute that script.**  
 
+**A bunch of scripts are ready under `HTC_lib/VASP/Sub_Directory_Calculation_Scripts`. The aim and the execution of each script have been detailed at the beginning of each script. We are testing those scripts. Any feedbacks from you are also welcome!**  
+
 Default: **No default command. Any command that can be executed in the linux terminal. If there are more than one commands, separate them using `,`. Anyway, we suggest you to put all commands into a script and simply run that script.**  
 
 -------------------------------------------------
@@ -696,7 +698,7 @@ When the workflow is running, some **built-in** signal file will be present in e
 **If you take a look at `${HTC_CWD}/htc_job_status.job`, you will find some calculations may be categorized into a non-built-in type, say `xyz_folder_list`. This is because for a given calculation, the program will first search for any of the above built-in signal files. If none of them is found, the program will then check whether there is any file starting and ending with double underscores (`__`). If found, such a file will be treated as an *unknown* signal file and the calculation will be categorized into such a type. Otherwise, put it into `other_folder_list`. Note that if there are more than one unknown signal files detected for one calculation, say `__xyz__` and `__abc__`, this calculation will be put into both `xyz_folder_list` and `abc_folder_list`. But for any calculation tagged by a built-in signal file, it is unique in `${HTC_CWD}/htc_job_status.job`.**
 
 ### Update the calculation status  
-By default, this program scan/update the calculations every 10 mins. If you want to ask the program to scan/update as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file in 10 s. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**  
+By default, this program scan/update the calculations every 10 mins. If you want to ask the program to scan/update as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file in 10 s. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**. *Note that `__update_now__` could be created anywhere under `${HTC_CWD}`. It could be exactly under `${HTC_CWD}` or under any `sub-...-sub-folder` of `${HTC_CWD}`. The program is able to find and respond to it.*  
 
 ### How to change a certain number of calculations from their original status to a target status  
 Under `${HTC_CWD}`, you can create a signal file named `__change_signal_file__` to change a certain number of calculations from their original status (signal file) to a target status (signal file). In `__change_signal_file__`, three parameters should be defined in the following format, e.g.
