@@ -5,7 +5,7 @@
 
 ### Package requirements: pymatgen
 
-### Please refer to [Manual](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/Manual.md) for how to use and run this package.
+### Please refer to [Manual](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/Manual.md) for the application and execution of this package.
 
   
 ## A series of things to be added
@@ -26,4 +26,6 @@
 	
 7. set DIPOL
 
-8. read e_fermi and set EMIN & EMAX for DOS calculations.
+8. read e_fermi and set EMIN & EMAX for DOS calculations.  
+
+9. Divide `HTC_calculation_setup_file` into a set of **setup block files**. One setup file is too long to check previous step setups while appending a new step setup. *One-file setup will be still supported for compatibility*.

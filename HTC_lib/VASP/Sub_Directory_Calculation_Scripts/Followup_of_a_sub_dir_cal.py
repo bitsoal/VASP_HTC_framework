@@ -77,7 +77,7 @@ def read_and_set_default_arguments(argv_list):
             argv_dict = json.load(setup)
         update_setup = False
     
-    if update_setup == True:
+    if update_setup == False:
         if not os.path.isfile(os.path.join(argv_dict["prev_sub_dir_cal"], "__done__")):
             #the below signal tag is going to be added as a built-in tag in VASP_HTC_framework
             if not os.path.isfile(os.path.join(argv_dict["prev_sub_dir_cal"], "__done_clean__")):
@@ -113,7 +113,7 @@ def read_and_set_default_arguments(argv_list):
             
         
         argv_dict["files_from_prev_sub_dir_cal"] = raw_argv_dict.get("--files_from_prev_sub_dir_cal", "")
-        argv_dict["files_from_prev_sub_dir_cal"] = argv_dict["files_from_prev_sub_dir_cal"].split("+") + ["INCAR", "POTCAR", "KPOINTS", "POSCAR", "CONTCAR"]
+        argv_dict["files_from_prev_sub_dir_cal"] = [file for file in argv_dict["files_from_prev_sub_dir_cal"].split("+") if file] + ["INCAR", "POTCAR", "KPOINTS", "POSCAR", "CONTCAR"]
         argv_dict["files_from_prev_sub_dir_cal"] = list(set(argv_dict["files_from_prev_sub_dir_cal"]))
         for sub_dir_name in argv_dict["sub_dir_names_list"]:
             for filename in argv_dict["files_from_prev_sub_dir_cal"]:
@@ -204,8 +204,7 @@ def prepare_cal_files(argv_dict):
 
 def are_all_sub_dir_cal_finished(argv_dict):
     
-    for encut in argv_dict["strain_list"]:
-        sub_dir_name = "strain_" + str(encut)
+    for sub_dir_name in argv_dict["sub_dir_names_list"]:
         
         if not os.path.isfile(os.path.join(sub_dir_name, '__done__')):
             if not os.path.isfile(os.path.join(sub_dir_name, "__done_clean__")):
