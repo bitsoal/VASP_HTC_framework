@@ -1,0 +1,163 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[4]:
+
+
+import os, re, sys
+import numpy as np
+
+
+# In[3]:
+
+
+def read_poscar(poscar_filename="POSCAR", cal_loc="."):
+    full_poscar_filename = os.path.join(cal_loc, poscar_filename)
+    poscar_dict = {}
+    with open(full_poscar_filename) as poscar_f:
+        poscar_dict["original_poscar"] = list(poscar_f)
+    
+    poscar_lines = [line.strip() for line in poscar_dict["original_poscar"]]
+    
+    scaling_factor = float(re.findall("[0-9\-\.]+", poscar_lines[1])[0])
+    latt_vec_a = [float(num) for num in poscar_lines[2].split()[:3]]
+    latt_vec_b = [float(num) for num in poscar_lines[3].split()[:3]]
+    latt_vec_c = [float(num) for num in poscar_lines[4].split()[:3]]
+    poscar_dict["lattice_matrix"] = np.array([latt_vec_a, latt_vec_b, latt_vec_c])
+    if scaling_factor < 0: #of this value is negative it is interpreted as the total volume of the cell
+        vol = abs(np.linalg.det(poscar_dict["lattice_matrix"]))
+        scaling_factor = (-scaling_factor / vol) ** (1./3)
+        poscar_dict["lattice_matrix"] = poscar_dict["lattice_matrix"] * scaling_factor
+    else:
+        poscar_dict["lattice_matrix"] = poscar_dict["lattice_matrix"] * scaling_factor
+    poscar_dict["inv_lattice_matrix"] = np.linalg.inv(poscar_dict["lattice_matrix"])
+    poscar_dict["lattice_constant_a"] = np.linalg.norm(poscar_dict["lattice_matrix"][0, :])
+    poscar_dict["lattice_constant_b"] = np.linalg.norm(poscar_dict["lattice_matrix"][1, :])
+    poscar_dict["lattice_constant_c"] = np.linalg.norm(poscar_dict["lattice_matrix"][2, :])
+    
+    #parse the atomic species
+    species_items = re.findall("[a-zA-Z]+", poscar_lines[5].split("#")[0])
+    if species_items == []: #VASP4 POSCAR does not have this line
+        print("Warning: {} does not have the line specifying the atomic species. \nIs this a VASP4 calculation? If it is, please ensure that atomic sequence in POSCAR be consistent with that in POTCAR. \nSuch a line must be present in POSCAR for a VASP5 calculation.".format(full_poscar_filename))
+        line_ind_of_atom_no = 5
+    else:
+        line_ind_of_atom_no = 6
+    #assert len(species_items) > 0, "{}: the 6th line must specify the constituting elements (in the order how they appear in the POTCAR file)".format(full_poscar_filename)    
+    atom_no_items = [int(num) for num in re.findall("[0-9]+", poscar_lines[line_ind_of_atom_no].split("#")[0])]
+    assert len(atom_no_items) > 0, "{}: the {}th line supplies the number of atoms per atomic species (one number for each atomic species)".format(full_poscar_filename, line_ind_of_atom_no+1)
+    assert species_items == [] or len(species_items) == len(atom_no_items), "{}: line 6 (atomic species) and line 7 (the number of atoms per atomic species) should have the same length (1-1 correspondence)".format(full_poscar_filename)
+    total_atom_no = sum(atom_no_items)
+    
+    species_list = []
+    for atomic_species, atom_no in zip(species_items, atom_no_items):
+        species_list.extend([atomic_species for i in range(atom_no)])
+    poscar_dict["atomic_species"] = species_list #For VASP4 POSCAR, this would be an empty list.
+    
+    #If the first letter of line 7 or 8 is "s" or "S", the selective dynamics mode is activated
+    #In this case, the first letter of line 8 or 9 determines the coordinate type of the atomic positions:
+    #first letter@line 8 or 9 == "c", "C", "k" or "K" <--> Cartesian coordinate
+    #first letter@line 8 or 9 == "d" or "D" <--> Direct coordinate
+    first_letter = poscar_lines[line_ind_of_atom_no+1].strip()[0].lower()
+    if first_letter == "s":
+        poscar_dict["is_selective_dynamics_on"] = True
+        first_letter = poscar_lines[line_ind_of_atom_no+2].strip()[0].lower() #Update first_letter with the coordinate type
+        line_ind_of_1st_atomic_position = line_ind_of_atom_no + 3
+    else:
+        poscar_dict["is_selective_dynamics_on"] = False
+        line_ind_of_1st_atomic_position = line_ind_of_atom_no + 2
+        
+    if first_letter in ["c", "k"]:
+        coordinate_type = "cartesian"
+    elif first_letter == "d":
+        coordinate_type = "direct"
+    else:
+        raise Exception("{}: The first letter of the line specifying the coordinate type must be 'c', 'C', 'k' or 'K' for Cartesian, OR 'd' or 'D' for Direct".format(full_poscar_filename))
+        
+    coords, selective_dynamics_mode = [], []
+    for line_ind in [line_ind_of_1st_atomic_position + i for i in range(total_atom_no)]:
+        items = poscar_lines[line_ind].strip().split()
+        coords.append([float(num) for num in items[:3]])
+        if poscar_dict["is_selective_dynamics_on"]:
+            selective_dynamics_mode.append(items[3:6])
+    if poscar_dict["is_selective_dynamics_on"]:
+        poscar_dict["selective_dynamics_mode"] = selective_dynamics_mode
+    
+    if coordinate_type == "cartesian":
+        cart_coords = np.array(coords) * scaling_factor #The universal scaling factor is applied to the atomic positions only if they are in cartesian coordinates.
+        frac_coords = np.matmul(cart_coords, poscar_dict["inv_lattice_matrix"])
+    else:
+        frac_coords = np.array(coords)
+        cart_coords = np.matmul(frac_coords, poscar_dict["lattice_matrix"])
+    poscar_dict["cart_coords"] = cart_coords
+    poscar_dict["frac_coords"] = frac_coords
+    
+    return poscar_dict
+
+
+# In[13]:
+
+
+def cal_mae(item_a, item_b):
+    return np.sum(np.abs(item_a - item_b))
+
+
+# In[22]:
+
+
+def test_all(folder_list_filename):
+    from pymatgen import Structure
+    
+    with open(folder_list_filename) as f:
+        folder_list = [line.strip() for line in f if line.strip()]
+        
+    for folder in folder_list:
+        print("\n" + os.path.join(folder, "POSCAR"))
+        try:
+            struct = Structure.from_file(os.path.join(folder, "POSCAR"))
+        except:
+            print("pymatgen.Structure fails to read {}/POSCAR".format(folder))
+            continue
+            
+        try:
+            poscar = read_poscar(cal_loc=folder, poscar_filename="POSCAR")
+            print("same as pymatgen.Structure?")
+            print("a: ", poscar["lattice_constant_a"] == struct.lattice.a)
+            print("b: ", poscar['lattice_constant_b'] == struct.lattice.b)
+            print("c: ", poscar["lattice_constant_c"] == struct.lattice.c)
+            print("atomic species", poscar["atomic_species"] == [str(spe) for spe in struct.species])
+            print("latt matrix: ", cal_mae(poscar["lattice_matrix"], struct.lattice.matrix) == 0)
+            print("frac_coords: ", cal_mae(poscar["frac_coords"], struct.frac_coords) == 0)
+            print("cart_coords: ", cal_mae(poscar["cart_coords"], struct.cart_coords) == 0)
+        except:
+            print("fail to read {}/POSCAR".format(folder))            
+
+
+# In[23]:
+
+
+def test_a_single_cal(folder):
+    from pymatgen import Structure
+    
+    print(os.path.join(folder, "POSCAR"))
+    struct = Structure.from_file(os.path.join(folder, "POSCAR"))
+
+    poscar = read_poscar(cal_loc=folder, poscar_filename="POSCAR")
+    print("same as pymatgen.Structure?")
+    print("a: ", poscar["lattice_constant_a"] - struct.lattice.a)
+    print("b: ", poscar['lattice_constant_b'] - struct.lattice.b)
+    print("c: ", poscar["lattice_constant_c"] - struct.lattice.c)
+    print("atomic species", poscar["atomic_species"] == [str(spe) for spe in struct.species])
+    print("latt matrix: ", cal_mae(poscar["lattice_matrix"], struct.lattice.matrix))
+    print("frac_coords: ", cal_mae(poscar["frac_coords"], struct.frac_coords))
+    print("cart_coords: ", cal_mae(poscar["cart_coords"], struct.cart_coords))
+
+
+# In[21]:
+
+
+if __name__ == "__main__":
+    if os.path.isfile(sys.argv[1]):
+        test_all(sys.argv[1])
+    else:
+        test_a_single_cal(sys.argv[1])
+
