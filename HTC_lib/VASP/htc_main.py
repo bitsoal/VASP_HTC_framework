@@ -57,7 +57,7 @@ if __name__ == "__main__":
     if os.path.isdir("HTC_calculation_setup_folder"):
         workflow.append(parse_calculation_workflow("HTC_calculation_setup_folder"))
     
-    if workflow = []
+    if workflow == []:
         raise Exception("Error: No HTC_calculation_setup_file or HTC_calculation_setup_folder under {}".format(os.getcwd()))
     elif len(workflow) == 1:
         workflow = workflow[0]
