@@ -51,8 +51,20 @@ def write_cal_status(cal_status, filename):
 
 
 if __name__ == "__main__":
-    assert os.path.isfile("HTC_calculation_setup_file"), "Error: No HTC_calculation_setup_file under {}".format(os.getcwd())
-    workflow = parse_calculation_workflow("HTC_calculation_setup_file")
+    workflow = []
+    if os.path.isfile("HTC_calculation_setup_file"):
+        workflow.append(parse_calculation_workflow("HTC_calculation_setup_file"))
+    if os.path.isdir("HTC_calculation_setup_folder"):
+        workflow.append(parse_calculation_workflow("HTC_calculation_setup_folder"))
+    
+    if workflow = []
+        raise Exception("Error: No HTC_calculation_setup_file or HTC_calculation_setup_folder under {}".format(os.getcwd()))
+    elif len(workflow) == 1:
+        workflow = workflow[0]
+    else:
+        for wf_ind in range(len(workflow[0])):
+            assert workflow[0][wf_ind] == workflow[1][wf_ind], "Error: the {}st|nd|th firework/calculation setup parsed from 'HTC_calculation_setup_file' is not identical to that from 'HTC_calculation_setup_folder'"
+    workflow = workflow[0]
     
     #back up htc input files
     htc_input_backup_loc = workflow[0]["htc_input_backup_loc"]

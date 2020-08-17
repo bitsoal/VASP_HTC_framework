@@ -18,9 +18,6 @@ if HTC_package_path not in sys.path:
 from HTC_lib.VASP.KPOINTS.VASP_Automatic_K_Mesh import VaspAutomaticKMesh
 
 
-from pymatgen import Structure
-
-
 # In[1]:
 
 

@@ -4,7 +4,7 @@
 # In[1]:
 
 
-import os
+import os, re
 
 
 # In[2]:
@@ -37,29 +37,86 @@ class Read_Only_Dict(dict):
         return Read_Only_Dict(**read_only_dictionary)
 
 
-# In[3]:
+# In[9]:
 
 
-def parse_calculation_workflow(filename="Calculation_setup"):
+def read_HTC_calculation_setup_folder(foldername="HTC_calculation_setup_folder"):
+    
+    ################################################################################################################################
+    #identify those files named as step_n_xxx under foldername. File named as step_n_xxx uniquely defines the calculation at step n.
+    firework_block_filename_list = []
+    for filename in [file for file in os.listdir(foldername) if os.path.isfile(os.path.join(foldername, file))]:
+        if re.match("step_\d+_", filename): #The calculation at step n is defined by an unique file named as step_n_xxx
+            firework_block_filename_list.append(filename)
+    firework_block_filename_list = sorted(firework_block_filename_list, key=lambda filename: int(filename.split("_")[1]))
+    
+    #Check if the file defining the calculation at step n is uniquely existent.
+    step_no_list = [int(filename.split("_")[1]) for filename in firework_block_filename_list]
+    for step_no in range(1, len(firework_block_filename_list) + 1):
+        count = step_no_list.count(step_no)
+        #print(step_no, count)
+        if count > 1:
+            raise Exception("You have more than 1 files named as step_{}_xxx. I don't know to which one you are referring the calculation at step {}".format(step_no, step_no))
+        elif count == 0:
+            raise Exception("There isn't a file named as step_{}_xxx --> You have not defined the calculation at step {}.".format(step_no, step_no))
+    #print(firework_block_filename_list)
+    #####################################################################################################################################
+        
+    #####################################################################################################################################
+    #read setup from files and put them into firework_block_list
+    firework_block_list = []
+    for firework_block_filename in firework_block_filename_list:
+        with open(os.path.join(foldername, firework_block_filename)) as f:
+            lines = []
+            for line in f:
+                line = line.split("#")[0].strip()
+                if line: lines.append(line)
+        no_of_start_line, no_of_end_line = 0, 0
+        for line_ind, line in enumerate(lines):
+            if line.startswith("**start"):
+                start_line_ind = line_ind
+                no_of_start_line += 1
+            elif line.startswith("**end"):
+                end_line_ind = line_ind
+                no_of_end_line += 1
+        assert no_of_start_line == 1, "In a firework/calculation setup file, line '**start' should be unique and indicate the beginning of the firework/calculation setup. But there are|is {} '**start' in file {}".format(no_of_start_line, firework_block_filename)
+        assert no_of_end_line == 1, "In a firework/calculation setup file, line '**end' should be unique and indicate the end of the firework/calculation setup. But there are|is {} '**end' in file {}".format(no_of_end_line, firework_block_filename)
+        #assert start_line_ind != -100, "In file {}, the effective setup starts from that line '**start'. But there is no such a line".format(firework_block_filename)
+        #assert end_line_ind != -100, "In file {}, the effective setup ends at that line '**end'. But there is no such a line".format(firework_block_filename)
+        assert start_line_ind < end_line_ind, "In a firework/calculation setup file, the firework/calculation setup is in between line '**start' and line '**end'. The former should appear earlier than the latter in file {}".format(firework_block_filename)
+        firework_block_list.append(lines[start_line_ind+1:end_line_ind])
+                
+    return firework_block_filename_list, firework_block_list
+
+
+# In[4]:
+
+
+def parse_calculation_workflow(filename_or_foldername):
     """
-    the input file describes a sequence of DFT calculations and modifications of vasp input files before calculations.
+    Parse the pre-defined VASP calculation workflow from a file or a set of files named as step_n_xxx under a folder.
     """
     
     workflow = []
     
-    with open(filename, "r") as f:
-        lines = [line.strip() for line in f if line.strip()]
-    
-    firework_block_list = []
-    for line in lines:
-        line = line.split("#")[0].strip()
-        if line:
-            if line.startswith("**start"):
-                firework_block_list.append([])
-            else:
-                if not line.startswith("**end"):
-                    firework_block_list[-1].append(line)
-    firework_block_list = [block for block in firework_block_list if block]
+    is_it_a_foldername = False
+    if os.path.isfile(filename_or_foldername):
+        with open(filename_or_foldername, "r") as f:
+            lines = [line.strip() for line in f if line.strip()]
+        
+        firework_block_list = []
+        for line in lines:
+            line = line.split("#")[0].strip()
+            if line:
+                if line.startswith("**start"):
+                    firework_block_list.append([])
+                else:
+                    if not line.startswith("**end"):
+                        firework_block_list[-1].append(line)
+        firework_block_list = [block for block in firework_block_list if block]
+    elif os.path.isdir(filename_or_foldername):
+        is_it_a_foldername = True
+        firework_block_filename_list, firework_block_list = read_HTC_calculation_setup_folder(foldername=filename_or_foldername)
     
     firework_hierarchy_dict = {}
     for firework_block_ind, firework_block in enumerate(firework_block_list):
@@ -87,6 +144,10 @@ def parse_calculation_workflow(filename="Calculation_setup"):
     
     #import pprint
     #pprint.pprint(workflow)
+    if is_it_a_foldername:
+        for firework_block_filename, firework in zip(firework_block_filename_list, workflow):
+            assert firework_block_filename == firework["firework_folder_name"], "firework_folder_name constructed based on step_no and cal_name should be the same as the filename of the file defining the firework/calculation. {} V.S. {}".format(firework_block_filename, firework["firework_folder_name"])
+    
     
     import json
     with open("Parsed_HTC_setup.JSON", "w") as f:
@@ -95,7 +156,7 @@ def parse_calculation_workflow(filename="Calculation_setup"):
     return workflow              
 
 
-# In[4]:
+# In[5]:
 
 
 def cal_calculation_sequence_of_all_fireworks(firework_hierarchy_dict):
@@ -130,7 +191,7 @@ def cal_calculation_sequence_of_all_fireworks(firework_hierarchy_dict):
     return cal_sequence_dict
 
 
-# In[5]:
+# In[6]:
 
 
 def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hierarchy_dict):
@@ -184,7 +245,7 @@ def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hi
         
 
 
-# In[3]:
+# In[7]:
 
 
 def parse_firework_block(block_str_list, step_no):
@@ -241,15 +302,13 @@ def parse_firework_block(block_str_list, step_no):
             firework["step_no"] = step_no
         else:
             print("\n")
-            print("*"*20)
-            print("step_no of firework {} must be set to {}.".format(step_no, step_no))
-            print("Please change step_no to {} in the line below:".format(step_no))
-            print("{}".format(line))
-            print('*'*20)
+            print("*"*100)
+            print("step_no of firework/calculation {} must be set to {}. Please reset step_no".format(step_no, step_no))
+            print('*'*100)
             print("\n")
             raise Exception("See above for the error information")
     else:
-        raise Exception("tag step_no is required for every firework. Please set step_n={} for firework {}".format(step_no, step_no))
+        raise Exception("tag step_no is required for every firework. Please set step_no={} for firework {}".format(step_no, step_no))
     assert "cal_name" in firework.keys(), "Error: you should name each firework through tag cal_name!"
     firework["firework_folder_name"] = "step_" + str(step_no) + "_" + firework["cal_name"].replace(" ", "_")
          
@@ -473,7 +532,14 @@ def parse_firework_block(block_str_list, step_no):
     return firework
 
 
-# parse_calculation_workflow("HTC_calculation_setup_file")
+# In[ ]:
+
+
+if __name__ == "__main__":
+    wf_1 = parse_calculation_workflow("HTC_calculation_setup_file")
+    wf_2 = parse_calculation_workflow("HTC_calculation_setup_folder")
+    print(wf_1 == wf_2)
+
 
 # workflow[4]
 
