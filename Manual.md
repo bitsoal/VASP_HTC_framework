@@ -105,8 +105,76 @@ You may refer to [atomate](https://hackingmaterials.github.io/atomate/creating_w
 In principle, you can define the whole HTC workflow in `HTC_calculation_setup_file`. **But defining everything in a single file would sometimes make the file too long, which may cause inconvenience.** For example, you may refer to the 3rd firework/calculation setup while defining the 10th firework/calculation. 6 fireworks/calculations in between the 3rd and 10th firework/calculation are long enough to prevent the 3rd and 10th firework/calculation from being simultaneously shown on the screen.  
 **So here we provide an alternative to  `HTC_calculation_setup_file`. Instead of `HTC_calculation_setup_file`, a collection of files named as `step_n_xxx` under `HTC_calculation_setup_folder` can be used to define the whole calculation workflow: `HTC_calculation_setup_folder/step_n_xxx` defines the n-th firework/calculation.** The format of `HTC_calculation_setup_folder/step_n_xxx` is the same as that in `HTC_calculation_setup_file`. **We have a specific requirement on the filename of `step_n_xxx`. Please see `cal_name` below**  
       
-**Please refer to the tag list below for all available HTC tags and their detailed descriptions**
+  
 
+### Below is a template of the 1st firework/calculation 
+> `**start` 
+> 
+> `step_no = 1`  
+> `cal_name = structural optimization`  
+>
+> `extra_copy = ${HTC_CWD}/vasp_input_files/INCAR #What follows # is a comment`    
+> `user_defined_cmd = bash ${HTC_CWD}/HTC_lib/VASP/POTCAR/write_potcar.sh`  
+> `final_user_defined_cmd = python ${HTC_CWD}/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py -write --NL:30 --max_vacuum_thickness:5_5_5`  
+> `kpoints_type = MPRelaxSet #Just set this here. Will be obsolete`  
+> 
+> 
+> `job_submission_script = ${HTC_CWD}/vasp_input_files/vasp.pbs`  
+> `job_submission_command = qsub < vasp.pbs > job_id`    
+> 
+> `incar_template = ${HTC_CWD}/vasp_input_files/incar_template`  
+> `valid_incar_tags = ${HTC_CWD}/vasp_input_files/valid_incar_tags`  
+> 
+> 
+> `job_query_command = qstat`    
+> `job_killing_command = qdel`  
+> `where_to_parse_queue_id = job_id`  
+> `re_to_parse_queue_id = [0-9a-zA-Z]+    #based on re.findall`    
+> `queue_stdout_file_prefix = #At least one of queue_stdxxx should be specified`  
+> `queue_stdout_file_suffix = .o`  
+> `queue_stderr_file_prefix = `  
+> `queue_stderr_file_suffix = .e` 
+>  
+> `vasp.out = out`  
+> 
+> `max_running_job = 10`  
+> `max_no_of_ready_jobs = 50`  
+> `job_name=vasp_htc`  
+> 
+> `structure_folder = ${HTC_CWD}/Structures`  
+> `cal_folder = ${HTC_CWD}/cal_folder`  
+>
+> `htc_input_backup = structures`  
+> `htc_input_backup_loc = htc_backup` 
+>  
+> `**end`
+
+### Below is a template of the n-th firework/calculation (n=2, 3, 4, ...) 
+
+> `**start`  
+> `step_no = 3`  
+> `cal_name = scf`  
+> 
+> `copy_which_step = 2 #Assume step 2 is the fine structural optimization`  
+> `copy_from_prev_cal = INCAR, POTCAR, CONTCAR, KPOINTS`  
+> `contcar_to_poscar = Yes` 
+>   
+> `final_user_defined_cmd = python ${HTC_CWD}/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py -write --NL:50 --max_vacuum_thickness:5_5_5`  
+> `kpoints_type = MPRelaxSet #Just set this here. Will be obsolete`  
+> 
+> `*begin(add_new_incar_tags)`   
+> `ENCUT = 500`  
+> `EDIFF = 1.0E-5`  
+> `LCHARG = .TRUE.`  
+> `LWAVE = .TRUE.`  
+> `*end(add_new_incar_tags)`  
+> `remove_incar_tags = IBRION, EDIFFG, NSW, ISIF`
+> 
+> `job_submission_script = ${HTC_CWD}/vasp_input_files/vasp.pbs`  
+> `job_submission_command = qsub < vasp.pbs > job_id`  
+> `**end`  
+
+**Please refer to the tag list below for all available HTC tags and their detailed descriptions**
 <br>
 
 --------------------------------------------------------------------------------------
