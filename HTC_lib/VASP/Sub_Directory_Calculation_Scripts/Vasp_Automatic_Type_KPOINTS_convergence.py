@@ -54,7 +54,7 @@ __doc__ = """
                     Default: --convergence_type:aver
                     
     * --no_of_consecutive_convergences (integer>=2): Let's denote the number passed to --no_of_consecutive_convergences as NCC.
-                    1. --convergence_type:incr,
+                    1. --convergence_type:chg,
                         If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (--convergence),
                             the KPOINTS testing is successful;
                         else: the testing fails.
@@ -398,7 +398,7 @@ def find_converged_NL(argv_dict):
     """ Find the converged Nk_IRBZ w.r.t. the total Energy E0 in OSZICAR.
     
         Two different cases:
-        1. convergence_type:incr,
+        1. convergence_type:chg,
             If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (convergence),
                 the KPOINTS testing is successful;
             else: the testing fails.

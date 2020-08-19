@@ -1,11 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[1]:
 
 
 import os, re, sys
 import numpy as np
+
+
+# In[2]:
+
+
+def cal_angle_between_two_vectors(vec_1, vec_2):
+    """calculate and return the angle between two vectors. The angle is in radians"""
+    unit_vec_1 = vec_1 / np.linalg.norm(vec_1)
+    unit_vec_2 = vec_2 / np.linalg.norm(vec_2)
+    dot_product = np.dot(unit_vec_1, unit_vec_2)
+    
+    return np.arccos(dot_product) / np.pi * 180
 
 
 # In[3]:
@@ -34,6 +46,9 @@ def read_poscar(poscar_filename="POSCAR", cal_loc="."):
     poscar_dict["lattice_constant_a"] = np.linalg.norm(poscar_dict["lattice_matrix"][0, :])
     poscar_dict["lattice_constant_b"] = np.linalg.norm(poscar_dict["lattice_matrix"][1, :])
     poscar_dict["lattice_constant_c"] = np.linalg.norm(poscar_dict["lattice_matrix"][2, :])
+    poscar_dict["alpha"] = cal_angle_between_two_vectors(poscar_dict["lattice_constant_a"], poscar_dict["lattice_constant_c"])
+    poscar_dict["beta"] = cal_angle_between_two_vectors(poscar_dict["lattice_constant_b"], poscar_dict["lattice_constant_c"])
+    poscar_dict["gamma"] = cal_angle_between_two_vectors(poscar_dict["lattice_constant_a"], poscar_dict["lattice_constant_b"])
     
     #parse the atomic species
     species_items = re.findall("[a-zA-Z]+", poscar_lines[5].split("#")[0])
@@ -110,6 +125,7 @@ def test_all(folder_list_filename):
     with open(folder_list_filename) as f:
         folder_list = [line.strip() for line in f if line.strip()]
         
+    tolerance = 1.0e-10
     for folder in folder_list:
         print("\n" + os.path.join(folder, "POSCAR"))
         try:
@@ -121,13 +137,16 @@ def test_all(folder_list_filename):
         try:
             poscar = read_poscar(cal_loc=folder, poscar_filename="POSCAR")
             print("same as pymatgen.Structure?")
-            print("a: ", poscar["lattice_constant_a"] == struct.lattice.a)
-            print("b: ", poscar['lattice_constant_b'] == struct.lattice.b)
-            print("c: ", poscar["lattice_constant_c"] == struct.lattice.c)
+            print("a: ", abs(poscar["lattice_constant_a"] - struct.lattice.a) < tolerance)
+            print("b: ", abs(poscar['lattice_constant_b'] - struct.lattice.b) < tolerance)
+            print("c: ", abs(poscar["lattice_constant_c"] - struct.lattice.c) < tolerance)
+            print("alpha: ", abs(poscar["alpha"] -  struct.lattice.alpha) < tolerance)
+            print("beta: ", abs(poscar["beta"] - struct.lattice.beta) < tolerance)
+            print("gamma: ", abs(poscar["gamma"] - struct.lattice.gamma) < tolerance)
             print("atomic species", poscar["atomic_species"] == [str(spe) for spe in struct.species])
-            print("latt matrix: ", cal_mae(poscar["lattice_matrix"], struct.lattice.matrix) == 0)
-            print("frac_coords: ", cal_mae(poscar["frac_coords"], struct.frac_coords) == 0)
-            print("cart_coords: ", cal_mae(poscar["cart_coords"], struct.cart_coords) == 0)
+            print("latt matrix: ", cal_mae(poscar["lattice_matrix"], struct.lattice.matrix) < tolerance)
+            print("frac_coords: ", cal_mae(poscar["frac_coords"], struct.frac_coords) < tolerance)
+            print("cart_coords: ", cal_mae(poscar["cart_coords"], struct.cart_coords) < tolerance)
         except:
             print("fail to read {}/POSCAR".format(folder))            
 
@@ -143,9 +162,12 @@ def test_a_single_cal(folder):
 
     poscar = read_poscar(cal_loc=folder, poscar_filename="POSCAR")
     print("same as pymatgen.Structure?")
-    print("a: ", poscar["lattice_constant_a"] - struct.lattice.a)
-    print("b: ", poscar['lattice_constant_b'] - struct.lattice.b)
-    print("c: ", poscar["lattice_constant_c"] - struct.lattice.c)
+    print("a: ", poscar["lattice_constant_a"], struct.lattice.a)
+    print("b: ", poscar['lattice_constant_b'], struct.lattice.b)
+    print("c: ", poscar["lattice_constant_c"], struct.lattice.c)
+    print("alpha: ", poscar["alpha"], struct.lattice.alpha)
+    print("beta: ", poscar["beta"], struct.lattice.beta)
+    print("gamma: ", poscar["gamma"], struct.lattice.gamma)
     print("atomic species", poscar["atomic_species"] == [str(spe) for spe in struct.species])
     print("latt matrix: ", cal_mae(poscar["lattice_matrix"], struct.lattice.matrix))
     print("frac_coords: ", cal_mae(poscar["frac_coords"], struct.frac_coords))
