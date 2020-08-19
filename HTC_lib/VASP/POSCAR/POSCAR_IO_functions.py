@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[6]:
 
 
 import os, re, sys
@@ -46,9 +46,14 @@ def read_poscar(poscar_filename="POSCAR", cal_loc="."):
     poscar_dict["lattice_constant_a"] = np.linalg.norm(poscar_dict["lattice_matrix"][0, :])
     poscar_dict["lattice_constant_b"] = np.linalg.norm(poscar_dict["lattice_matrix"][1, :])
     poscar_dict["lattice_constant_c"] = np.linalg.norm(poscar_dict["lattice_matrix"][2, :])
-    poscar_dict["alpha"] = cal_angle_between_two_vectors(poscar_dict["lattice_constant_a"], poscar_dict["lattice_constant_c"])
-    poscar_dict["beta"] = cal_angle_between_two_vectors(poscar_dict["lattice_constant_b"], poscar_dict["lattice_constant_c"])
-    poscar_dict["gamma"] = cal_angle_between_two_vectors(poscar_dict["lattice_constant_a"], poscar_dict["lattice_constant_b"])
+    #alpha: angle between latt_vec_b and latt_vec_c; 
+    #beta: angle between latt_vec_a and latt_vec_b
+    #gamma: angle between latt_vec_a and latt_vec_b
+    #The above convention is adopted by pymatgen (https://github.com/materialsproject/pymatgen/blob/v2020.8.13/pymatgen/core/lattice.py)
+    #as well as wikipedia (webpage: Crystal system)
+    poscar_dict["alpha"] = cal_angle_between_two_vectors(latt_vec_b, latt_vec_c)
+    poscar_dict["beta"] = cal_angle_between_two_vectors(latt_vec_a, latt_vec_c)
+    poscar_dict["gamma"] = cal_angle_between_two_vectors(latt_vec_a, latt_vec_b)
     
     #parse the atomic species
     species_items = re.findall("[a-zA-Z]+", poscar_lines[5].split("#")[0])
@@ -143,7 +148,7 @@ def test_all(folder_list_filename):
             print("alpha: ", abs(poscar["alpha"] -  struct.lattice.alpha) < tolerance)
             print("beta: ", abs(poscar["beta"] - struct.lattice.beta) < tolerance)
             print("gamma: ", abs(poscar["gamma"] - struct.lattice.gamma) < tolerance)
-            print("atomic species", poscar["atomic_species"] == [str(spe) for spe in struct.species])
+            print("atomic species: ", poscar["atomic_species"] == [str(spe) for spe in struct.species])
             print("latt matrix: ", cal_mae(poscar["lattice_matrix"], struct.lattice.matrix) < tolerance)
             print("frac_coords: ", cal_mae(poscar["frac_coords"], struct.frac_coords) < tolerance)
             print("cart_coords: ", cal_mae(poscar["cart_coords"], struct.cart_coords) < tolerance)
