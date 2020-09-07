@@ -64,7 +64,7 @@ if __name__ == "__main__":
     else:
         for wf_ind in range(len(workflow[0])):
             assert workflow[0][wf_ind] == workflow[1][wf_ind], "Error: the {}st|nd|th firework/calculation setup parsed from 'HTC_calculation_setup_file' is not identical to that from 'HTC_calculation_setup_folder'".format(wf_ind+1)
-    workflow = workflow[0]
+        workflow = workflow[0]
     
     #back up htc input files
     htc_input_backup_loc = workflow[0]["htc_input_backup_loc"]
