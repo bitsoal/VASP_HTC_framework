@@ -3,9 +3,9 @@
 * Yang Tong  
 	bitsoal@gmail.com; yangtong@u.nus.edu  
 	Department of Physics, National University of Singapore  
-* Dr. Yang Ming (co-supervisor)  
-	yangm@imre.a-star.edu.sg  
-	Institute of Materials Science and Engineering, Singapore  
+* Asst/Prof. [Yang Ming](https://www.polyu.edu.hk/ap/about-ap/staff/academic-staff/162-dr-yang-ming/) (co-supervisor)  
+	kevin.m.yang@polyu.edu.hk  
+	Department of Applied Physics, The Hong Kong Polytechnic University
 * Prof. [Feng Yuanping](https://www.physics.nus.edu.sg/phyfyp/) (supervisor))  
 	phyfyp@nus.edu.sg  
 	Department of Physics, National University of Singapore  
