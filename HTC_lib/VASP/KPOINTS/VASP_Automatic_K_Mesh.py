@@ -20,6 +20,8 @@ from HTC_lib.VASP.POSCAR.POSCAR_IO_functions import read_poscar
 
 from pymatgen import Structure
 
+import numpy as np
+
 
 # In[10]:
 
