@@ -16,11 +16,73 @@ if HTC_package_path not in sys.path:
 ##############################################################################################################
     
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
+from HTC_lib.VASP.POSCAR.POSCAR_IO_functions import read_poscar
 
 from pymatgen import Structure
 
 
-# In[14]:
+# In[10]:
+
+
+def test_our_POSCAR_io_function(str_filename, cal_loc, tolerance = 1.0e-5):
+    """
+    Currently, we use pymatgen.Structure to read the structural information. But loading pymatgen.Structure is quite slow.
+    We are going to replace it with our own mini POSCAR io function which it may much less time to load.
+    This method is aimed to benchmark our POSCAR io function to pymatgen.Structure.
+    """
+    struct = Structure.from_file(os.path.join(cal_loc, str_filename))
+    latt_a, latt_b, latt_c = struct.lattice.a, struct.lattice.b, struct.lattice.c
+    alpha, beta, gamma = struct.lattice.alpha, struct.lattice.beta, struct.lattice.gamma
+    
+    error_info_template = "pymatgen.Structure and our own POSCAR IO give a different target from {}/{}".format(cal_loc, str_filename)
+    
+    our_poscar_dict = read_poscar(poscar_filename=str_filename, cal_loc=cal_loc)
+    if abs(latt_a - our_poscar_dict["lattice_constant_a"]) > tolerance:
+        additional_info = "\npymatgen.Structure: {}; our own POSCAR io: {}".format(latt_a, our_poscar_dict["lattice_constant_a"])
+        raise Exception(error_info_template.replace("target", "lattice constant a", count=1) + additional_info)
+    if abs(latt_b - our_poscar_dict["lattice_constant_b"]) > tolerance:
+        additional_info = "\npymatgen.Structure: {}; our own POSCAR io: {}".format(latt_b, our_poscar_dict["lattice_constant_b"])
+        raise Exception(error_info_template.replace("target", "lattice constant b", count=1) + additional_info)
+    if abs(latt_c - our_poscar_dict["lattice_constant_c"]) > tolerance:
+        additional_info = "\npymatgen.Structure: {}; our own POSCAR io: {}".format(latt_c, our_poscar_dict["lattice_constant_c"])
+        raise Exception(error_info_template.replace("target", "lattice constant c", count=1) + additional_info)
+    if abs(alpha - our_poscar_dict["alpha"]) > tolerance:
+        additional_info = "\npymatgen.Structure: {}; our own POSCAR io: {}".format(alpha, our_poscar_dict["alpha"])
+        raise Exception(error_info_template.replace("target", "lattice angle alpha", count=1) + additional_info)
+    if abs(beta - our_poscar_dict["beta"]) > tolerance:
+        additional_info = "\npymatgen.Structure: {}; our own POSCAR io: {}".format(beta, our_poscar_dict["beta"])
+        raise Exception(error_info_template.replace("target", "lattice angle beta", count=1) + additional_info)
+    if abs(gamma - our_poscar_dict["gamma"]) > tolerance:
+        additional_info = "\npymatgen.Structure: {}; our own POSCAR io: {}".format(gamma, our_poscar_dict["gamma"])
+        raise Exception(error_info_template.replace("target", "lattice angle gamma", count=1) + additional_info)
+    
+    pymatgen_species_list = [str(species) for species in struct.species]
+    if pymatgen_species_list != our_poscar_dict["atomic_species"]:
+        print(pymatgen_species_list, "<---pymatgen")
+        print(our_poscar_dict["atomic_species"], "<---our own POSCAR io")
+        raise Exception(error_info_template.replace("target", "atomic species list"))
+    
+    if np.max(np.abs(struct.frac_coords - our_poscar_dict["frac_coords"])) > tolerance:
+        for atom_ind in range(struct.frac_coords.shape[0]):
+            print("pymatgen: ", struct.frac_coords[atom_ind], end="\t")
+            print("our own POSCAR io: ", our_poscar_dict["frac_coords"][atom_ind], end="\t")
+            diff = struct.frac_coords[atom_ind] - our_poscar_dict["frac_coords"][atom_ind]
+            print("diff: ", diff, end="\t")
+            print("max abs diff: ", np.max(np.abs(diff)))
+            raise Exception(error_info_template.replace("target", "frac coords"))
+            
+    if np.max(np.abs(struct.cart_coords - our_poscar_dict["cart_coords"])) > tolerance:
+        for atom_ind in range(struct.cart_coords.shape[0]):
+            print("pymatgen: ", struct.cart_coords[atom_ind], end="\t")
+            print("our own POSCAR io: ", our_poscar_dict["cart_coords"][atom_ind], end="\t")
+            diff = struct.cart_coords[atom_ind] - our_poscar_dict["cart_coords"][atom_ind]
+            print("diff: {}\tmax abs diff: {}".fomat(diff, np.max(np.abs(diff))))
+            print("diff: ", diff, end="\t")
+            print("max abs diff: ", np.max(np.abs(diff)))
+            raise Exception(error_info_template.replace("target", "cart_coords"))
+
+
+# In[3]:
 
 
 class VaspAutomaticKMesh():
@@ -66,7 +128,11 @@ class VaspAutomaticKMesh():
         self.structure_dict = self._read_strcutre_info()
         self.pbc_type_of_xyz = VaspAutomaticKMesh.does_pbc_hold_along_xyz_axes(cal_loc, str_filename, max_vacuum_thickness)
         
+        
     def _read_strcutre_info(self):
+        #to benchmark our poscar io to pymatgen.Structure
+        test_our_POSCAR_io_function(str_filename=self.str_filename, cal_loc=self.cal_loc)
+        
         struct = Structure.from_file(os.path.join(self.cal_loc, self.str_filename))
         latt_a, latt_b, latt_c = struct.lattice.a, struct.lattice.b, struct.lattice.c
         alpha, beta, gamma = struct.lattice.alpha, struct.lattice.beta, struct.lattice.gamma
@@ -93,6 +159,9 @@ class VaspAutomaticKMesh():
     
     @classmethod
     def does_pbc_hold_along_xyz_axes(cls, cal_loc, str_filename="POSCAR", max_vacuum_thickness=[5, 5, 5]):
+        #to benchmark our poscar io to pymatgen.Structure
+        test_our_POSCAR_io_function(str_filename=str_filename, cal_loc=cal_loc)
+        
         struct = Structure.from_file(os.path.join(cal_loc, str_filename))
         latt_a, latt_b, latt_c = struct.lattice.a, struct.lattice.b, struct.lattice.c
         frac_coords = struct.frac_coords
@@ -334,6 +403,9 @@ class VaspAutomaticKMesh():
         max_vacuum_thickness is a list of length 3. We need this to tell if the periodic boundary condition (PBC) holds along the x-, y- and z- axis and thus calculate NL.
         If you think that PBC holds for all of x-, y- and z-axes, set max_vacuum_thickness = [1000, 1000, 1000].
         """
+        #to benchmark our poscar io to pymatgen.Structure
+        test_our_POSCAR_io_function(str_filename=str_filename, cal_loc=cal_loc)
+        
         struct = Structure.from_file(os.path.join(cal_loc, POSCAR_filename))
         latt_a, latt_b, latt_c = struct.lattice.a, struct.lattice.b, struct.lattice.c
         alpha, beta, gamma = struct.lattice.alpha, struct.lattice.beta, struct.lattice.gamma

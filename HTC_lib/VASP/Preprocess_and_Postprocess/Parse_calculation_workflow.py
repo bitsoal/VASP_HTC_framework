@@ -92,7 +92,7 @@ def read_HTC_calculation_setup_folder(foldername="HTC_calculation_setup_folder")
 # In[4]:
 
 
-def parse_calculation_workflow(filename_or_foldername):
+def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
     """
     Parse the pre-defined VASP calculation workflow from a file or a set of files named as step_n_xxx under a folder.
     """
@@ -121,7 +121,7 @@ def parse_calculation_workflow(filename_or_foldername):
     firework_hierarchy_dict = {}
     for firework_block_ind, firework_block in enumerate(firework_block_list):
         step_no = firework_block_ind+1
-        firework = parse_firework_block(block_str_list=firework_block, step_no=step_no)
+        firework = parse_firework_block(block_str_list=firework_block, step_no=step_no, HTC_lib_loc=HTC_lib_loc)
         workflow.append(firework)
         if step_no == 1:
             firework_hierarchy_dict["-1"] = [firework["firework_folder_name"]]
@@ -248,7 +248,7 @@ def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hi
 # In[7]:
 
 
-def parse_firework_block(block_str_list, step_no):
+def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
     """
     parse the calculation setup for a firework.
     """
@@ -286,6 +286,7 @@ def parse_firework_block(block_str_list, step_no):
         else:
             tag, value = [item.strip() for item in line.split("=")]
             value = value.replace("${HTC_CWD}", current_directory)
+            value = value.replace("${HTC_LIB_LOC}", HTC_lib_loc)
             if incar_subblock:
                 firework["new_incar_tags"][tag.upper()] = value
             else:

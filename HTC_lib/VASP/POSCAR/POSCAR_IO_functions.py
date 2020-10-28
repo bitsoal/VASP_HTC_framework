@@ -36,7 +36,7 @@ def read_poscar(poscar_filename="POSCAR", cal_loc="."):
     latt_vec_b = [float(num) for num in poscar_lines[3].split()[:3]]
     latt_vec_c = [float(num) for num in poscar_lines[4].split()[:3]]
     poscar_dict["lattice_matrix"] = np.array([latt_vec_a, latt_vec_b, latt_vec_c])
-    if scaling_factor < 0: #of this value is negative it is interpreted as the total volume of the cell
+    if scaling_factor < 0: #if this value is negative it is interpreted as the total volume of the cell
         vol = abs(np.linalg.det(poscar_dict["lattice_matrix"]))
         scaling_factor = (-scaling_factor / vol) ** (1./3)
         poscar_dict["lattice_matrix"] = poscar_dict["lattice_matrix"] * scaling_factor

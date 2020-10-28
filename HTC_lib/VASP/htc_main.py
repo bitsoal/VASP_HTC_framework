@@ -53,9 +53,9 @@ def write_cal_status(cal_status, filename):
 if __name__ == "__main__":
     workflow = []
     if os.path.isfile("HTC_calculation_setup_file"):
-        workflow.append(parse_calculation_workflow("HTC_calculation_setup_file"))
+        workflow.append(parse_calculation_workflow("HTC_calculation_setup_file"), HTC_lib_loc=HTC_package_path)
     if os.path.isdir("HTC_calculation_setup_folder"):
-        workflow.append(parse_calculation_workflow("HTC_calculation_setup_folder"))
+        workflow.append(parse_calculation_workflow("HTC_calculation_setup_folder"), HTC_lib_loc=HTC_package_path)
     
     if workflow == []:
         raise Exception("Error: No HTC_calculation_setup_file or HTC_calculation_setup_folder under {}".format(os.getcwd()))

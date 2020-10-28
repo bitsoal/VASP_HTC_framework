@@ -114,8 +114,8 @@ In principle, you can define the whole HTC workflow in `HTC_calculation_setup_fi
 > `cal_name = structural optimization`  
 >
 > `extra_copy = ${HTC_CWD}/vasp_input_files/INCAR #What follows # is a comment`    
-> `user_defined_cmd = bash ${HTC_CWD}/HTC_lib/VASP/POTCAR/write_potcar.sh`  
-> `final_user_defined_cmd = python ${HTC_CWD}/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py -write --NL:30 --max_vacuum_thickness:5_5_5`  
+> `user_defined_cmd = bash ${HTC_LIB_LOC}/HTC_lib/VASP/POTCAR/write_potcar.sh`  
+> `final_user_defined_cmd = python ${HTC_LIB_LOC}/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py -write --NL:30 --max_vacuum_thickness:5_5_5`  
 > `kpoints_type = MPRelaxSet #Just set this here. Will be obsolete`  
 > 
 > 
@@ -159,7 +159,7 @@ In principle, you can define the whole HTC workflow in `HTC_calculation_setup_fi
 > `copy_from_prev_cal = INCAR, POTCAR, CONTCAR, KPOINTS`  
 > `contcar_to_poscar = Yes` 
 >   
-> `final_user_defined_cmd = python ${HTC_CWD}/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py -write --NL:50 --max_vacuum_thickness:5_5_5`  
+> `final_user_defined_cmd = python ${HTC_LIB_LOC}/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py -write --NL:50 --max_vacuum_thickness:5_5_5`  
 > `kpoints_type = MPRelaxSet #Just set this here. Will be obsolete`  
 > 
 > `*begin(add_new_incar_tags)`   
@@ -211,12 +211,16 @@ The directory structure of a HTC is illustrated in the figure below.
 
 - **`${HTC_CWD}`**: The absolute path to the folder under which `htc_main.py` is  
 Any file in `HTC_calculation_setup_file` can be specified by its absolute path or the relative path to `${HTC_CWD}`  
-e.g. Suppose the absolute path ot `htc_main.py` is `/home/user0/htc_cal/htc_main.py` and we need to refer to a file named `file_1` under `/home/user0/htc_cal/folder1/`.  
-In this case, `${HTC_CWD}=/home/user0/htc_cal`. `file_1` can be specified using either `/home/user0/htc_cal/folder1/file_1` or `${HTC_CWD}/folder1/file_1`  
-***We strongly suggest you to use `${HTC_CWD}` to refer to any files that are needed in the calculations. This will make it easy to move the calculations from one place to another with little trouble in modifying the paths to those files.***
+e.g. Suppose the absolute path of `htc_main.py` is `/home/user0/htc_cal/htc_main.py` and we need to refer to a file named `file_1` under `/home/user0/htc_cal/folder1/`.  
+In this case, `${HTC_CWD}=/home/user0/htc_cal`. `file_1` can be specified using either `/home/user0/htc_cal/folder1/file_1` or `${HTC_CWD}/folder1/file_1`   
+***We strongly suggest you to use `${HTC_CWD}` to refer to any files that are needed in the calculations. This will make it easy to move the calculations from one place to another with little trouble in modifying the paths to those files.***    
 
 -------------------------------------
 
+- **`${HTC_LIB_LOC}`**: the absolute path to the HTC package.   
+Any file in `HTC_calculation_setup_file` can be specified by its absolute path or the relative path to `${HTC_LIB_LOC}`  
+e.g. Suppose the absolute path to `VASP_Automatic_K_Mesh.py` is `/home/user0/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py`. `VASP_Automatic_K_Mesh.py` can be specified using either `/home/user0/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py` or `${HTC_LIB_LOC}/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py`.  
+If the HTC package is under the same folder as `htc_main.py`, `${HTC_LIB_LOC} = ${HTC_CWD}`.
 
 
 ## Tag list - below are tags that can be set in HTC\_calculation\_setup\_file
