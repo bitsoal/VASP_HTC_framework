@@ -13,7 +13,8 @@ if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
 
 from pymatgen import Structure
 
-from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str#, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 
 
 # In[5]:
@@ -22,11 +23,13 @@ from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str#, get_current_fire
 def Write_Vasp_POSCAR(cal_loc, structure_filename, structure_file_folder, workflow):
     """
     Write POSCAR in folder cal_loc as follows:
-        If no POSCAR in cal_loc, write POSCAR:
-            If tag sort_structure is on, struture_filename under structure_file_folder is assumed in the form of POSCAR.
-                In this case, just copy the file and rename it as POSCAR
-            If tag sort_structure is off, write POSCAR using pymatgen.Structure
-        If POSCAR is present, nothing has been done.
+        First of all, run commands defined by tag poscar_cmd. Of course, there will be no any commands to run if poscar_cmd is not set.
+        Then, check the existence of POSCAR:
+            If no POSCAR in cal_loc, write POSCAR:
+                If tag sort_structure is on, struture_filename under structure_file_folder is assumed in the form of POSCAR.
+                    In this case, just copy the file and rename it as POSCAR
+                If tag sort_structure is off, write POSCAR using pymatgen.Structure
+            If POSCAR is present, nothing will be done.
     Input arguments:
         cal_loc (str): the absolute path of the calculation folders
         structure_filename (str): the file from which the structure is read using pymatgen.Structure.from_file
@@ -34,9 +37,16 @@ def Write_Vasp_POSCAR(cal_loc, structure_filename, structure_file_folder, workfl
         workflow
     """
     
-    #firework = get_current_firework_from_cal_loc(cal_loc, workflow)
+    firework = get_current_firework_from_cal_loc(cal_loc, workflow)
     firework_name = os.path.split(cal_loc)[-1]
     log_txt = os.path.join(cal_loc, "log.txt")
+    
+    if firework["poscar_cmd"] != []:
+        #The relevant logs will be written by Execute_shell_cmd
+        status = Execute_shell_cmd(cal_loc=cal_loc, user_defined_cmd_list=firework["poscar_cmd"], where_to_execute=cal_loc, 
+                                   defined_by_which_htc_tag="poscar_cmd")
+        if status == False: return False #If the commands failed to run, stop running the following codes.
+        
     
     if not os.path.isfile(os.path.join(cal_loc, "POSCAR")):
         
@@ -48,8 +58,7 @@ def Write_Vasp_POSCAR(cal_loc, structure_filename, structure_file_folder, workfl
                 f.write("{} INFO: no POSCAR in {}\n".format(get_time_str(), firework_name))
                 f.write("\t\t\tsrc: {}\n".format(os.path.join(structure_file_folder, structure_filename)))
                 f.write("\t\t\ttag sort_structure is on\n")
-                f.write("\t\t\tSo write a sorted structure into POSCAR using pymatgen.Structure\n".format(os.path.join(structure_file_folder, 
-                                                                                                                     structure_filename)))        
+                f.write("\t\t\tSo write a sorted structure into POSCAR using pymatgen.Structure\n".format(os.path.join(structure_file_folder, structure_filename)))        
         else:
             if Is_Vasp_POSCAR(structure_filename=structure_filename, structure_file_folder=structure_file_folder):
                 src = os.path.join(structure_file_folder, structure_filename)

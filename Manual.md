@@ -578,6 +578,15 @@ Default: empty
 
 ------------------------------------
 
+**incar\_cmd, poscar\_cmd, kpoints\_cmd** and **potcar\_cmd**, optional,   
+These tags work in the same way as `user_defined_cmd` and `final_user_defined_cmd`. The are provided to avoid heavily using the reliance on `user_defined_cmd` and `final_user_defined_cmd`. The commands specified by these tags are **first** executed to create or modify INCAR, POSCAR, KPOINTS and POTCAR. The execution of these commands may have an impact on other HTC tags:   
+- `poscar_cmd`: If the commands specified by this tag creates POSCAR, tag `sort_structure` is deactivated.   
+- `potcar_cmd`: If this tag creates POTCAR, pymatgen won't be called to create POTCAR  
+- `kpoints_cmd`: all other HTC tags related to KPOINTS should work.  
+- `incar_cmd`: If the commands specified by this tag creates INCAR, `pymatgen.io.vasp.sets.MPRelaxSet` won't be called to create the initial INCAR. But the subsequent modification defined by other HTC tags should work.  
+
+------------------------------------
+
 **user\_defined\_postprocess\_cmd**, optional,  
 This tag allows users to execute a series of commands to perform user-defined firetasks for post-process. *This tag is currently not available*  
 *If there are multiple commands, separate them with commas.*  

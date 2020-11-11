@@ -16,6 +16,7 @@ from pymatgen import Structure
 from pymatgen.symmetry.bandstructure import HighSymmKpath
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str,  find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 
 
 # In[2]:
@@ -24,11 +25,12 @@ from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str,  find_next_name, 
 def Write_Vasp_KPOINTS(cal_loc, structure_filename, workflow):
     """
     Write or modify KPOINTS in cal_loc as follows:
-        step I: Check the presence of file KPOINTS in folder cal_loc.
+        step I: run the commands defined by kpoints_cmd. Of course, there might be no commands to run if kpoints_cmd is not set.
+        step II: Check the presence of file KPOINTS in folder cal_loc.
                 If present, no need to write KPOINTS,
-                If missing, write KPOINTS according to tag kpoints_tag
-        step II: If KPOINTS is written and the system is 2D according to tag 2d_system, modify KPOINTS such that K_z = 0 for all kpoints
-        step III: tag denser_kpoints defaults to (1, 1, 1). If denser_kpoints is set, then modfiy KPOINTS accordingly and save the old
+                If missing, write KPOINTS according to tag kpoints_type
+        step III: If KPOINTS is written and the system is 2D according to tag 2d_system, modify KPOINTS such that K_z = 0 for all kpoints
+        step IV: tag denser_kpoints defaults to (1, 1, 1). If denser_kpoints is set, then modfiy KPOINTS accordingly and save the old
                 KPOINTS as KPOINTS.sparse. Note that this function is only active for automatically generated KPOINTS, namely,
                 kpoints_type = "MPRelaxSet" or "MPStaticSet"
     Input arguments:
@@ -38,6 +40,13 @@ def Write_Vasp_KPOINTS(cal_loc, structure_filename, workflow):
     """
     vasp_kpoints = Vasp_Kpoints(cal_loc, structure_filename, workflow)
     firework = vasp_kpoints.current_firework
+    
+    if firework["kpoints_cmd"] != []:
+        #The relevant logs will be written by Execute_shell_cmd
+        status = Execute_shell_cmd(cal_loc=cal_loc, user_defined_cmd_list=firework["kpoints_cmd"], where_to_execute=cal_loc, 
+                                   defined_by_which_htc_tag="kpoints_cmd")
+        if status == False: return False #If the commands failed to run, stop running the following codes.
+    
     
     #If file KPOINTS is present in cal_loc folder, no need to write KPOINTS
     if os.path.isfile(os.path.join(cal_loc, "KPOINTS")):

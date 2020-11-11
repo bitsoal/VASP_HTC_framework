@@ -17,6 +17,7 @@ from pymatgen import Structure
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
 from HTC_lib.VASP.Miscellaneous.Query_from_OUTCAR import find_incar_tag_from_OUTCAR
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
+from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 
 
 # In[3]:
@@ -25,8 +26,9 @@ from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
     """
     Write or modify INCAR in folder cal_loc as follows:
-        step I: If no INCAR in cal_loc, write INCAR using pymatgen.io.vasp.sets.MPRelaxSet
-        step II: Modify INCAR according to new_incar_tags and remove_incar_tags.
+        step I: run commands defined by incar_cmd. Of course, there might be no commands to run if incar_cmd is not set
+        step II: If no INCAR in cal_loc, write INCAR using pymatgen.io.vasp.sets.MPRelaxSet
+        step III: Modify INCAR according to new_incar_tags and remove_incar_tags.
     Input arguments:
         cal_loc (str): the absolute path
         structure_filename (str): the file from which the structure is read using pymatgen.Structure.from_file
@@ -38,6 +40,12 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
     log_txt = os.path.join(cal_loc, "log.txt")
     
     incar_template_list, valid_incar_tags_list = workflow[0]["incar_template_list"], workflow[0]["valid_incar_tags_list"]
+    
+    if firework["incar_cmd"] != []:
+        #The relevant logs will be written by Execute_shell_cmd
+        status = Execute_shell_cmd(cal_loc=cal_loc, user_defined_cmd_list=firework["incar_cmd"], where_to_execute=cal_loc, 
+                                   defined_by_which_htc_tag="incar_cmd")
+        if status == False: return False #If the commands failed to run, stop running the following codes.
 
     write_INCAR = False
     if not os.path.isfile(os.path.join(cal_loc, "INCAR")):
