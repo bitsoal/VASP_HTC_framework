@@ -28,7 +28,7 @@ __doc__ = """
         Note that it makes no sense to test the total energy convergence w.r.t. KPOINTS for 0D systems.
         
     The command line to call this script looks like below:
-    >>>python Vasp_Automatic_Type_KPOINTS_convergence.py [--NL_start:integer] [--NL_end:integer] [--dN:A|A_B_C|any_A] [--convergence:AB] [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] --max_vacuum_thickness:A_B_C [--kmesh_type:Gamma|Monkhorst-Pack|Auto] [--shift:A_B_C] [--symprec_latt_const:float] [--symprec_angle:float] [--max_no_of_points:integer] [--extra_copy] [--help]
+    >>>python Vasp_Automatic_Type_KPOINTS_convergence.py [--NL_start:integer] [--NL_end:integer] [--dN:A|A_B_C|any_A] [--convergence:AB] [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] --max_vacuum_thickness:A_B_C [--kmesh_type:Gamma|Monkhorst-Pack|Auto] [--shift:A_B_C] [--symprec_latt_const:float] [--symprec_angle:float] [--max_no_of_points:integer] [--opt_nl_if_conv_failed:integer] [--extra_copy] [--help]
     
     Arguments in a pair of brackets are optional
     * --NL_start (integer): the starting NL. N in "NL" stands for the subdivision of the k-mesh in an axis; L in "NL" stands for the lattice constant.
@@ -100,7 +100,13 @@ __doc__ = """
                                 Default: 1
     * --max_no_of_points (integer): the maximum number of testing points. If the number of testing points determined by --NL_start, --NL_end and --dN is largert than the 
                                     value defined here, the first --max_no_of_points testing points will be tested only.
+                                    If --max_no_of_points testing points do not give us a converged KPOINTS, --max_no_of_points will
+                                        be automatically increased by 2 repeated until the corresponding NL is larger than --NL_end or
+                                        the converged KPOINTS is found. In the former case, --opt_nl_if_conv_failed provides the optimal NL
                                     Default: 10
+    * --opt_nl_if_conv_failed (integer>=60): If the largest testing NL hits --end and convergence is not achieved yet, --opt_nl_if_conv_failed
+                                    will be thought of as the converged/optimal NL
+                                    default: 60                
     * --extra_copy: The additional file needed to be copied into each of the sub-directories where VASP calculations with different KPOINTSs are performed. 
                     Separate them by + if there are more than one.
                     INCAR, POTCAR, KPOINTS and POSCAR are implicitly copied. So no need to set them here.
@@ -117,7 +123,8 @@ __doc__ = """
             1. create a file named "KPOINTS.optimal"
             2. __sub_dir_cal__ --> __done__
         else:
-            __sub_dir_cal__ --> __manual__
+            1. --opt_nl_if_conv_failed will defines the optimal/converged NL/KPOINTS
+            2. __sub_dir_cal__ --> __done__ and create __KPOINTS_convergence_failed__
         """
 
 
@@ -186,6 +193,13 @@ def read_and_set_default_arguments(argv_list):
         except:
             print(__doc__)
             raise Exception("Fail to parse --max_no_of_points or its value is not positive. See more in the above document.")
+            
+        try:
+            argv_dict["opt_nl_if_conv_failed"] = int(raw_argv_dict.get("--opt_nl_if_conv_failed", 60))
+            assert argv_dict["opt_nl_if_conv_failed"] >= 60
+        except:
+            print(__doc__)
+            raise Exception("The value passed to --opt_nl_if_conv_failed should be an integer >= 60 (default: 60). See more in the above document.")
         
         convergence= raw_argv_dict.get("--convergence", "1meV/atom").lower()
         argv_dict["convergence_unit"] = "ev"
@@ -324,9 +338,12 @@ def read_and_set_default_arguments(argv_list):
             NL_list.append(optimal_NL)
         
 
+    argv_dict["opt_kpoints_setup_if_conv_failed"] = VaspAutomaticKMesh(NL=argv_dict["opt_nl_if_conv_failed"], **input_kwargvs).get_kpoints_setup()
+    
     argv_dict["NL_list"] = NL_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]
     argv_dict["kpoints_setup_list"] = kpoints_setup_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]
     argv_dict["is_it_0D"] = is_it_0D
+    argv_dict["is_nl_end_included"] = (argv_dict["NL_list"][-1] == NL_list[-1])
     
     sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
     sub_dir_creation_summary_dict["sub_dir_name_list"] = ["NL_" + str(NL) for NL in argv_dict["NL_list"]]
@@ -342,8 +359,15 @@ def read_and_set_default_arguments(argv_list):
 
 def prepare_cal_files(argv_dict):
     
+    if argv_dict["opt_nl_if_conv_failed"] not in argv_dict["NL_list"]:
+        kpoints_setup_list = argv_dict["kpoints_setup_list"] + [argv_dict["opt_kpoints_setup_if_conv_failed"]]
+        NL_list = argv_dict["NL_list"] + [argv_dict["opt_nl_if_conv_failed"]]
+        is_opt_nl_if_conv_failed_appended = True
+    else:
+        is_opt_nl_if_conv_failed_appended = False
     
-    for kpoints_setup, NL in zip(argv_dict["kpoints_setup_list"], argv_dict["NL_list"]):
+    for kpoints_setup, NL in zip(kpoints_setup_list, NL_list):
+        
         is_preparation_needed = True
         sub_dir_name = "NL_" + str(NL)
         if not os.path.isdir(sub_dir_name):
@@ -372,8 +396,11 @@ def prepare_cal_files(argv_dict):
             #The detail of KPOINTS will be printed by the bellow function.
             VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kpoints_setup, cal_loc=sub_dir_name)
             
-            
-            open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+            if is_opt_nl_if_conv_failed_appended:
+                if argv_dict["opt_nl_if_conv_failed"] == NL:
+                    open(os.path.join(sub_dir_name, "opt_nl_if_conv_failed"), "w").close()
+                else:
+                    open(os.path.join(sub_dir_name, "__ready__"), "w").close()
 
 
 # In[10]:
@@ -515,6 +542,19 @@ def write_optimal_kpoints_setup(converged_NL, argv_dict):
         json.dump(kpoints_setup_dict, setup, indent=4)
 
 
+# In[1]:
+
+
+def increase_max_no_of_points():
+    with open("kpoints_convergence_setup.json", "r") as setup:
+        argv_dict = json.load(setup)
+        
+    argv_dict["max_no_of_points"] = argv_dict["max_no_of_points"] + 2
+    
+    with open("kpoints_convergence_setup.json", "w") as setup:
+        json.dump(argv_dict, setup, indent=4)
+
+
 # In[74]:
 
 
@@ -532,8 +572,22 @@ if __name__ == "__main__":
             if are_all_sub_dir_cal_finished(argv_dict):
                 converged_NL = find_converged_NL(argv_dict)
                 if converged_NL == 0:
-                    os.rename("__sub_dir_cal__", "__manual__")
-                    print("All sub-dir calculations finished but covergence is not reached. __sub_dir_cal__ --> __manual__")
+                    if argv_dict["is_nl_end_included"]:
+                        converged_NL = argv_dict["opt_nl_if_conv_failed"]
+                        shutil.copy(os.path.join("NL_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
+                        write_optimal_kpoints_setup(converged_NL=converged_NL, argv_dict=argv_dict)
+                        os.rename("__sub_dir_cal__", "__done__")
+                        open("__KPOINTS_convergence_failed__", "w").close()
+                        print("All sub-dir calculations finished and the testing NL hits the maximum NL specified by --NL_end.", end=" ")
+                        print("But covergence is still not reached.")
+                        print("KPOINTS.optimal is created with optimal NL = opt_nl_if_conv_failed = {}".format(converged_NL))
+                        print("Also write optimal kpoints setup into file optimal_kpoints_setup.json")
+                        print("__sub_dir_cal__ --> __done__ && create __KPOINTS_convergence_failed__")
+                    else:
+                        increase_max_no_of_points()
+                        print("All sub-dir calculations finished but convergence is not reached.")
+                        print("Note that the testing NL has not hitted the maximum NL specified by --NL_end yet.")
+                        print("Increase --max_no_of_points by 2 in kpoints_convergence_setup.json")
                 else:
                     shutil.copy(os.path.join("NL_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
                     write_optimal_kpoints_setup(converged_NL=converged_NL, argv_dict=argv_dict)

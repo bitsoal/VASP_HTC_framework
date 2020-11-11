@@ -26,14 +26,20 @@ __doc__ = """
         It runs a series of calculations with different ENCUT and determines the ENCUT w.r.t which the total energy is reached.
         
     The command line to call this script looks like below:
-    >>>python ENCUT_convergence.py [--start:integer] --end:integer [--step:integer] [--max_no_of_points:integer] --convergence:AB [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--extra_copy] [--help]
+    >>>python ENCUT_convergence.py [--start:integer] --end:integer [--step:integer] [--max_no_of_points:integer] [--opt_encut_if_conv_failed:integer] --convergence:AB [--convergence_type:chg|aver] [--no_of_consecutive_convergences:integer] [--which:integer] [--incar_template:filename] [--extra_copy] [--help]
     Arguments in a pair of brackets are optional
     * --start (integer): the starting ENCUT. Default: max(ENMAX) in POTCAR
     * --end (integer): the ending ENCUT. No default value
     * --step (integer): the increment of ENCUT in the ENCUT testing. Default: 50
     * --max_no_of_points (integer >=2): the maximum number of testing points. If the number of testing points determined by --start, --end and --step is largert than the 
                                     value defined here, the first --max_no_of_points testing points will be tested only.
+                                    If --max_no_of_points testing points do not give us a converged ENCUT, --max_no_of_points will
+                                        be automatically increased by 2 repeated until the corresponding ENCUT is larger than --end or
+                                        the converged ENCUT is found. In the former case, --opt_ENCUT_if_conv_failed provides the optimal ENCUT
                                     Default: 10
+    * --opt_encut_if_conv_failed (integer>=520): If the largest testing ENCUT hits --end and convergence is not achieved yet, --opt_encut_if_conv_failed
+                                    will be thought of as the converged/optimal ENCUT
+                                    default: 520  <--- The ENCUT used in Materials Project (https://docs.materialsproject.org/methodology/total-energies/)
     * --convergence: The total energy convergence. It has a form --convergence=AB, where A is the convergence criterion and B is the
                     unit which could be eV/atom, meV/atom, eV or meV. 
                     Default: no default value.
@@ -73,11 +79,12 @@ __doc__ = """
             1. create a file named "INCAR.optimal" with the converged ENCUT
             2. __sub_dir_cal__ --> __done__
         else:
-            __sub_dir_cal__ --> __manual__
+            1. --opt_encut_if_conv_failed will defines the optimal/converged ENCUT
+            2. __sub_dir_cal__ --> __done__ and create __ENCUT_convergence_failed__
         """
 
 
-# In[3]:
+# In[1]:
 
 
 def read_and_set_default_arguments(argv_list):
@@ -132,6 +139,13 @@ def read_and_set_default_arguments(argv_list):
         except:
             print(__doc__)
             raise Exception("The value passed to --max_no_of_points should be a positive integer >= 2. default: 10")
+            
+        try:
+            argv_dict["opt_encut_if_conv_failed"] = int(raw_argv_dict.get("--opt_encut_if_conv_failed", 520))
+            assert argv_dict["opt_encut_if_conv_failed"] >= 520
+        except:
+            print(__doc__)
+            raise Exception("The value passed to --opt_encut_if_conv_failed should be an integer >= 520. default: 520")
         
         
         argv_dict["incar_template"] = raw_argv_dict.get("--incar_template", "")
@@ -199,6 +213,7 @@ def read_and_set_default_arguments(argv_list):
         encut_list.append(encut)
         encut += step
     argv_dict["encut_list"] = encut_list[:min([len(encut_list), argv_dict["max_no_of_points"]])]
+    argv_dict["is_end_encut_reached"] = (argv_dict["encut_list"][-1] == encut_list[-1])
     
     sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
     sub_dir_creation_summary_dict["sub_dir_name_list"] = ["encut_" + str(encut) for encut in argv_dict["encut_list"]]
@@ -214,8 +229,13 @@ def read_and_set_default_arguments(argv_list):
 
 def prepare_cal_files(argv_dict):
     
+    if argv_dict["opt_encut_if_conv_failed"] not in argv_dict["encut_list"]:
+        encut_list = argv_dict["encut_list"] + [argv_dict["opt_encut_if_conv_failed"]]
+        is_opt_encut_if_conv_failed_appended = True
+    else:
+        is_opt_encut_if_conv_failed_appended = False
     
-    for encut in argv_dict["encut_list"]:
+    for encut in encut_list:
         is_preparation_needed = True
         sub_dir_name = "encut_" + str(encut)
         
@@ -247,7 +267,11 @@ def prepare_cal_files(argv_dict):
                 modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
             print(" && Set ENCUT = {} in {}/INCAR".format(encut, sub_dir_name))
             
-            open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+            if is_opt_encut_if_conv_failed_appended:
+                if argv_dict["opt_encut_if_conv_failed"] != encut:
+                    open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                else:
+                    open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
             
             
         
@@ -275,7 +299,7 @@ def find_converged_encut(argv_dict):
     """ Find the converged ENCUT w.r.t. the total Energy E0 in OSZICAR.
     
     Two different cases:
-        1. convergence_type:incr,
+        1. convergence_type:chg,
             If there are NCC consencutive absolute changes in the total energy which are smaller or equal to the convergence criterion (convergence),
                 the ENCUT testing is successful;
             else: the testing fails.
@@ -357,6 +381,19 @@ def find_converged_encut(argv_dict):
     return 0  
 
 
+# In[3]:
+
+
+def increase_max_no_of_points():
+    with open("encut_convergence_setup.json", "r") as setup:
+        argv_dict = json.load(setup)
+        
+    argv_dict["max_no_of_points"] = argv_dict["max_no_of_points"] + 2
+    
+    with open("encut_convergence_setup.json", "w") as setup:
+        json.dump(argv_dict, setup, indent=4)
+
+
 # In[74]:
 
 
@@ -369,8 +406,20 @@ if __name__ == "__main__":
         if are_all_sub_dir_cal_finished(argv_dict):
             converged_ENCUT = find_converged_encut(argv_dict)
             if converged_ENCUT == 0:
-                os.rename("__sub_dir_cal__", "__manual__")
-                print("All sub-dir calculations finished but covergence is not reached. __sub_dir_cal__ --> __manual__")
+                if argv_dict["is_end_encut_reached"]:
+                    converged_ENCUT = argv_dict["opt_encut_if_conv_failed"]
+                    shutil.copy(os.path.join("encut_"+str(converged_ENCUT), "INCAR"), "INCAR.optimal")
+                    os.rename("__sub_dir_cal__", "__done__")
+                    open("__ENCUT_convergence_failed__", "w").close()
+                    print("All sub-dir calculations finished and the testing ENCUT hits the maxmum ENCUT specified by --end.", end=" ")
+                    print("But covergence is still not reached.")
+                    print("INCAR.optimal is created with optimal ENCUT = opt_encut_if_conv_failed = {}".format(converged_ENCUT))
+                    print("__sub_dir_cal__ --> __done__ && create __ENCUT_convergence_failed__")
+                else:
+                    increase_max_no_of_points()
+                    print("All sub-dir calculations finished but convergence is not reached.")
+                    print("Note that the testing ENCUT has not hitted the maximum ENCUT specified by --end yet.")
+                    print("Increase --max_no_of_points by 2 in encut_convergence_setup.json")
             else:
                 shutil.copy(os.path.join("encut_"+str(converged_ENCUT), "INCAR"), "INCAR.optimal")
                 os.rename("__sub_dir_cal__", "__done__")
