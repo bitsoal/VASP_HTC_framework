@@ -579,7 +579,7 @@ Default: empty
 ------------------------------------
 
 **incar\_cmd, poscar\_cmd, kpoints\_cmd** and **potcar\_cmd**, optional,   
-These tags work in the same way as `user_defined_cmd` and `final_user_defined_cmd`. The are provided to avoid heavily using the reliance on `user_defined_cmd` and `final_user_defined_cmd`. The commands specified by these tags are **first** executed to create or modify INCAR, POSCAR, KPOINTS and POTCAR. The execution of these commands may have an impact on other HTC tags:   
+These tags work in the same way as `user_defined_cmd` and `final_user_defined_cmd`. The are provided to avoid heavily using the reliance on `user_defined_cmd` and `final_user_defined_cmd`. The commands specified by these tags are **first** executed to **create** or **modify** INCAR, POSCAR, KPOINTS and POTCAR. The execution of these commands may have an impact on other HTC tags:   
 - `poscar_cmd`: If the commands specified by this tag creates POSCAR, tag `sort_structure` is deactivated.   
 - `potcar_cmd`: If this tag creates POTCAR, pymatgen won't be called to create POTCAR  
 - `kpoints_cmd`: all other HTC tags related to KPOINTS should work.  
@@ -621,7 +621,7 @@ As shown in the second figure (`The procedure of preparing VASP input files and 
 
 **commands defined by `sub_dir_cal_cmd` is going to be called repeatedly by the program to detect and change the status of the sub-folder calculation. We suggest you to write all commands into a script and copy that script to the specific calculation folder using HTC tag `extra_copy` or `final_extra_copy`. Then just execute that script.**  
 
-**A bunch of scripts are ready under `HTC_lib/VASP/Sub_Directory_Calculation_Scripts`. The aim and the execution of each script have been detailed at the beginning of each script. We are testing those scripts. Any feedbacks from you are also welcome!**  
+**A bunch of scripts are ready under `HTC_lib/VASP/Sub_Directory_Calculation_Scripts`. The aim and the execution of each script have been detailed at the beginning of each script. We are testing those scripts. Any feedbacks are also appreciated!**  
 
 Default: **No default command. Any command that can be executed in the linux terminal. If there are more than one commands, separate them using `,`. Anyway, we suggest you to put all commands into a script and simply run that script.**  
 

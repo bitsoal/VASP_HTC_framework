@@ -267,14 +267,13 @@ def prepare_cal_files(argv_dict):
                 modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
             print(" && Set ENCUT = {} in {}/INCAR".format(encut, sub_dir_name))
             
-            if is_opt_encut_if_conv_failed_appended:
-                if argv_dict["opt_encut_if_conv_failed"] != encut:
-                    open(os.path.join(sub_dir_name, "__ready__"), "w").close()
-                else:
-                    open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
-            
-            
-        
+            if is_opt_encut_if_conv_failed_appended and encut_list[-1] == encut:
+                open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
+            else:
+                open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                
+            if not is_opt_encut_if_conv_failed_appended and argv_dict["opt_encut_if_conv_failed"] == encut:
+                open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
 
 
 # In[38]:
@@ -420,6 +419,9 @@ if __name__ == "__main__":
                     print("All sub-dir calculations finished but convergence is not reached.")
                     print("Note that the testing ENCUT has not hitted the maximum ENCUT specified by --end yet.")
                     print("Increase --max_no_of_points by 2 in encut_convergence_setup.json")
+                    print("Start preparing new sub-dir calculations...")
+                    argv_dict = read_and_set_default_arguments(sys.argv)
+                    prepare_cal_files(argv_dict)
             else:
                 shutil.copy(os.path.join("encut_"+str(converged_ENCUT), "INCAR"), "INCAR.optimal")
                 os.rename("__sub_dir_cal__", "__done__")

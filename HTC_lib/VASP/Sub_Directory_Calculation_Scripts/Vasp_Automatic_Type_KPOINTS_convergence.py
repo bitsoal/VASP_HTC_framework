@@ -396,11 +396,13 @@ def prepare_cal_files(argv_dict):
             #The detail of KPOINTS will be printed by the bellow function.
             VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kpoints_setup, cal_loc=sub_dir_name)
             
-            if is_opt_nl_if_conv_failed_appended:
-                if argv_dict["opt_nl_if_conv_failed"] == NL:
-                    open(os.path.join(sub_dir_name, "opt_nl_if_conv_failed"), "w").close()
-                else:
-                    open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+            if is_opt_nl_if_conv_failed_appended and NL_list[-1] == NL:
+                open(os.path.join(sub_dir_name, "opt_nl_if_conv_failed"), "w").close()
+            else:
+                open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                
+            if not is_opt_nl_if_conv_failed_appended and argv_dict["opt_nl_if_conv_failed"] == NL:
+                open(os.path.join(sub_dir_name, "opt_nl_if_conv_failed"), "w").close()
 
 
 # In[10]:
@@ -588,6 +590,9 @@ if __name__ == "__main__":
                         print("All sub-dir calculations finished but convergence is not reached.")
                         print("Note that the testing NL has not hitted the maximum NL specified by --NL_end yet.")
                         print("Increase --max_no_of_points by 2 in kpoints_convergence_setup.json")
+                        print("Start preparing new sub-dir calculations...")
+                        argv_dict = read_and_set_default_arguments(sys.argv)
+                        prepare_cal_files(argv_dict)
                 else:
                     shutil.copy(os.path.join("NL_"+str(converged_NL), "KPOINTS"), "KPOINTS.optimal")
                     write_optimal_kpoints_setup(converged_NL=converged_NL, argv_dict=argv_dict)

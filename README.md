@@ -13,7 +13,7 @@
 		
 3. upgrade to python3
 
-4. add a new calculation status file named as `__done_cleaned__`. The program is going to the calculation folder labelled by `__done__` and delete the irrelevant files specified by a new tag del_irrelevant_output_files
+4. add a new calculation status file named as `__done_cleaned__`. The program is going to the calculation folder labelled by `__done__` and delete the irrelevant files specified by a new tag `del_irrelevant_output_files`
 	
 7. set DIPOL
 

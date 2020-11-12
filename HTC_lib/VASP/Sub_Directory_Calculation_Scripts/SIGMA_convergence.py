@@ -30,11 +30,16 @@ __doc__ = """
     
     Arguments in a pair of brackets are optional
     * --start (float): the starting SIGMA. Default: 0.01
-    * --end (float): the ending SIGMA. Default: 1
+    * --end (float): the ending SIGMA. It is also the upper bound of SIGMA in this testing. See more in --max_no_of_points
+                Default: 1
     * --step (float): the increment of SIGMA in the SIGMA testing. Default: 0.02
     * --max_no_of_points (integer>=2): the maximum number of testing points. If the number of testing points determined by --start, --end and --step is
                                 larger than the value defined here, the first --max_no_of_points will be tested only.
-                                Default: 10
+                                If all --max_no_of_points testing points meet the TS_convergence criterion and the max SIGMA associated with --max_no_of_points
+                                    is smaller than end, automatcially increase --max_no_of_points by 2. The process repeats until the max SIGMA associated with 
+                                    --max_no_of_points hits --end or the TS_convergence criterion is unsatisfied for the first time.
+                                    In the former case, the optimal SIGMA will be set to --end.
+                                Default: 2
     * --TS_convergence (float in meV/atom): For ISMEAR>=0 (the Gaussian or Methfessel-Paxton smearing), SIGMA should be chosen in such a way that
             the term "entropy T*S" in OUTCAR is small (i.e. < 1-2meV/atom). --TS_convergence specifies this criterion of T*S in meV/atom.
             Default: 1
@@ -56,7 +61,9 @@ __doc__ = """
             1. create a file named "INCAR.optimal" with the converged SIGMA
             2. __sub_dir_cal__ --> __done__
         else:
-            __sub_dir_cal__ --> __manual__
+            1. set the optimal SIGMA to --end
+            2. create a file named "INCAR.optimal" with the optimal SIGMA = --end
+            3. __sub_dir_cal__ --> __done__ && create __SIGMA_convergence_hits_upper_bound__
         """
 
 
@@ -102,11 +109,11 @@ def read_and_set_default_arguments(argv_list):
             raise Exception("The value passed to --step should be a floating point number. default: 0.02")
             
         try:
-            argv_dict["max_no_of_points"] = int(raw_argv_dict.get("--max_no_of_points", 10))
+            argv_dict["max_no_of_points"] = int(raw_argv_dict.get("--max_no_of_points", 2))
             assert argv_dict["max_no_of_points"] >= 2
         except:
             print(__doc__)
-            raise Exception("The value passed to --max_no_of_points should be a positive integer >= 2. default: 10")
+            raise Exception("The value passed to --max_no_of_points should be a positive integer >= 2. default: 2")
             
             
         argv_dict["incar_template"] = raw_argv_dict.get("--incar_template", "")
@@ -141,6 +148,7 @@ def read_and_set_default_arguments(argv_list):
         sigma_list.append(sigma)
         sigma += step
     argv_dict["sigma_list"] = sigma_list[:min([len(sigma_list), argv_dict["max_no_of_points"]])]
+    argv_dict["is_upper_bound_reached"] = (argv_dict["sigma_list"] == sigma_list[-1])
     
     sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
     sub_dir_creation_summary_dict["sub_dir_name_list"] = ["sigma_" + str(sigma) for sigma in argv_dict["sigma_list"]]
@@ -151,11 +159,17 @@ def read_and_set_default_arguments(argv_list):
             
 
 
-# In[27]:
+# In[3]:
 
 
 def prepare_cal_files(argv_dict):
     
+    sigma_list = argv_dict["sigma_list"]
+    if argv_dict["end"] not in sigma_list:
+        sigma_list.append(argv_dict["end"])
+        is_end_sigma_appended = True
+    else:
+        is_end_sigma_appended = False
     
     for sigma in argv_dict["sigma_list"]:
         is_preparation_needed = True
@@ -192,7 +206,13 @@ def prepare_cal_files(argv_dict):
                 modify_vasp_incar(sub_dir_name, new_tags={"SIGMA": sigma}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
             print(" && Set SIGMA = {} in {}/INCAR".format(sigma, sub_dir_name))
             
-            open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+            if is_end_sigma_appended and sigma == sigma_list[-1]:
+                open(os.path.join(sub_dir_name, "opt_end_if_conv_satisfied_for_all_points"), "w").close()
+            else:
+                open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                
+            if not is_end_sigma_appended and sigma == argv_dict["end"]:
+                open(os.path.join(sub_dir_name, "opt_end_if_conv_satisfied_for_all_points"), "w").close()
             
             
         
@@ -223,7 +243,9 @@ def find_converged_sigma(argv_dict):
         
     return:
         if such SIGMA is found, return such SIGMA;
-        otherwise, return 0
+        otherwise:
+            - return -1 if there is something wrong with parsing TS from OUTCAR.
+            - return -2 if the optimal SIGMA cannot be found.
     """
     
     TS_list = []
@@ -239,7 +261,7 @@ def find_converged_sigma(argv_dict):
                     is_TS_found = True
         if is_TS_found == False:#"Fail to parse T*S from {}".format(os.path.join(sub_dir_name, "OUTCAR"))
             open("__fail_to_parse_TS_from_OUTCAR_under_{}__".format(sub_dir_name), "w").close()
-            return 0
+            return -1
         else:
             TS_list.append(last_TS)
     
@@ -257,9 +279,22 @@ def find_converged_sigma(argv_dict):
         if TS_ind - argv_dict["which"] >= 0:
             return argv_dict["sigma_list"][TS_ind - argv_dict["which"]]
         else:
-            return 0
+            return -2
     else:
-        return 0
+        return -2
+
+
+# In[2]:
+
+
+def increase_max_no_of_points():
+    with open("sigma_convergence_setup.json", "r") as setup:
+        argv_dict = json.load(setup)
+        
+    argv_dict["max_no_of_points"] = argv_dict["max_no_of_points"] + 2
+    
+    with open("sigma_convergence_setup.json", "w") as setup:
+        json.dump(argv_dict, setup, indent=4)
 
 
 # In[74]:
@@ -274,9 +309,28 @@ if __name__ == "__main__":
         prepare_cal_files(argv_dict)
         if are_all_sub_dir_cal_finished(argv_dict):
             converged_sigma = find_converged_sigma(argv_dict)
-            if converged_sigma == 0:
+            if converged_sigma == -1:
                 os.rename("__sub_dir_cal__", "__manual__")
-                print("All sub-dir calculations finished but covergence is not reached. __sub_dir_cal__ --> __manual__")
+                print("There is something wrong with parsing T*S from OUTCAR. __sub_dir_cal__ --> __manual__")
+            elif converged_sigma == -2:
+                if argv_dict["is_upper_bound_reached"]:
+                    converged_sigma = argv_dict["end"]
+                    shutil.copy(os.path.join("sigma_"+str(converged_sigma), "INCAR"), "INCAR.optimal")
+                    os.rename("__sub_dir_cal__", "__done__")
+                    open("__SIGMA_convergence_hits_upper_bound__", "w").close()
+                    print("All sub-dir calculations finished and the largest testing SIGMA hits the one specified by --end.")
+                    print("But all testing points satisfy the T*S convergence criterion.")
+                    print("Set the optimal SIGMA to the one specified by --end.")
+                    print("INCAR.optimal is created with optimal SIGMA = --end = {}".format(converged_sigma))
+                    print("create __SIGMA_convergence_hits_upper_bound__")
+                else:
+                    increase_max_no_of_points()
+                    print("All sub-dir calculations finished and all testing points satisfy the T*S convergence criterion")
+                    print("Note that the largest SIGMA associated with --max_no_of_points has not hitted the one specified by --end.")
+                    print("Increase --max_no_of_points by 2 in sigma_convergence_setup.json")
+                    print("Start preparing new sub-dir calculations...")
+                    argv_dict = read_and_set_default_arguments(sys.argv)
+                    prepare_cal_files(argv_dict)
             else:
                 shutil.copy(os.path.join("sigma_"+str(converged_sigma), "INCAR"), "INCAR.optimal")
                 os.rename("__sub_dir_cal__", "__done__")
