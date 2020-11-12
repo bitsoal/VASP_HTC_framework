@@ -38,6 +38,7 @@ def update_job_status(cal_folder, workflow):
     job_status_dict = check_calculations_status(cal_folder=cal_folder)
     update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
     update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_status_dict["sub_dir_cal_folder_list"], workflow=workflow)
+    clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
 
 
 # In[2]:
@@ -114,13 +115,16 @@ def check_calculations_status(cal_folder):
         - killed_folder_list (list): a list of absolute pathes where the calculation has been killed.
         - manual_folder_list (list): a list of absolute pathes where the error can not be fixed automatically.
         - vis_folder_list (list): a list of absolute pathes where the input files for calculations need to be prepared
+        - ...
     """
     signal_file_list = ["__manual__", "__test__", "__vis__", "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__",
-                        "__error__", "__running__", "__done__", "__killed__"]
+                        "__error__", "__running__", "__done__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__killed__"]
     job_status_folder_list = ["manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", 
                               "ready_folder_list", "prior_ready_folder_list", "sub_dir_cal_folder_list", "error_folder_list", "running_folder_list", 
-                              "done_folder_list", "killed_folder_list", "other_folder_list"]
+                              "done_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list", 
+                              "killed_folder_list", "other_folder_list"]
     job_status_dict = {key: [] for key in job_status_folder_list}
+    
     
     jobs_in_str = decorated_subprocess_check_output("find %s -type f -name INCAR" % cal_folder)[0]
     job_list = []
@@ -302,8 +306,39 @@ def update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list, workflow):
         
         Execute_shell_cmd(cal_loc=sub_dir_cal_path, user_defined_cmd_list=current_firework["sub_dir_cal_cmd"],
                           where_to_execute=sub_dir_cal_path, defined_by_which_htc_tag="sub_dir_cal_cmd")
-    
-    
 
-    
+
+# In[ ]:
+
+
+def clean_analyze_or_update_successfully_finished_jobs(done_jobs_list, workflow):
+    """
+    For a calculation labelled by __done__, the operations defined by HTC tag cmd_to_process_finished_jobs will be called to
+    clean or analyze the calculation. After these operations are successfully called, __done__ --> __done_cleaned_analyzed__.
+    If any error happens, __done__ --> __done_failed_to_clean_analyze__
+    Of course, the calculation status remains at __done__ if no operation is defined by cmd_to_process_finished_jobs
+    Note that if you are going to delete files/folders, please make sure the command(s) capable of ingoring non-existent files/folders.
+    E.g. rm -rf file1 file2 file3 folder1
+    """
+    for cal_loc in done_jobs_list:      
+        current_firework = get_current_firework_from_cal_loc(cal_loc, workflow)
+        
+        if current_firework["cmd_to_process_finished_jobs"] == []:
+            continue()
+        
+        log_filename = os.path.join(cal_loc, "log.txt")
+        
+        status = Execute_shell_cmd(cal_loc=cal_loc, user_defined_cmd_list=current_firework["cmd_to_process_finished_jobs"], 
+                                   where_to_execute=cal_loc, defined_by_which_htc_tag="cmd_to_process_finished_jobs")
+        
+        if status:
+            decorated_os_rename(loc=cal_loc, old_filename="__done__", new_filename="__done_cleaned_analyzed__")
+            with open(log_filename, "a") as log_f:
+                log_f.write("\tSuccessfully cleaned or analyzed the calculation: __done__ --> __done_cleaned_analyzed__\n")
+        else:
+            decorated_os_rename(loc=cal_loc, old_filename="__done__", new_filename="__done_failed_to_clean_analyze__")
+            os.remove(os.path.join(cal_loc, "__manual__")) #__manual__ is created by Execute_shell_cmd if an error happens
+            with open(log_filename, "a") as log_f:
+                log_f.write("\tFailed to clean or analyze the calculation. See above for the details\n")
+                log_f.write("\tdelete __manual__ && __done__ --> __done_failed_to_clean_analyze__")
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 import os, pprint, sys, shutil
@@ -17,7 +17,7 @@ if HTC_package_path not in sys.path:
 
 from pymatgen import Structure
 
-from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename#, get_current_firework_from_cal_loc
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 
 from HTC_lib.VASP.INCAR.Write_VASP_INCAR import Write_Vasp_INCAR

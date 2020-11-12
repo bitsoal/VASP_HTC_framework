@@ -587,6 +587,15 @@ These tags work in the same way as `user_defined_cmd` and `final_user_defined_cm
 
 ------------------------------------
 
+**cmd\_to\_process\_finished\_jobs**, optional,   
+This tag defines the command(s) to clean or analyze the successfully finished calculation labelled by `__done__`. It has the same format as `user_defined_cmd, final_user_defined_cmd, ...`   
+If the commands are successfully called, change `__done__` to `__done_cleaned_analyzed__`; Otherwise, change `__done__` to `__done_failed_to_clean_analyze__`.   
+*Of course, if this tag is not set, the calculation status will remain at `__done__`.*      
+*Note that if you are going to delete output files using this tag, ensure that the command(s) is(are) capable of ignoring non-existent files.* **You should be cautious about file/folder removal because this action is not reversible.**    
+Default: empty
+
+--------------------------------------------
+
 **user\_defined\_postprocess\_cmd**, optional,  
 This tag allows users to execute a series of commands to perform user-defined firetasks for post-process. *This tag is currently not available*  
 *If there are multiple commands, separate them with commas.*  
@@ -765,9 +774,11 @@ When the workflow is running, some **built-in** signal file will be present in e
 - queue system's `stdout` and `stderr`: The program will think the job is done and all error checkers will be called to check errors. If any errors are found, `__running__` --> `__error__`; Otherwise, `__running__` --> `__done__`
 - `__manual__`: The program cannot fix the error and the error should be fixed manually.
 - `__bad_termination_`: When the job fails due to the error `=   BAD TERMINATION OF ONE OF YOUR APPLICATION PROCESSES` in file vasp.out **for the first time**, the program will **resubmit** the job automatically and create this signal file. When such error happens again, the presence of this signal file tells the program that this is the second time to encounter such error. In this case, the program cannot automatically handle this error anymore, `__killed__` --> `__manual__`.
-- `__skipped__`: The jobs labeled by this signal file will be skipped. Users can simply judge if a job is necessary via tag `user_defined_cmd`/`final_user_defined_cmd`. If the calculation is unnecessary, users can generate this signal file to skip unnecessary calculations.
+- `__skipped__`: The jobs labeled by this signal file will be skipped. Users can simply judge if a job is necessary via tag `user_defined_cmd`/`final_user_defined_cmd`. If the calculation is unnecessary, users can generate this signal file to skip unnecessary calculations.  
+- `__done_cleaned_analyzed__`: When the command(s) defined by `cmd_to_process_finished_jobs` is successfully run on a job labelled by `__done__`, `__done__` --> `__done_cleaned_analyzed__`.   
+- `__done_failed_to_clean_analyze__`: When the command(s) defined by `cmd_to_process_finished_jobs` fails to run on a job labelled by `__done__`, `__done__` --> `__done_failed_to_clean_analyze__`.   
 
-***Signal file priority:*** `__manual__` > `__vis__` > `__skipped__` > `__ready__` > `prior_ready__` > `__sub_dir_cal__` > `__error__` > `__running__` > `__done__` > `__killed__`  
+***Signal file priority:*** `__manual__` > `__vis__` > `__skipped__` > `__ready__` > `prior_ready__` > `__sub_dir_cal__` > `__error__` > `__running__` > `__done__` > `__done_cleaned_analyzed__` > `__done_failed_to_clean_analyze__` > `__killed__`  
 
 
 **Note that when you manually fix an error or tune VASP input files under a filework folder, DO remove these signal tags so that the program has nothing to do with this firework folder. After modifications, you have two ways to bring it back to the program scope (_The second way is recommended_):**
