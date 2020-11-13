@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[3]:
 
 
-import os, time, shutil
+import os, time, shutil, re
 import subprocess
 
 
@@ -230,6 +230,40 @@ def get_current_firework_from_cal_loc(cal_loc, workflow):
         if firework_name == firework["firework_folder_name"]:
             return firework
     raise Exception("Cannot parse a firework name from the path below:\n%s" % cal_loc0)
+
+
+# In[39]:
+
+
+def get_mat_folder_name_from_cal_loc(cal_loc):
+    """
+    get_mat_folder_name_from_cal_loc(cal_loc) return the material folder name by parsing cal_loc.
+    input argument:
+        - cal_loc (str): absolute calculation directory.
+        
+    Example 1. >>>get_mat_folder_name_from_cal_loc(cal_loc="/home/user1/htc_test/cal_folder/material_A/step_1_str_opt")
+             "material_A"
+    Example 2. >>>get_mat_folder_name_from_cal_loc(cal_loc="/home/user1/htc_test/cal_folder/material_A/step_3_chg_diff/step_1_H_consituent")
+             "step_3_chg_diff"
+             
+        1. Note that in this function, the folder name starting with "step_x_" (x is a number), which is "step_1_" in Example 1, is used as an indicator. The name of its parent folder is what would be returned by this function, i.e. "material_A" in Example 1
+        2. Given a path, if there are more than one folders whose name starts with "step_x_", the parent folder of the last one will be returned. See Example 2 above.
+    """
+    assert re.search("step_\d+_", cal_loc), "The path below does not contain a folder name starting with 'step_x_', where x is a number. Cannot parse the material folder name from it.\n\n%s\n\nThe document of this function is shown below%s" % (cal_loc, get_mat_folder_name_from_cal_loc.__doc__)
+    
+    cal_loc0 = cal_loc
+    while True:
+        head, tail = os.path.split(cal_loc)
+        cal_loc = head
+        m = re.match("step_\d+_", tail)
+        if m:
+            break
+    
+    head, mat_folder_name = os.path.split(cal_loc)
+    assert mat_folder_name, "Fail to parse the material folder name from the path below\n\n%s\n\nSee the document of this function below: %s" % (cal_loc0, get_mat_folder_name_from_cal_loc.__doc__)
+    
+    return mat_folder_name
+    
 
 
 # In[11]:

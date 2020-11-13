@@ -156,7 +156,6 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                     f.write("\t\t\tCONTCAR --> POSCAR under dst folder\n")
         
         
-        
         input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["user_defined_cmd"],
                            "where_to_execute": current_cal_loc, "defined_by_which_htc_tag": "user_defined_cmd"}
         if not Execute_shell_cmd(**input_args_list):
@@ -179,8 +178,7 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                 shutil.copyfile(src=file, dst=os.path.join(current_cal_loc, filename))
                 with open(log_txt, "a") as f:
                     f.write("\t\t\t{}\n".format(file))
-        
-        
+
         input_args_list = {"cal_loc": current_cal_loc, "user_defined_cmd_list": current_firework["final_user_defined_cmd"],
                            "where_to_execute": current_cal_loc, "defined_by_which_htc_tag": "final_user_defined_cmd"}
         if not Execute_shell_cmd(**input_args_list):

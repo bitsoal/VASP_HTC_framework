@@ -16,7 +16,7 @@ if HTC_package_path not in sys.path:
 ##############################################################################################################
 
 
-from HTC_lib.VASP.Miscellaneous.Utilities import decorated_os_system, get_time_str
+from HTC_lib.VASP.Miscellaneous.Utilities import decorated_os_system, get_time_str, get_mat_folder_name_from_cal_loc
 
 
 # In[6]:
@@ -34,6 +34,15 @@ def Execute_shell_cmd(cal_loc, user_defined_cmd_list, where_to_execute, defined_
     If cmds are successfully executed, return True; Otherwise, return False
     """
     if user_defined_cmd_list:
+        
+        #Find the material folder name from cal_loc. The LAST folder whose name starts with "step_x_" ("x" is a number) is the indicator.
+        #e.g. >>>get_mat_folder_name_from_cal_loc(cal_loc="/home/user1/htc_test/cal_folder/material_A/step_1_str_opt")
+        #     "material_A"
+        #     >>>get_mat_folder_name_from_cal_loc(cal_loc="/home/user1/htc_test/cal_folder/material_A/step_3_chg_diff/step_1_H_consituent")
+        #     "step_3_chg_diff"
+        material_folder_name = get_mat_folder_name_from_cal_loc(cal_loc=cal_loc)
+        user_defined_cmd_list = [cmd.replace("${MAT_FOLDER_NAME}", material_folder_name) for cmd in user_defined_cmd_list]
+        
         current_dir = os.getcwd()
         
         with open(os.path.join(cal_loc, "log.txt"), "a") as f:
