@@ -225,7 +225,7 @@ If the HTC package is under the same folder as `htc_main.py`, `${HTC_LIB_LOC} = 
 ---------------------------------------
 
 - **`${MAT_FOLDER_NAME}`**: the material folder name, i.e. `Mater_A`, `Mater_B` in Fig. 1.   
-In our HTC directory structure (Fig. 1), a material, say `Mater_A.cif`, has a folder under `Calculation folder`. This folder (`Mater_A` in Fig. 1) is what we call the material folder associated with `Mater_A.cif` here, under which there are a series of calculations on `Mater_A.cif`.  
+In our HTC directory structure (Fig. 1), a material, say `Mater_A.cif`, has a associated folder named as `Mater_A` under `Calculation folder`. This folder (`Mater_A` in Fig. 1) is what we call the material folder associated with `Mater_A.cif` here, under which there are a series of calculations on `Mater_A.cif`.  
 We introduce this variable to represent the material folder name. **All `${MAT_FOLDER_NAME}` appearing in HTC tag `user_defined_cmd`, `final_user_defined_cmd`, `sub_dir_cal_cmd`, `incar_cmd, poscar_cmd`, `kpoints_cmd`, `potcar_cmd` and `cmd_to_process_finished_jobs` will be replaced with the corresponding material folder name.** For example, `${MAT_FOLDER_NAME}` will be replaced by `Mater_A` and `Mater_B` for `Mater_A.cif` and `Mater_B.cif`, respectively.   
 *If you still have no idea about what `${MAT_FOLDER_NAME}` is, try to set `user_defined_cmd= echo ${MAT_FOLDER_NAME} > mat_folder_name` in your HTC and check `mat_folder_name` under each material folder*
 
