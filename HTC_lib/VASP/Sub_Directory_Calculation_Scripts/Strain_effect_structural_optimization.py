@@ -198,7 +198,7 @@ def prepare_cal_files(argv_dict):
         
 
 
-# In[6]:
+# In[3]:
 
 
 def are_all_sub_dir_cal_finished(argv_dict):
@@ -206,9 +206,9 @@ def are_all_sub_dir_cal_finished(argv_dict):
     for encut in argv_dict["strain_list"]:
         sub_dir_name = "strain_" + str(encut)
         
-        if not os.path.isfile(os.path.join(sub_dir_name, '__done__')):
-            if not os.path.isfile(os.path.join(sub_dir_name, "__done_clean__")):
-                return False
+        if True not in [os.path.isfile(os.path.join(sub_dir_name, target_file)) for target_file in 
+                       ["__done__", "__skipped__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__"]]:
+            return False
         
     return True
 

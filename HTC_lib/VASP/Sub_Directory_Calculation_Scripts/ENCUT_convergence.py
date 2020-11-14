@@ -172,7 +172,7 @@ def read_and_set_default_arguments(argv_list):
             raise Exception("The energy convergence criterion should be set by '--convergence=AB', where A is a number and B should be ev, mev, ev/atom or mev/atom")
             
         if "--convergence_type" in raw_argv_dict.keys():
-            convergence_type = raw_argv_dict["[--convergence_type"].lower()
+            convergence_type = raw_argv_dict["--convergence_type"].lower()
             if convergence_type.startswith("chg"):
                 argv_dict["convergence_type"] = "chg"
             elif convergence_type.startswith("aver"):
@@ -276,7 +276,7 @@ def prepare_cal_files(argv_dict):
                 open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
 
 
-# In[38]:
+# In[3]:
 
 
 def are_all_sub_dir_cal_finished(argv_dict):
@@ -284,9 +284,9 @@ def are_all_sub_dir_cal_finished(argv_dict):
     for encut in argv_dict["encut_list"]:
         sub_dir_name = "encut_" + str(encut)
         
-        if not os.path.isfile(os.path.join(sub_dir_name, '__done__')):
-            if not os.path.isfile(os.path.join(sub_dir_name, "__done_clean__")):
-                return False
+        if True not in [os.path.join(os.path.join(sub_dir_name, target_file)) for target_file in 
+                        ["__done__", "__skipped__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__"]]:
+            return False
         
     return True
 

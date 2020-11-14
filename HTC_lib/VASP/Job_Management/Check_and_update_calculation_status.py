@@ -308,7 +308,7 @@ def update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list, workflow):
                           where_to_execute=sub_dir_cal_path, defined_by_which_htc_tag="sub_dir_cal_cmd")
 
 
-# In[ ]:
+# In[1]:
 
 
 def clean_analyze_or_update_successfully_finished_jobs(done_jobs_list, workflow):
@@ -323,7 +323,7 @@ def clean_analyze_or_update_successfully_finished_jobs(done_jobs_list, workflow)
     for cal_loc in done_jobs_list:      
         current_firework = get_current_firework_from_cal_loc(cal_loc, workflow)
         
-        if current_firework["cmd_to_process_finished_jobs"] == []:
+        if not current_firework["cmd_to_process_finished_jobs"]:
             continue
         
         log_filename = os.path.join(cal_loc, "log.txt")

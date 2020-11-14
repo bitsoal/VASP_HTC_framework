@@ -229,7 +229,7 @@ def post_process(mater_cal_folder, current_firework, workflow):
         decorated_os_rename(loc=current_cal_loc, old_filename="__post_process__", new_filename="__post_process_done__")
 
 
-# In[5]:
+# In[6]:
 
 
 def get_current_firework(mater_cal_folder, workflow, current_firework_folder_name="-1"):
@@ -243,43 +243,25 @@ def get_current_firework(mater_cal_folder, workflow, current_firework_folder_nam
     firework_hierarchy_dict = workflow[0]["firework_hierarchy_dict"]
     next_firework_list = []
     for next_firework_folder_name in firework_hierarchy_dict.get(current_firework_folder_name, []):
-        if os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__done__")) or         os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__skipped__")):
+        if True in [os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, target_file)) 
+                    for target_file in ["__done__", "__skipped__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__"]]:
+        #os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__done__")) or \
+        #os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__skipped__")) or \
+        #os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__done_cleaned_analyzed__")) or \
+        #os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__done_failed_to_clean_analyze__")):
             next_firework_list.extend(get_current_firework(mater_cal_folder, workflow, current_firework_folder_name=next_firework_folder_name))
         else:
             next_firework_step_no = int(next_firework_folder_name.split("_")[1])
             all_dependent_fireworks_are_complete = True
             for dependent_firework_folder_name in workflow[next_firework_step_no-1]["additional_cal_dependence"]:
-                if not os.path.isfile(os.path.join(mater_cal_folder, dependent_firework_folder_name, "__done__")) and not                 os.path.isfile(os.path.join(mater_cal_folder, dependent_firework_folder_name, "__skipped__")):
+                if True not in [os.path.isfile(os.path.join(mater_cal_folder, dependent_firework_folder_name, target_file)) 
+                                for target_file in ["__done__", "__skipped__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__"]]:
+                #if not os.path.isfile(os.path.join(mater_cal_folder, dependent_firework_folder_name, "__done__")) and not \
+                #os.path.isfile(os.path.join(mater_cal_folder, dependent_firework_folder_name, "__skipped__")):
                     all_dependent_fireworks_are_complete = False
+                    break
             if all_dependent_fireworks_are_complete:
                 next_firework_list.append(workflow[next_firework_step_no-1])
     return next_firework_list        
             
-
-
-# In[5]:
-
-
-def get_current_firework_0(mater_cal_folder, workflow):
-    """
-    find and return the current firework
-    input arguments:
-        -mater_cal_folder: the path under which a sequence of DFT calculations will be done.
-        -workflow: the return of function parse_calculation_workflow, which define a set of DFT calculations and related pre- and post- processes
-    """
-    firework_folder_name_list = [firework["firework_folder_name"] for firework in workflow]
-    existent_firework_folder_list = []
-    for folder_name in os.listdir(mater_cal_folder):
-        if os.path.isdir(os.path.join(mater_cal_folder, folder_name)):
-            existent_firework_folder_list.append(folder_name)
-            
-    for ind, firework_folder_name in enumerate(firework_folder_name_list):
-        if firework_folder_name in existent_firework_folder_list:
-            if os.path.isfile(os.path.join(mater_cal_folder, firework_folder_name, "__done__")):
-                continue
-            elif os.path.isfile(os.path.join(mater_cal_folder, firework_folder_name, "__skipped__")):
-                continue
-        return workflow[ind]
-    
-    return workflow[-1]
 
