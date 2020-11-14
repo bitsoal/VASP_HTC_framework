@@ -653,7 +653,10 @@ Default: **No default command. Any command that can be executed in the linux ter
 ~~default: `No`~~
 
 -----------------------------------
-- **error\_backup\_files**, optional.  
+- **error\_
+- 
+- 
+- \_files**, optional.  
 When an error occurs to a calculation and the program is able to handle it, the VASP input|output files specified by `error_backup_files` will be copied/saved under `error_folder/error_#`. In the meanwhile, the files specified by `vasp.out`, `queue_stdout_file_prefix`, `queue_stdout_file_suffix`, `queue_stderr_file_prefix`, `queue_stderr_file_suffix` will also be copied/saved under the same folder.  
 *When an error cannot be automatically fixed by the program, researchers have to manually get rid of it. In this case, these backup files might be helpful.*
   
@@ -666,7 +669,7 @@ default:
 - **htc\_input\_backup** && **htc\_input\_backup\_loc**, optional for the first firework  
 `htc_input_backup` can specifiy a series of comma-separated ***files*** or ***folders***, which the program will back up under the folder specified by `htc_input_backup_loc`.  
 *Note that the specified files or folders should be relative to `${HTC_CWD}` (see above for this built-in tag). Don't refer to them using the absolute paths.*  
-`htc_main.py` and `HTC_calculation_setup_file` will be ***implicitly*** backed up.  
+`htc_main.py`, `HTC_calculation_setup_file` (if existent) and `HTC_calculation_setup_folder` (if existent) will be ***implicitly*** backed up.  
 `htc_input_backup` comes into play only if you have additional important htc input to be backed up.  
 
 default:  

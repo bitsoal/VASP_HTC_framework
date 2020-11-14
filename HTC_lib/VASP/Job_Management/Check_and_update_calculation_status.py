@@ -324,7 +324,7 @@ def clean_analyze_or_update_successfully_finished_jobs(done_jobs_list, workflow)
         current_firework = get_current_firework_from_cal_loc(cal_loc, workflow)
         
         if current_firework["cmd_to_process_finished_jobs"] == []:
-            continue()
+            continue
         
         log_filename = os.path.join(cal_loc, "log.txt")
         
