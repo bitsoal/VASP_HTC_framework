@@ -217,7 +217,7 @@ def read_and_set_default_arguments(argv_list):
             
         
         if "--convergence_type" in raw_argv_dict.keys():
-            convergence_type = raw_argv_dict["[--convergence_type"].lower()
+            convergence_type = raw_argv_dict["--convergence_type"].lower()
             if convergence_type.startswith("chg"):
                 argv_dict["convergence_type"] = "chg"
             elif convergence_type.startswith("aver"):
@@ -354,7 +354,7 @@ def read_and_set_default_arguments(argv_list):
             
 
 
-# In[2]:
+# In[6]:
 
 
 def prepare_cal_files(argv_dict):
@@ -364,6 +364,7 @@ def prepare_cal_files(argv_dict):
         NL_list = argv_dict["NL_list"] + [argv_dict["opt_nl_if_conv_failed"]]
         is_opt_nl_if_conv_failed_appended = True
     else:
+        kpoints_setup_list = argv_dict["kpoints_setup_list"]
         is_opt_nl_if_conv_failed_appended = False
     
     for kpoints_setup, NL in zip(kpoints_setup_list, NL_list):
@@ -381,28 +382,33 @@ def prepare_cal_files(argv_dict):
                     break
                     
         if is_preparation_needed:
-            shutil.copy("POSCAR", os.path.join(sub_dir_name, "POSCAR"))
-            shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
-            shutil.copy("POTCAR", os.path.join(sub_dir_name, "POTCAR"))
-            shutil.copy("INCAR", os.path.join(sub_dir_name, "INCAR"))
-            
-            if argv_dict["extra_copy"]:
-                for file in argv_dict["extra_copy"]:
-                    shutil.copy2(file, sub_dir_name)
-            print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
-            [print(extra_file, end=" ") for extra_file in argv_dict["extra_copy"]]
-            
-            print(" && write KPOINTS under {}: ".format(sub_dir_name), end=" ")
-            #The detail of KPOINTS will be printed by the bellow function.
-            VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kpoints_setup, cal_loc=sub_dir_name)
-            
-            if is_opt_nl_if_conv_failed_appended and NL_list[-1] == NL:
-                open(os.path.join(sub_dir_name, "opt_nl_if_conv_failed"), "w").close()
+            if os.path.isfile(os.path.join(sub_dir_name, "opt_nl_if_conv_failed")):
+                pass
+                #open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                #print("%s: The VASP input files are already ready. Just create __ready__".format(sub_dir_name))
             else:
-                open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                shutil.copy("POSCAR", os.path.join(sub_dir_name, "POSCAR"))
+                shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
+                shutil.copy("POTCAR", os.path.join(sub_dir_name, "POTCAR"))
+                shutil.copy("INCAR", os.path.join(sub_dir_name, "INCAR"))
                 
-            if not is_opt_nl_if_conv_failed_appended and argv_dict["opt_nl_if_conv_failed"] == NL:
-                open(os.path.join(sub_dir_name, "opt_nl_if_conv_failed"), "w").close()
+                if argv_dict["extra_copy"]:
+                    for file in argv_dict["extra_copy"]:
+                        shutil.copy2(file, sub_dir_name)
+                print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
+                [print(extra_file, end=" ") for extra_file in argv_dict["extra_copy"]]
+                
+                print(" && write KPOINTS under {}: ".format(sub_dir_name), end=" ")
+                #The detail of KPOINTS will be printed by the bellow function.
+                VaspAutomaticKMesh.write_KPOINTS(kpoints_setup=kpoints_setup, cal_loc=sub_dir_name)
+                
+                if is_opt_nl_if_conv_failed_appended and NL_list[-1] == NL:
+                    open(os.path.join(sub_dir_name, "opt_nl_if_conv_failed"), "w").close()
+                else:
+                    open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                    
+                if not is_opt_nl_if_conv_failed_appended and argv_dict["opt_nl_if_conv_failed"] == NL:
+                    open(os.path.join(sub_dir_name, "opt_nl_if_conv_failed"), "w").close()                
 
 
 # In[4]:

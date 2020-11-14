@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[10]:
+# In[3]:
 
 
 import os, sys, re, math, shutil, json
@@ -199,14 +199,14 @@ def prepare_cal_files(argv_dict):
         
 
 
-# In[2]:
+# In[4]:
 
 
 def are_all_sub_dir_cal_finished(argv_dict):
     
     for sub_dir_name in argv_dict["sub_dir_names_list"]:
         
-        if True not in [os.path.join(os.path.join(sub_dir_name, target_file)) for target_file in 
+        if True not in [os.path.isfile(os.path.join(sub_dir_name, target_file)) for target_file in 
                         ["__done__", "__skipped__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__"]]:
             return False
         

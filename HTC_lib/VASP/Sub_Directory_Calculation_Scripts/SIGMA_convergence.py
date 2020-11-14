@@ -159,19 +159,20 @@ def read_and_set_default_arguments(argv_list):
             
 
 
-# In[3]:
+# In[4]:
 
 
 def prepare_cal_files(argv_dict):
     
-    sigma_list = argv_dict["sigma_list"]
+    
     if argv_dict["end"] not in sigma_list:
-        sigma_list.append(argv_dict["end"])
+        sigma_list = argv_dict["sigma_list"] + [argv_dict["end"]]
         is_end_sigma_appended = True
     else:
+        sigma_list = argv_dict["sigma_list"]
         is_end_sigma_appended = False
     
-    for sigma in argv_dict["sigma_list"]:
+    for sigma in sigma_list:
         is_preparation_needed = True
         sub_dir_name = "sigma_" + str(sigma)
         
@@ -189,30 +190,35 @@ def prepare_cal_files(argv_dict):
         assert int(incar_dict["ISMEAR"]) >= 0, "SIGMA is valid only for the Gaussian (ISMEAR=0) or Methfessel-Paxton smearing (ISMEAR>0, normally 1 or 2)"
         
         if is_preparation_needed:
-            shutil.copy("POSCAR", os.path.join(sub_dir_name, "POSCAR"))
-            shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
-            shutil.copy("POTCAR", os.path.join(sub_dir_name, "POTCAR"))
-            shutil.copy("INCAR", os.path.join(sub_dir_name, "INCAR"))
-            
-            if argv_dict["extra_copy"]:
-                for file in argv_dict["extra_copy"]:
-                    shutil.copy2(file, sub_dir_name)
-            print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
-            [print(extra_file, end=" ") for extra_file in argv_dict["extra_copy"]]
-            
-            if argv_dict["incar_template"] == "":
-                modify_vasp_incar(sub_dir_name, new_tags={"SIGMA": sigma}, rename_old_incar=False)
+            if os.path.isfile(os.path.join(sub_dir_name, "opt_end_if_conv_satisfied_for_all_points")):
+                pass
+                #open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                #print("%s: The VASP input files are already ready. Just create __ready__".format(sub_dir_name))
             else:
-                modify_vasp_incar(sub_dir_name, new_tags={"SIGMA": sigma}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
-            print(" && Set SIGMA = {} in {}/INCAR".format(sigma, sub_dir_name))
-            
-            if is_end_sigma_appended and sigma == sigma_list[-1]:
-                open(os.path.join(sub_dir_name, "opt_end_if_conv_satisfied_for_all_points"), "w").close()
-            else:
-                open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                shutil.copy("POSCAR", os.path.join(sub_dir_name, "POSCAR"))
+                shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
+                shutil.copy("POTCAR", os.path.join(sub_dir_name, "POTCAR"))
+                shutil.copy("INCAR", os.path.join(sub_dir_name, "INCAR"))
                 
-            if not is_end_sigma_appended and sigma == argv_dict["end"]:
-                open(os.path.join(sub_dir_name, "opt_end_if_conv_satisfied_for_all_points"), "w").close()
+                if argv_dict["extra_copy"]:
+                    for file in argv_dict["extra_copy"]:
+                        shutil.copy2(file, sub_dir_name)
+                print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
+                [print(extra_file, end=" ") for extra_file in argv_dict["extra_copy"]]
+                
+                if argv_dict["incar_template"] == "":
+                    modify_vasp_incar(sub_dir_name, new_tags={"SIGMA": sigma}, rename_old_incar=False)
+                else:
+                    modify_vasp_incar(sub_dir_name, new_tags={"SIGMA": sigma}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
+                print(" && Set SIGMA = {} in {}/INCAR".format(sigma, sub_dir_name))
+                
+                if is_end_sigma_appended and sigma == sigma_list[-1]:
+                    open(os.path.join(sub_dir_name, "opt_end_if_conv_satisfied_for_all_points"), "w").close()
+                else:
+                    open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                    
+                if not is_end_sigma_appended and sigma == argv_dict["end"]:
+                    open(os.path.join(sub_dir_name, "opt_end_if_conv_satisfied_for_all_points"), "w").close()
             
             
         

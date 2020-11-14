@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[4]:
 
 
 import os, sys, re, math, shutil, json
@@ -224,7 +224,7 @@ def read_and_set_default_arguments(argv_list):
             
 
 
-# In[34]:
+# In[6]:
 
 
 def prepare_cal_files(argv_dict):
@@ -233,6 +233,7 @@ def prepare_cal_files(argv_dict):
         encut_list = argv_dict["encut_list"] + [argv_dict["opt_encut_if_conv_failed"]]
         is_opt_encut_if_conv_failed_appended = True
     else:
+        encut_list = argv_dict["encut_list"]
         is_opt_encut_if_conv_failed_appended = False
     
     for encut in encut_list:
@@ -250,30 +251,35 @@ def prepare_cal_files(argv_dict):
                     break
         
         if is_preparation_needed:
-            shutil.copy("POSCAR", os.path.join(sub_dir_name, "POSCAR"))
-            shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
-            shutil.copy("POTCAR", os.path.join(sub_dir_name, "POTCAR"))
-            shutil.copy("INCAR", os.path.join(sub_dir_name, "INCAR"))
-            
-            if argv_dict["extra_copy"]:
-                for file in argv_dict["extra_copy"]:
-                    shutil.copy2(file, sub_dir_name)
-            print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
-            [print(extra_file, end=" ") for extra_file in argv_dict["extra_copy"]]
-            
-            if argv_dict["incar_template"] == "":
-                modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False)
+            if os.path.isfile(os.path.join(sub_dir_name, "opt_encut_if_conv_failed")):
+                pass
+                #open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                #print("%s: The VASP input files are already ready. Just create __ready__".format(sub_dir_name))
             else:
-                modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
-            print(" && Set ENCUT = {} in {}/INCAR".format(encut, sub_dir_name))
-            
-            if is_opt_encut_if_conv_failed_appended and encut_list[-1] == encut:
-                open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
-            else:
-                open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                shutil.copy("POSCAR", os.path.join(sub_dir_name, "POSCAR"))
+                shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
+                shutil.copy("POTCAR", os.path.join(sub_dir_name, "POTCAR"))
+                shutil.copy("INCAR", os.path.join(sub_dir_name, "INCAR"))
                 
-            if not is_opt_encut_if_conv_failed_appended and argv_dict["opt_encut_if_conv_failed"] == encut:
-                open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
+                if argv_dict["extra_copy"]:
+                    for file in argv_dict["extra_copy"]:
+                        shutil.copy2(file, sub_dir_name)
+                print("Create sub-dir {} and copy the following files to it: INCAR, POSCAR, POTCAR, KPOINTS, ".format(sub_dir_name), end=" ")
+                [print(extra_file, end=" ") for extra_file in argv_dict["extra_copy"]]
+                
+                if argv_dict["incar_template"] == "":
+                    modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False)
+                else:
+                    modify_vasp_incar(sub_dir_name, new_tags={"ENCUT": encut}, rename_old_incar=False, incar_template=argv_dict["incar_template"])
+                print(" && Set ENCUT = {} in {}/INCAR".format(encut, sub_dir_name))
+                
+                if is_opt_encut_if_conv_failed_appended and encut_list[-1] == encut:
+                    open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
+                else:
+                    open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                    
+                if not is_opt_encut_if_conv_failed_appended and argv_dict["opt_encut_if_conv_failed"] == encut:
+                    open(os.path.join(sub_dir_name, "opt_encut_if_conv_failed"), "w").close()
 
 
 # In[3]:
@@ -284,7 +290,7 @@ def are_all_sub_dir_cal_finished(argv_dict):
     for encut in argv_dict["encut_list"]:
         sub_dir_name = "encut_" + str(encut)
         
-        if True not in [os.path.join(os.path.join(sub_dir_name, target_file)) for target_file in 
+        if True not in [os.path.isfile(os.path.join(sub_dir_name, target_file)) for target_file in 
                         ["__done__", "__skipped__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__"]]:
             return False
         
