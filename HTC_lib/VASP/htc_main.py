@@ -85,34 +85,40 @@ if __name__ == "__main__":
         os.mkdir(cal_folder)
 
     main_dir = os.getcwd()
+    stop_file_path = os.path.join(main_dir, "__stop__")
+    htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.dat")
     no_of_same_cal_status, cal_status_0 = 0, {}
     while True:
-        os.chdir(main_dir)
-        if os.path.isfile("__stop__"):
+        if os.path.isfile(stop_file_path):
             print(">>>Detect file __stop__ in {}\n ---->stop this program.".format(main_dir))
             break
         
+        t0 = time.time()
         update_job_status(cal_folder=cal_folder, workflow=workflow)
         for structure_file in os.listdir(structure_file_folder):
             cal_status = check_calculations_status(cal_folder=cal_folder)
+            if time.time() - t0 > 180: #update htc_job_status.dat every 180 s.
+                write_cal_status(cal_status, htc_job_status_file_path)
+                t0 = time.time()
             no_of_ready_jobs = len(cal_status["prior_ready_folder_list"]) + len(cal_status["ready_folder_list"])
             if no_of_ready_jobs >= workflow[0]["max_no_of_ready_jobs"]:
                 break
-            pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
+            else:
+                pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
+            assert not os.path.isfile(stop_file_path), ">>>Detect file __stop__ in {}\n ---->stop this program.".format(main_dir)
+            
         cal_status = check_calculations_status(cal_folder=cal_folder)
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
         cal_status = check_calculations_status(cal_folder=cal_folder)      
         
-        os.chdir(main_dir)
-        write_cal_status(cal_status, "htc_job_status.dat")
+        write_cal_status(cal_status, htc_job_status_file_path)
                         
-        #check if all calculations are complete. If this is the case, stop. At the end, all calculations should be labeled by signal file __done__ or __skipped__
-        no_of_ongoing_jobs = sum([len(job_list) for job_status, job_list in cal_status.items() if job_status not in ["done_folder_list", "skipped_folder_list"]])
+        #check if all calculations are complete. If this is the case, stop. At the end, all calculations should be labeled by signal file __done__, __skipped__, __done_cleaned_analyzed__ and __done_failed_to_clean_analyze__
+        no_of_ongoing_jobs = sum([len(job_list) for job_status, job_list in cal_status.items() if job_status not in ["done_folder_list", "skipped_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list"]])
         if no_of_ongoing_jobs == 0:
             output_str = "All calculations have finished --> Stop this program."
             print(output_str)
-            os.chdir(main_dir)
-            with open("htc_job_status.dat", "a") as f:
+            with open(htc_job_status_file_path, "a") as f:
                 f.write("\n***" + output_str + "***")
             break
         #If cal_status is unchanged for the 5 consecutive scannings, also stop.
@@ -124,10 +130,11 @@ if __name__ == "__main__":
         if no_of_same_cal_status == 1000:
             output_str = "The status of all calculations remains unchanged for around one week --> Stop this program."
             print(output_str)
-            with open("htc_job_status.dat", "a") as f:
+            with open(htc_job_status_file_path, "a") as f:
                 f.write("\n***" + output_str + "***")
             break
         
+        os.chdir(main_dir)
         for i in range(60):
             update_now_list = list(Path(main_dir).glob("**/__update_now__"))
             if os.path.isfile("__stop__"):

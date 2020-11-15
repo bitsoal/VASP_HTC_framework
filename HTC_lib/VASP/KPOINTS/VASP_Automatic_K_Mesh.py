@@ -176,15 +176,20 @@ class VaspAutomaticKMesh():
         sorted_frac_y_list = sorted([VaspAutomaticKMesh.map_to_0_1(frac_coord[1]) for frac_coord in frac_coords])
         sorted_frac_z_list = sorted([VaspAutomaticKMesh.map_to_0_1(frac_coord[2]) for frac_coord in frac_coords])
         
-        #handle the case like: [0.49, 0.50, 0.51]
+        #This would allow us to handle both [0.49, 0.50, 0.51] and [0.01, 0.98, 0.99]
+        sorted_frac_x_list = sorted_frac_x_list + [sorted_frac_x_list[0]+1]
+        sorted_frac_y_list = sorted_frac_y_list + [sorted_frac_y_list[0]+1]
+        sorted_frac_z_list = sorted_frac_z_list + [sorted_frac_z_list[0]+1]
+        
+        #handle the case like: [0.01, 0.98, 0.99]
         max_diff_frac_x = max([x_2 - x_1 for x_1, x_2 in zip(sorted_frac_x_list[:-1], sorted_frac_x_list[1:])])
         max_diff_frac_y = max([y_2 - y_1 for y_1, y_2 in zip(sorted_frac_y_list[:-1], sorted_frac_y_list[1:])])
         max_diff_frac_z = max([z_2 - z_1 for z_1, z_2 in zip(sorted_frac_z_list[:-1], sorted_frac_z_list[1:])])
         
-        #handle the case like: [0.01, 0.98, 0.99]
-        max_diff_frac_x = max([max_diff_frac_x, 1 - sorted_frac_x_list[-1], sorted_frac_x_list[0]])
-        max_diff_frac_y = max([max_diff_frac_y, 1 - sorted_frac_y_list[-1], sorted_frac_y_list[0]])
-        max_diff_frac_z = max([max_diff_frac_z, 1 - sorted_frac_z_list[-1], sorted_frac_z_list[0]])
+        #handle the case like: [0.49, 0.50, 0.51]
+        #max_diff_frac_x = max([max_diff_frac_x, 1 - sorted_frac_x_list[-1], sorted_frac_x_list[0]])
+        #max_diff_frac_y = max([max_diff_frac_y, 1 - sorted_frac_y_list[-1], sorted_frac_y_list[0]])
+        #max_diff_frac_z = max([max_diff_frac_z, 1 - sorted_frac_z_list[-1], sorted_frac_z_list[0]])
         
         return [max_diff_frac_x <= frac_max_vacuum_thickness_x, 
                 max_diff_frac_y <= frac_max_vacuum_thickness_y, 
