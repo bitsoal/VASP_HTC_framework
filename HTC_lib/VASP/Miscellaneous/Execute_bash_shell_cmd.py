@@ -45,6 +45,8 @@ def Execute_shell_cmd(cal_loc, user_defined_cmd_list, where_to_execute, defined_
         
         current_dir = os.getcwd()
         
+        open(os.path.join(where_to_execute, "running_cmd"), "w").close()
+        
         with open(os.path.join(cal_loc, "log.txt"), "a") as f:
             f.write("{} CMD: at {}\n".format(get_time_str(), where_to_execute))
             if defined_by_which_htc_tag == None:
@@ -73,6 +75,7 @@ def Execute_shell_cmd(cal_loc, user_defined_cmd_list, where_to_execute, defined_
                     [f.write("\t\t\t\t{}\n".format(stderr_)) for stderr_ in stderr.split("\n")]
                     f.write("\t\tStop executing any following command(s) and create __manual__\n")
                 open(os.path.join(cal_loc, "__manual__"), "w").close()
+                os.remove(os.path.join(where_to_execute, "running_cmd"))
                 return False
             else:
                 stdout = result.stdout if result.stdout else ""
@@ -80,7 +83,8 @@ def Execute_shell_cmd(cal_loc, user_defined_cmd_list, where_to_execute, defined_
                     f.write("\t\t\t\tExecution status: Succeeded\n")
                     f.write("\t\t\t\tOutput (if any):\n")
                     [f.write("\t\t\t\t\t{}\n".format(stdout_)) for stdout_ in stdout.split("\n")]
-                
+                    
+        os.remove(os.path.join(where_to_execute, "running_cmd"))
     return True
 
 

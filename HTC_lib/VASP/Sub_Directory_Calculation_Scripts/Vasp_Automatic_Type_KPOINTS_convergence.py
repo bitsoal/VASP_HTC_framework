@@ -365,6 +365,7 @@ def prepare_cal_files(argv_dict):
         is_opt_nl_if_conv_failed_appended = True
     else:
         kpoints_setup_list = argv_dict["kpoints_setup_list"]
+        NL_list = argv_dict["NL_list"]
         is_opt_nl_if_conv_failed_appended = False
     
     for kpoints_setup, NL in zip(kpoints_setup_list, NL_list):
