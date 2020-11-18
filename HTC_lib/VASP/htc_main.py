@@ -107,7 +107,8 @@ if __name__ == "__main__":
             break
         
         t0 = time.time()
-        update_job_status(cal_folder=cal_folder, workflow=workflow)
+        update_job_status(cal_folder=cal_folder, workflow=workflow, stop_file_path=stop_file_path)
+        if os.path.isfile(stop_file_path): break
         for structure_file in os.listdir(structure_file_folder):
             cal_status = check_calculations_status(cal_folder=cal_folder)
             if time.time() - t0 > 180: #update htc_job_status.dat every 180 s.
@@ -118,7 +119,8 @@ if __name__ == "__main__":
                 break
             else:
                 pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
-            assert not os.path.isfile(stop_file_path), ">>>Detect file __stop__ in {}\n ---->stop this program.".format(main_dir)
+            if os.path.isfile(stop_file_path): break
+        if os.path.isfile(stop_file_path): continue
             
         cal_status = check_calculations_status(cal_folder=cal_folder)
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)

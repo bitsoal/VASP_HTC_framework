@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[4]:
 
 
 import os, sys
@@ -27,19 +27,24 @@ from HTC_lib.VASP.Error_Checker.Error_checker import Queue_std_files
 from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_checker
 
 
-# In[1]:
+# In[3]:
 
 
-def update_job_status(cal_folder, workflow, which_status='all', job_list=[]):
+def update_job_status(cal_folder, workflow, which_status='all', job_list=[], stop_file_path=""):
     if which_status == "all":
         job_status_dict = check_calculations_status(cal_folder=cal_folder)
-        update_running_jobs_status(running_jobs_list=job_status_dict["running_folder_list"], workflow=workflow)
+        #update_running_jobs_status(running_jobs_list=job_status_dict["running_folder_list"], workflow=workflow)
+        update_job_status(cal_folder, workflow, which_status="running_folder_list", job_list=job_status_dict["running_folder_list"])
         job_status_dict = check_calculations_status(cal_folder=cal_folder)
-        kill_error_jobs(error_jobs=job_status_dict["error_folder_list"], workflow=workflow)
+        #kill_error_jobs(error_jobs=job_status_dict["error_folder_list"], workflow=workflow)
+        update_job_status(cal_folder, workflow, which_status="error_folder_list", job_list=job_status_dict["error_folder_list"])
         job_status_dict = check_calculations_status(cal_folder=cal_folder)
-        update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
-        update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_status_dict["sub_dir_cal_folder_list"], workflow=workflow)
-        clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
+        #update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
+        update_job_status(cal_folder, workflow, which_status="killed_folder_list", job_list=job_status_dict["killed_folder_list"])
+        #update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_status_dict["sub_dir_cal_folder_list"], workflow=workflow)
+        update_job_status(cal_folder, workflow, which_status="sub_dir_cal_folder_list", job_list=job_status_dict["sub_dir_cal_folder_list"])
+        #clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
+        update_job_status(cal_folder, workflow, which_status="done_folder_list", job_list=job_status_dict["done_folder_list"])
     elif which_status == "running_folder_list":
         for cal_loc in job_list:
             assert os.path.isfile(os.path.join(cal_loc, "__running__")), "The status of the following job is not __running__: {}".format(cal_loc)
@@ -55,11 +60,15 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[]):
     elif which_status == "sub_dir_cal_folder_list":
         for cal_loc in job_list:
             assert os.path.isfile(os.path.join(cal_loc, "__sub_dir_cal__")), "The status of the following job is not __sub_dir_cal__: {}".format(cal_loc)
-        update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_list, workflow=workflow)
+            update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=[cal_loc], workflow=workflow)
+            if os.path.isfile(stop_file_path): #update_sub_dir_cal_jobs_status may involve very slow external commands.
+                break  #This if clause ensures a quick response to __stop__ file
     elif which_status == "done_folder_list":
         for cal_loc in job_list:
             assert os.path.isfile(os.path.join(cal_loc, "__done__")), "The status of the following job is not __done__: {}".format(cal_loc)
-        clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_list, workflow=workflow)
+            clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=[cal_loc], workflow=workflow)
+            if os.path.isfile(stop_file_path): #clean_analyze_or_update_successfully_finished_jobs may involve very slow external commands.
+                break  #This if clause ensures a quick response to __stop__ file
         
 
 
