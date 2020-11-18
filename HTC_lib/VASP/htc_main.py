@@ -33,7 +33,8 @@ from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import submit_jobs, kill_er
 def write_cal_status(cal_status, filename):
     to_be_written_status_list = ["manual_folder_list", "skipped_folder_list", "error_folder_list", "killed_folder_list", 
                                  "sub_dir_cal_folder_list", "running_folder_list"]
-    last_written_status_list = ["vis_folder_list", "prior_ready_folder_list", "ready_folder_list", "done_folder_list"]
+    last_written_status_list = ["vis_folder_list", "prior_ready_folder_list", "ready_folder_list", "done_folder_list", 
+                                "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list"]
     for status_key in cal_status.keys():
         if status_key not in to_be_written_status_list and status_key not in last_written_status_list:
             to_be_written_status_list.append(status_key)
@@ -50,7 +51,7 @@ def write_cal_status(cal_status, filename):
 # In[2]:
 
 
-if __name__ == "__main__":
+def read_workflow():
     workflow = []
     if os.path.isfile("HTC_calculation_setup_file"):
         workflow.append(parse_calculation_workflow("HTC_calculation_setup_file", HTC_lib_loc=HTC_package_path))
@@ -65,17 +66,29 @@ if __name__ == "__main__":
         for wf_ind in range(len(workflow[0])):
             assert workflow[0][wf_ind] == workflow[1][wf_ind], "Error: the {}st|nd|th firework/calculation setup parsed from 'HTC_calculation_setup_file' is not identical to that from 'HTC_calculation_setup_folder'".format(wf_ind+1)
         workflow = workflow[0]
-    
-    #back up htc input files
+        
+    return workflow
+
+
+# In[4]:
+
+
+def backup_htc_files(workflow):
     htc_input_backup_loc = workflow[0]["htc_input_backup_loc"]
     other_htc_inputs = ["htc_main.py"] + list(workflow[0]["htc_input_backup"])
     if os.path.isfile("HTC_calculation_setup_file"):
         backup_a_file(src_folder=".", src_file="HTC_calculation_setup_file", dst_folder=htc_input_backup_loc, overwrite=False)
     else:
         other_htc_inputs.append("HTC_calculation_setup_folder")
-    backup_htc_input_files(src_folder=".", file_or_folder_list=other_htc_inputs, dst_folder=htc_input_backup_loc)
-    
-    
+    backup_htc_input_files(src_folder=".", file_or_folder_list=other_htc_inputs, dst_folder=htc_input_backup_loc)    
+
+
+# In[2]:
+
+
+if __name__ == "__main__":
+    workflow = read_workflow()
+    backup_htc_files(workflow=workflow)
     
     structure_file_folder = workflow[0]["structure_folder"]
     cal_folder = workflow[0]["cal_folder"]

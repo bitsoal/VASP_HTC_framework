@@ -27,18 +27,40 @@ from HTC_lib.VASP.Error_Checker.Error_checker import Queue_std_files
 from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_checker
 
 
-# In[ ]:
+# In[1]:
 
 
-def update_job_status(cal_folder, workflow):
-    job_status_dict = check_calculations_status(cal_folder=cal_folder)
-    update_running_jobs_status(running_jobs_list=job_status_dict["running_folder_list"], workflow=workflow)
-    job_status_dict = check_calculations_status(cal_folder=cal_folder)
-    kill_error_jobs(error_jobs=job_status_dict["error_folder_list"], workflow=workflow)
-    job_status_dict = check_calculations_status(cal_folder=cal_folder)
-    update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
-    update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_status_dict["sub_dir_cal_folder_list"], workflow=workflow)
-    clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
+def update_job_status(cal_folder, workflow, which_status='all', job_list=[]):
+    if which_status == "all":
+        job_status_dict = check_calculations_status(cal_folder=cal_folder)
+        update_running_jobs_status(running_jobs_list=job_status_dict["running_folder_list"], workflow=workflow)
+        job_status_dict = check_calculations_status(cal_folder=cal_folder)
+        kill_error_jobs(error_jobs=job_status_dict["error_folder_list"], workflow=workflow)
+        job_status_dict = check_calculations_status(cal_folder=cal_folder)
+        update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
+        update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_status_dict["sub_dir_cal_folder_list"], workflow=workflow)
+        clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
+    elif which_status == "running_folder_list":
+        for cal_loc in job_list:
+            assert os.path.isfile(os.path.join(cal_loc, "__running__")), "The status of the following job is not __running__: {}".format(cal_loc)
+        update_running_jobs_status(running_jobs_list=job_list, workflow=workflow)
+    elif which_status == "error_folder_list":
+        for cal_loc in job_list:
+            assert os.path.isfile(os.path.join(cal_loc, "__error__")), "The status of the following job is not __error__: {}".format(cal_loc)
+        kill_error_jobs(error_jobs=job_list, workflow=workflow)
+    elif which_status == "killed_folder_list":
+        for cal_loc in job_list:
+            assert os.path.isfile(os.path.join(cal_loc, "__killed__")), "The status of the following job is not __killed__: {}".format(cal_loc)
+        update_killed_jobs_status(killed_jobs_list=job_list, workflow=workflow)
+    elif which_status == "sub_dir_cal_folder_list":
+        for cal_loc in job_list:
+            assert os.path.isfile(os.path.join(cal_loc, "__sub_dir_cal__")), "The status of the following job is not __sub_dir_cal__: {}".format(cal_loc)
+        update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_list, workflow=workflow)
+    elif which_status == "done_folder_list":
+        for cal_loc in job_list:
+            assert os.path.isfile(os.path.join(cal_loc, "__done__")), "The status of the following job is not __done__: {}".format(cal_loc)
+        clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_list, workflow=workflow)
+        
 
 
 # In[2]:
