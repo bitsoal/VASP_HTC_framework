@@ -202,6 +202,7 @@ if __name__ == "__main__":
         if continue_running == False: break
         if os.path.isfile(stop_file_path): continue
             
+            
         if rank == 0:  
             if debugging: print("{}: dispatching structure lists from process 0 to others".format(get_time_str()), flush=True)
             structure_file_sublist_list = divide_a_list_evenly(a_list=os.listdir(structure_file_folder), no_of_sublists=size)            
@@ -250,6 +251,8 @@ if __name__ == "__main__":
         if os.path.isfile(stop_file_path): continue
         if continue_running == False: break
         if debugging: print("{}: finished input file preparation in process {}".format(get_time_str(), rank), flush=True)
+        
+        synchron()
         
         if rank == 0:
             if debugging: print("{}: start submitting ready jobs in process {}".format(get_time_str(), rank), flush=True)
@@ -303,5 +306,7 @@ if __name__ == "__main__":
                     write_cal_status(cal_status, "htc_job_status.dat")
                 else:
                     time.sleep(10)
-        if debugging: print("{}: process {} arrives at the end of the while loop. Will enter the next round of iteration.".format(get_time_str(), rank), flush=True)
+        synchron()
+        if debugging: print("\n{}: ***process {} arrives at the end of the while loop. Will enter the next round of iteration.***\n".format(get_time_str(), rank), flush=True)
+        synchron()
 
