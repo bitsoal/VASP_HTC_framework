@@ -4,11 +4,11 @@
 # In[3]:
 
 
-import os, time, shutil, re
+import os, time, shutil, re, json
 import subprocess
 
 
-# In[2]:
+# In[7]:
 
 
 def get_time_str():
@@ -315,7 +315,7 @@ def decorated_subprocess_check_output(args, stdin=None, stderr=None, shell=True,
 # In[1]:
 
 
-def write_cal_status(cal_status, filename):
+def write_cal_status0(cal_status, filename):
     to_be_written_status_list = ["manual_folder_list", "skipped_folder_list", "error_folder_list", "killed_folder_list", 
                                  "sub_dir_cal_folder_list", "running_folder_list"]
     last_written_status_list = ["vis_folder_list", "prior_ready_folder_list", "ready_folder_list", "done_folder_list", 
@@ -331,4 +331,28 @@ def write_cal_status(cal_status, filename):
             f.write("\n{}:\n".format(status_key))
             for folder in cal_status[status_key]:
                 f.write("\t{}\n".format(folder))
+
+
+# In[1]:
+
+
+def write_cal_status(cal_status, filename):
+    
+    with open(filename, "w") as f:
+        f.write("#{}\n".format(get_time_str()))
+        json.dump(cal_status, f, indent=4)
+        
+    folder_name = filename.replace(".dat", "") + "_folder"
+    if os.path.isdir(folder_name):
+        for file_ in os.listdir(folder_name):
+            os.remove(os.path.join(folder_name, file_))
+    else:
+        os.mkdir(folder_name)
+    
+    for status, job_list in cal_status.items():
+        if job_list:
+            with open(os.path.join(folder_name, status), "w") as f:
+                f.write("#{}\n".format(get_time_str()))
+                for job in job_list:
+                    f.write(job + "\n")
 
