@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
-import os, sys, time
+import os, sys, time, random
 
 ##############################################################################################################
 ##DO NOT change this part.
@@ -129,6 +129,12 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], qui
                 if os.path.isfile(update_now_file_path): respond_to(signal_file="__update_now__", workflow=workflow)
                 if os.path.isfile(change_signal_file_path): respond_to(signal_file="__change_signal_file__", workflow=workflow)
                 t0 = time.time()
+            if random.random() > 0.75:
+                job_status_dict = check_calculations_status(cal_folder=cal_folder)
+                no_of_ready_jobs = len(job_status_dict["prior_ready_folder_list"]) + len(job_status_dict["ready_folder_list"])
+                del job_status_dict
+                if no_of_ready_jobs >= workflow[0]["max_no_of_ready_jobs"]:
+                    break
     elif which_status == "done_folder_list":
         if quick_response: t0 = time.time()
         for cal_loc in job_list:

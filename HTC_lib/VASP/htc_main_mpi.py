@@ -197,17 +197,21 @@ if __name__ == "__main__":
             structure_file_sublist = structure_file_sublist_list[0]
             for i in range(1, size): # send structure file sublists to process 1, 2, ..., size-1
                 comm.send(structure_file_sublist_list[i], dest=i, tag=i)
-            t0 = time.time()
+            cal_status = check_calculations_status(cal_folder=cal_folder)
+            max_no_of_ready_jobs = (workflow[0]["max_no_of_ready_jobs"] - len(cal_status["ready_folder_list"]) - len(cal_status["prior_ready_folder_list"]))/size
+            del cal_status
         else:
             if debugging: print("{}: receiving structure list from process 0 in process {}".format(get_time_str(), rank), flush=True)
             structure_file_sublist = comm.recv(source=0, tag=rank) # receive structure file sublist from process 0
         if debugging: print("{}: finished dispatch of structure lists to process {}".format(get_time_str(), rank), flush=True)
         
-        if debugging: print("{}: start to prepare vasp input files in process {}".format(get_time_str(), rank), flush=True)
+        if debugging: print("{}: start to prepare vasp input files in process {}".format(get_time_str(), rank), flush=True)      
+        max_no_of_ready_jobs = comm.bcast(max_no_of_ready_jobs, root=0)
         t1, comm_period = time.time(), 300
         for structure_file in structure_file_sublist:
             try:
-                pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
+                #pre_and_post_process returns the number of prepared calculations
+                max_no_of_ready_jobs -= pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
             except:
                 continue_running = False
                 time.sleep(comm_period + 10 - (time.time()-t1)) #additional 10 s ensure that the following if clause is always True
@@ -225,17 +229,28 @@ if __name__ == "__main__":
             if os.path.isfile(stop_file_path): break
             if continue_running == False: break
             if debugging: print("{}: finished input preparation for {} in process {}".format(get_time_str(), structure_file, rank), flush=True)
-                
+               
+            if rank == 0:
+                if os.path.isfile(update_now_file_path):
+                    cal_status = check_calculations_status(cal_folder=cal_folder)
+                    write_cal_status(cal_status, htc_job_status_file_path)
+                    del cal_status
+                    os.remove(update_now_file_path)
+                if os.path.isfile(change_signal_file_path):
+                    cal_status = check_calculations_status(cal_folder=cal_folder)
+                    write_cal_status(cal_status, htc_job_status_file_path)
+                    del cal_status
+                    os.remove(change_signal_file_path)
+                    
             #Every process individually checks cal status instead of receiving from process 0 
             #--> Avoid a deadlock state in process 1, 2, ..., size-1 if process 0 encounters an error
-            cal_status = check_calculations_status(cal_folder=cal_folder) 
-            if rank == 0 and time.time() - t0 > 180: #update htc_job_status.dat every 180 s.
+            if max_no_of_ready_jobs < 1:
+                cal_status = check_calculations_status(cal_folder=cal_folder)
                 write_cal_status(cal_status, htc_job_status_file_path)
-                t0 = time.time()
-            no_of_ready_jobs = len(cal_status["prior_ready_folder_list"]) + len(cal_status["ready_folder_list"])
-            del cal_status
-            if no_of_ready_jobs >= workflow[0]["max_no_of_ready_jobs"]:
-                break
+                max_no_of_ready_jobs = (workflow[0]["max_no_of_ready_jobs"] - len(cal_status["ready_folder_list"]) - len(cal_status["prior_ready_folder_list"]))/size
+                del max_no_of_ready_jobs
+                if max_no_of_ready_jobs < 1: break
+
         if os.path.isfile(stop_file_path): continue
         if continue_running == False: break
         if debugging: print("{}: finished input file preparation in process {}".format(get_time_str(), rank), flush=True)
