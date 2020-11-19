@@ -283,7 +283,7 @@ if __name__ == "__main__":
                 if os.path.isfile(stop_file_path):
                     break
                 elif os.path.isfile(update_now_file_path):
-                    os.remove(update_now)
+                    os.remove(update_now_file_path)
                     break
                 elif os.path.isfile(change_signal_file_path):
                     cal_status = change_signal_file(cal_status, change_signal_file_path)
