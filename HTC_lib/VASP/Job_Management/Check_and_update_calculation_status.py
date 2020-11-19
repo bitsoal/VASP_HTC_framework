@@ -35,14 +35,14 @@ from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_checker
 def respond_to(signal_file, workflow):
     main_dir = workflow[0]["htc_cwd"]
     htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.dat")
+    job_status_dict = check_calculations_status(cal_folder=workflow[0]["cal_folder"])
     
     if signal_file == "__update_now__":
-        job_status_dict = check_calculations_status(cal_folder=workflow[0]["cal_folder"])
         write_cal_status(cal_status=job_status_dict, filename=htc_job_status_file_path)
         os.remove(os.path.join(workflow[0]["htc_cwd"], "__update_now__"))
     elif signal_file == "__change_signal_file__":
         change_signal_file_path = os.path.join(main_dir, "__change_signal_file__")
-        cal_status = change_signal_file(cal_status, change_signal_file_path)
+        cal_status = change_signal_file(job_status_dict, change_signal_file_path)
         write_cal_status(cal_status, htc_job_status_file_path)
         os.remove(change_signal_file_path)
     else:
