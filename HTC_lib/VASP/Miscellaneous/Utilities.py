@@ -342,7 +342,7 @@ def write_cal_status(cal_status, filename):
         f.write("#{}\n".format(get_time_str()))
         json.dump(cal_status, f, indent=4)
         
-    folder_name = filename.replace(".dat", "") + "_folder"
+    folder_name = filename.replace(".json", "") + "_folder"
     if os.path.isdir(folder_name):
         for file_ in os.listdir(folder_name):
             os.remove(os.path.join(folder_name, file_))

@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     main_dir = os.getcwd()
     stop_file_path = os.path.join(main_dir, "__stop__")
-    htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.dat")
+    htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.json")
     update_now_file_path = os.path.join(main_dir, "__update_now__")
     change_signal_file_path = os.path.join(main_dir, "__change_signal_file__")
     

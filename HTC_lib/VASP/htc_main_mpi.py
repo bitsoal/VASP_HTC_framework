@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
     main_dir = os.getcwd()
     stop_file_path = os.path.join(main_dir, "__stop__")
-    htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.dat")
+    htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.json")
     update_now_file_path = os.path.join(main_dir, "__update_now__")
     change_signal_file_path = os.path.join(main_dir, "__change_signal_file__")
     
@@ -203,10 +203,11 @@ if __name__ == "__main__":
         else:
             if debugging: print("{}: receiving structure list from process 0 in process {}".format(get_time_str(), rank), flush=True)
             structure_file_sublist = comm.recv(source=0, tag=rank) # receive structure file sublist from process 0
+            max_no_of_ready_jobs = 0
+        max_no_of_ready_jobs = comm.bcast(max_no_of_ready_jobs, root=0)
         if debugging: print("{}: finished dispatch of structure lists to process {}".format(get_time_str(), rank), flush=True)
         
         if debugging: print("{}: start to prepare vasp input files in process {}".format(get_time_str(), rank), flush=True)      
-        max_no_of_ready_jobs = comm.bcast(max_no_of_ready_jobs, root=0)
         t1, comm_period = time.time(), 300
         for structure_file in structure_file_sublist:
             try:

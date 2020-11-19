@@ -34,7 +34,7 @@ from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_checker
 
 def respond_to(signal_file, workflow):
     main_dir = workflow[0]["htc_cwd"]
-    htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.dat")
+    htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.json")
     job_status_dict = check_calculations_status(cal_folder=workflow[0]["cal_folder"])
     
     if signal_file == "__update_now__":
@@ -76,7 +76,7 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], qui
                 default: True
     """
     stop_file_path = os.path.join(workflow[0]["htc_cwd"], "__stop__")
-    htc_job_status_file_path = os.path.join(workflow[0]["htc_cwd"], "htc_job_status.dat")
+    htc_job_status_file_path = os.path.join(workflow[0]["htc_cwd"], "htc_job_status.json")
     update_now_file_path = os.path.join(workflow[0]["htc_cwd"], "__update_now__")
     change_signal_file_path = os.path.join(workflow[0]["htc_cwd"], "__change_signal_file__")
     quick_response_period = 120 #seconds

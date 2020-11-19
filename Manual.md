@@ -732,14 +732,14 @@ Just make sure this regular expression is well designed such that no other strin
 ----------------------------------
 
 - **job\_query\_command**, **required only for the first firework**.      
-For LSF queue system, it is `bjobs -w`   
-For PBS queue system, it is `qstat`
+For LSF batch system, it is `bjobs -w`   
+For PBS system, it is `qstat`
 
 ---------------------------------------------------------
 
 - **job\_killing\_command**, **required only for the first firework**.  
-For LSF queue system, it is `bkill`.    
-For PBS queue system, it is `qdel`
+For LSF batch system, it is `bkill`.    
+For PBS system, it is `qdel`
 
 --------------------------
 
@@ -781,7 +781,8 @@ e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is
 When the workflow is running, some **built-in** signal file will be present in every firework folder. The program will respond to these signal files as listed below:  
   
 - **Format requirement of any signal file**: It must start and end with double underscores (`__`) 
-- **In `${HTC_CWD}/htc_job_status.dat`, the calculation tagged by signal file `__xyz__` is categorized into `xyz_folder_list`**  
+- **In `${HTC_CWD}/
+- .json`, the calculation tagged by signal file `__xyz__` is categorized into `xyz_folder_list`**  
 - `__vis__`: The program will prepare the vasp input files according to the workflow. Once it is done, `__vis__` --> `__ready__`
 - `__ready__`: The program will submit the job by using the command defined in the workflow. Once submitted, `__ready__` --> `__running__`
 - `__prior_ready__`: The program will first submit the jobs with this signal file compared to those labeled by `__ready__`
@@ -810,10 +811,10 @@ When the workflow is running, some **built-in** signal file will be present in e
 
 **Note that the program only responds to the above built-in signal files. Users can define new signal files to tag some calculations. But the program will do nothing to those calculations.**  
 
-**If you take a look at `${HTC_CWD}/htc_job_status.job`, you will find some calculations may be categorized into a non-built-in type, say `xyz_folder_list`. This is because for a given calculation, the program will first search for any of the above built-in signal files. If none of them is found, the program will then check whether there is any file starting and ending with double underscores (`__`). If found, such a file will be treated as an *unknown* signal file and the calculation will be categorized into such a type. Otherwise, put it into `other_folder_list`. Note that if there are more than one unknown signal files detected for one calculation, say `__xyz__` and `__abc__`, this calculation will be put into both `xyz_folder_list` and `abc_folder_list`. But for any calculation tagged by a built-in signal file, it is unique in `${HTC_CWD}/htc_job_status.job`.**
+**If you take a look at `${HTC_CWD}/htc_job_status.json`, you will find some calculations may be categorized into a non-built-in type, say `xyz_folder_list`. This is because for a given calculation, the program will first search for any of the above built-in signal files. If none of them is found, the program will then check whether there is any file starting and ending with double underscores (`__`). If found, such a file will be treated as an *unknown* signal file and the calculation will be categorized into such a type. Otherwise, put it into `other_folder_list`. Note that if there are more than one unknown signal files detected for one calculation, say `__xyz__` and `__abc__`, this calculation will be put into both `xyz_folder_list` and `abc_folder_list`. But for any calculation tagged by a built-in signal file, it is unique in `${HTC_CWD}/htc_job_status.json`.**
 
 ### Update the calculation status  
-By default, this program scans/updates the calculations every 10 mins. If you want to ask the program to scan/update the calculations and write the latest status into `htc_job_status.dat` as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file as soon as possible. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**.   
+By default, this program scans/updates the calculations every 10 mins. If you want to ask the program to scan/update the calculations and write the latest status into `htc_job_status.json` as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file as soon as possible. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**.   
 ~~*Note that `__update_now__` could be created anywhere under `${HTC_CWD}`. It could be exactly under `${HTC_CWD}` or under any `sub-...-sub-folder` of `${HTC_CWD}`. The program is able to find and respond to it.*~~ We abandon this function because it may be a great burden and take much time to go to every `sub-...-sub-folder` of `${HTC_CWD}` to look for `__update_now__`, especially when there are hundreds of thousands of files/sub-directories under `${HTC_CWD}`. This is in fact contradicting the idea of this signal file, i.e. *scan/update calculations as soon as possible*.
 
 ### How to change a certain number of calculations from their original status to a target status  
@@ -822,7 +823,7 @@ Under `${HTC_CWD}`, you can create a signal file named `__change_signal_file__` 
 >`target_signal_file = __null__`  
 >`no_of_changes = 20`  
 
-The above setup means to randomly pick at most 20 calculations originally tagged by `__ready__` (`ready_folder_list` in `htc_job_status.dat`) and change them to `__null__`.   
+The above setup means to randomly pick at most 20 calculations originally tagged by `__ready__` (`ready_folder_list` in `htc_job_status.json`) and change them to `__null__`.   
 
 
 * Note that `original_signal_file` must be one of the existent signal files (See above for all valid|built-in signal files), whereas `target_signal_file` could be anything.  
@@ -839,7 +840,7 @@ We suggest you to use `__change_signal_file__` to change a certain number of cal
 >>`target_signal_file = __packed__`  
 >>`no_of_changes = 20`  
 
-Then you can find the absolute path to those calculations tagged by `__packed__` in `${HTC_CWD}/htc_job_status.dat`. Copy|save them into a file, and feed this file to `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` by setting parameter `filename` at the beginning.
+Then you can find the absolute path to those calculations tagged by `__packed__` in `${HTC_CWD}/htc_job_status.json` as well as in file `${HTC_CWD}/htc_job_status_folder/packed_folder_list`. Copy the latter to somewhere, and feed this copied file to `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` by setting parameter `filename` at the beginning. 
 
 
 
