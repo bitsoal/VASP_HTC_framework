@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[3]:
 
 
-import os, sys
+import os, sys, time
 
 ##############################################################################################################
 ##DO NOT change this part.
@@ -16,8 +16,10 @@ if HTC_package_path not in sys.path:
 ##############################################################################################################
 
 
-from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename, decorated_subprocess_check_output, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename, decorated_subprocess_check_output
+from HTC_lib.VASP.Miscellaneous.Utilities import get_current_firework_from_cal_loc, write_cal_status
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
+from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
 
 from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import Job_management, kill_error_jobs
 
@@ -27,24 +29,83 @@ from HTC_lib.VASP.Error_Checker.Error_checker import Queue_std_files
 from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_checker
 
 
-# In[3]:
+# In[5]:
 
 
-def update_job_status(cal_folder, workflow, which_status='all', job_list=[], stop_file_path=""):
+def respond_to(signal_file, workflow):
+    main_dir = workflow[0]["htc_cwd"]
+    htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.dat")
+    
+    if signal_file == "__update_now__":
+        job_status_dict = check_calculations_status(cal_folder=workflow[0]["cal_folder"])
+        write_cal_status(cal_status=job_status_dict, filename=htc_job_status_file_path)
+        os.remove(os.path.join(workflow[0]["htc_cwd"], "__update_now__"))
+    elif signal_file == "__change_signal_file__":
+        change_signal_file_path = os.path.join(main_dir, "__change_signal_file__")
+        cal_status = change_signal_file(cal_status, change_signal_file_path)
+        write_cal_status(cal_status, htc_job_status_file_path)
+        os.remove(change_signal_file_path)
+    else:
+        raise Exception("argument signal_file of function respond_to must be either '__update_now__' or '__change_signal_file__'")
+
+
+# In[6]:
+
+
+def update_job_status(cal_folder, workflow, which_status='all', job_list=[], quick_response=True):
+    """
+    arguements:
+        - cal_folder: the path to the folder under which high-throughput calculations are performed.
+        - workflow: the workflow parsed by function read_HTC_calculation_setup_folder in HTC_lib/VASP/Preprocess_and_Postprocess/Parse_calculation_workflow.py
+        - which_status: tell this function that the calculations labelled by which status are going to be updated.
+                1. which_status could be 'running_folder_list', 'error_folder_list', 'killed_folder_list', 'sub_dir_cal_folder_list' and 'done_folder_list'
+                2. which_status could also be 'all' --> update all calculations labelled by any status above.
+                default: 'all'
+        - job_list: if which_status is in condition 1, you must provide a list of to-be-updated calculations labelled by which_status.
+                In the parallel mode, only process 0 checks the status of all calculations, evenly divides the to-be-updated calculations and send them to 
+                different processes. This ensures each to-be-updated calculation to be updated by only one process.
+                default: []
+        - quick_response (boolean): whether this function quickly responds to signal file '__update_now__' and '__change_signal_file__'.
+                While updating calculations labelled by others are very fast, updating calculations labelled by 'sub_dir_cal_folder_list' or 'done_folder_list'
+                might be very slow because slow external commands can be involved. So
+                1. In the former case, quick_response essentially means whether the function responds to '__update_now__' and '__change_signal_file__'
+                    after ALL target calculations are updated.
+                2. In the latter case, the function tries to respond to '__update_now__' and '__change_signal_file__' before continuing to update next target calculation.
+                    The response period is set to 3 mins.
+                In the paraell mode, this tag would allow these io-related operations to be conducted in process 0.
+                default: True
+    """
+    stop_file_path = os.path.join(workflow[0]["htc_cwd"], "__stop__")
+    htc_job_status_file_path = os.path.join(workflow[0]["htc_cwd"], "htc_job_status.dat")
+    update_now_file_path = os.path.join(workflow[0]["htc_cwd"], "__update_now__")
+    change_signal_file_path = os.path.join(workflow[0]["htc_cwd"], "__change_signal_file__")
+    quick_response_period = 120 #seconds
+    
     if which_status == "all":
         job_status_dict = check_calculations_status(cal_folder=cal_folder)
+        
         #update_running_jobs_status(running_jobs_list=job_status_dict["running_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="running_folder_list", job_list=job_status_dict["running_folder_list"])
+        update_job_status(cal_folder, workflow, which_status="running_folder_list", 
+                          job_list=job_status_dict["running_folder_list"], quick_response=quick_response)
+        
         job_status_dict = check_calculations_status(cal_folder=cal_folder)
         #kill_error_jobs(error_jobs=job_status_dict["error_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="error_folder_list", job_list=job_status_dict["error_folder_list"])
+        update_job_status(cal_folder, workflow, which_status="error_folder_list", 
+                          job_list=job_status_dict["error_folder_list"], quick_response=quick_response)
+        
         job_status_dict = check_calculations_status(cal_folder=cal_folder)
+        
         #update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="killed_folder_list", job_list=job_status_dict["killed_folder_list"])
+        update_job_status(cal_folder, workflow, which_status="killed_folder_list", 
+                          job_list=job_status_dict["killed_folder_list"], quick_response=quick_response)
+        
         #update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_status_dict["sub_dir_cal_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="sub_dir_cal_folder_list", job_list=job_status_dict["sub_dir_cal_folder_list"])
+        update_job_status(cal_folder, workflow, which_status="sub_dir_cal_folder_list", 
+                          job_list=job_status_dict["sub_dir_cal_folder_list"], quick_response=quick_response)
+        
         #clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="done_folder_list", job_list=job_status_dict["done_folder_list"])
+        update_job_status(cal_folder, workflow, which_status="done_folder_list", 
+                          job_list=job_status_dict["done_folder_list"], quick_response=quick_response)
     elif which_status == "running_folder_list":
         for cal_loc in job_list:
             assert os.path.isfile(os.path.join(cal_loc, "__running__")), "The status of the following job is not __running__: {}".format(cal_loc)
@@ -58,17 +119,32 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], sto
             assert os.path.isfile(os.path.join(cal_loc, "__killed__")), "The status of the following job is not __killed__: {}".format(cal_loc)
         update_killed_jobs_status(killed_jobs_list=job_list, workflow=workflow)
     elif which_status == "sub_dir_cal_folder_list":
+        if quick_response: t0 = time.time()
         for cal_loc in job_list:
             assert os.path.isfile(os.path.join(cal_loc, "__sub_dir_cal__")), "The status of the following job is not __sub_dir_cal__: {}".format(cal_loc)
             update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=[cal_loc], workflow=workflow)
             if os.path.isfile(stop_file_path): #update_sub_dir_cal_jobs_status may involve very slow external commands.
                 break  #This if clause ensures a quick response to __stop__ file
+            if quick_response and (time.time() - t0) >= quick_response_period:
+                if os.path.isfile(update_now_file_path): respond_to(signal_file="__update_now__", workflow=workflow)
+                if os.path.isfile(change_signal_file_path): respond_to(signal_file="__change_signal_file__", workflow=workflow)
+                t0 = time.time()
     elif which_status == "done_folder_list":
+        if quick_response: t0 = time.time()
         for cal_loc in job_list:
             assert os.path.isfile(os.path.join(cal_loc, "__done__")), "The status of the following job is not __done__: {}".format(cal_loc)
             clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=[cal_loc], workflow=workflow)
             if os.path.isfile(stop_file_path): #clean_analyze_or_update_successfully_finished_jobs may involve very slow external commands.
                 break  #This if clause ensures a quick response to __stop__ file
+            if quick_response and (time.time() - t0) >= quick_response_period:
+                if os.path.isfile(update_now_file_path): respond_to(signal_file="__update_now__", workflow=workflow)
+                if os.path.isfile(change_signal_file_path): respond_to(signal_file="__change_signal_file__", workflow=workflow)
+                t0 = time.time()
+    
+    if quick_response:
+        if os.path.isfile(update_now_file_path): respond_to(signal_file="__update_now__", workflow=workflow)
+        if os.path.isfile(change_signal_file_path): respond_to(signal_file="__change_signal_file__", workflow=workflow)
+    
         
 
 

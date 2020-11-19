@@ -311,3 +311,24 @@ def decorated_subprocess_check_output(args, stdin=None, stderr=None, shell=True,
     assert trail_no != no_of_trails,     "The command below has been called %d times but all failed. Make sure it is correct\nwhere to call: %s\ncmd:%s" % (no_of_trails, os.getcwd(), args)
     return output, error_list
 
+
+# In[1]:
+
+
+def write_cal_status(cal_status, filename):
+    to_be_written_status_list = ["manual_folder_list", "skipped_folder_list", "error_folder_list", "killed_folder_list", 
+                                 "sub_dir_cal_folder_list", "running_folder_list"]
+    last_written_status_list = ["vis_folder_list", "prior_ready_folder_list", "ready_folder_list", "done_folder_list", 
+                                "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list"]
+    for status_key in cal_status.keys():
+        if status_key not in to_be_written_status_list and status_key not in last_written_status_list:
+            to_be_written_status_list.append(status_key)
+    to_be_written_status_list.extend(last_written_status_list)
+    
+    with open(filename, "w") as f:
+        f.write("\n{}:".format(get_time_str()))
+        for status_key in to_be_written_status_list:
+            f.write("\n{}:\n".format(status_key))
+            for folder in cal_status[status_key]:
+                f.write("\t{}\n".format(folder))
+

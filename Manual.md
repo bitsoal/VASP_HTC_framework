@@ -24,11 +24,17 @@
 ---------------------------
 ### Package Setup and Execution:  
 1. This package currently relies on [pymatgen](http://pymatgen.org/index.html). Make sure it has been installed.
-2. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to set up this package. The main program script is `htc_main.py` under `HTC_lib/VASP`. Just **COPY (DO NOT MOVE)** this file to the folder where the high-throughput calculations are going to be run. Let's denote the folder as `${HTC_CWD}`
-2. Write up a setup file named `HTC_calculation_setup_file` under `${HTC_CWD}` or a collection of setup files under `${HTC_CWD}/HTC_calculation_setup_folder`. See below for the details of `HTC_calculation_setup_file` and `${HTC_CWD}/HTC_calculation_setup_folder`.
-3. Under `${HTC_CWD}`, execute `python htc_main.py >htc_out 2>&1&` OR `nohup python htc_main.py >htc_out 2>&1 &` to start this HTC program. OR you can put `python htc_main.py >htc_out 2>&1` in a batch script and submit it to the batch scheduler.   
+2. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to set up this package. 
+3. The main program script: `htc_main.py` & `htc_main_mpi.py`
+	- `htc_main.py` is under `HTC_lib/VASP`.  
+	- `htc_main_mpi.py` is the **parallel** version and also under `HTC_lib/VASP`. `htc_main_mpi.py` is built on the [`mpi4py`](https://mpi4py.readthedocs.io/en/stable/) package. It prepares vasp input files and update calculation status (e.g. error checking and handling) in parallel. But the job submission is still performed by the master process.
+4. Just **COPY (DO NOT MOVE)** either `htc_main.py` or `htc_main_mpi.py` to the folder where the high-throughput calculations are going to be run. Let's denote the folder as `${HTC_CWD}`.
+5. Write up a setup file named `HTC_calculation_setup_file` under `${HTC_CWD}` or a collection of setup files under `${HTC_CWD}/HTC_calculation_setup_folder`. See below for the details of `HTC_calculation_setup_file` and `${HTC_CWD}/HTC_calculation_setup_folder`.
+6. Under `${HTC_CWD}`
+	- `htc_main.py`: execute `python htc_main.py >htc_out 2>&1&` OR `nohup python htc_main.py >htc_out 2>&1 &` to start this HTC program. OR you can put `python htc_main.py >htc_out 2>&1` in a batch script and submit it to the batch scheduler.
+	- `htc_main_mpi.py`: The execution command looks like `mpirun -n x python htc_main_mpi.py > htc_out 2>&1`, where `x` is the number of requested cores/cpus. You are not suggested to run the command on the login node of a supercomputing cluster, which may make the login node sluggish. Instead, just put `mpirun -n x python htc_main_mpi.py > htc_out 2>&1` in a batch script and submit it to the batch scheduler which will dispatch the command to computing nodes.     
 
-**Note that whenever this package is moved/copied to a new place, you NEED TO DO step 2. This is to ensure that `VASP/htc_main.py` is updated and the moved/copied package can be found properly. Otherwise, `VASP/htc_main.py` would still call the package in the old place.** 
+**Note that whenever this package is moved/copied to a new place, you NEED TO DO step 2. This is to ensure that `VASP/htc_main.py` and `VASP/htc_main_mpi.py` are updated and thus the moved/copied package can be found properly. Otherwise, `VASP/htc_main.py` and `VASP/htc_main_mpi.py` would still call the package in the old place.** 
 
 </br>
 
@@ -435,7 +441,8 @@ V			d				2.72	0
 Cr			d				2.79	0  
 Mn			d				3.06	0  
   
-**Note that U, J and LDAUTYPE may vary, depending on the systems in which you are interested. So we don't provide default values.** 
+**Note that U, J and LDAUTYPE may vary, depending on the systems of your interest. So we don't provide default values.** 
+
 ---------------------------------------------------
 
 - **incar\_template** (`str`), optional for the first firework  
@@ -806,7 +813,8 @@ When the workflow is running, some **built-in** signal file will be present in e
 **If you take a look at `${HTC_CWD}/htc_job_status.job`, you will find some calculations may be categorized into a non-built-in type, say `xyz_folder_list`. This is because for a given calculation, the program will first search for any of the above built-in signal files. If none of them is found, the program will then check whether there is any file starting and ending with double underscores (`__`). If found, such a file will be treated as an *unknown* signal file and the calculation will be categorized into such a type. Otherwise, put it into `other_folder_list`. Note that if there are more than one unknown signal files detected for one calculation, say `__xyz__` and `__abc__`, this calculation will be put into both `xyz_folder_list` and `abc_folder_list`. But for any calculation tagged by a built-in signal file, it is unique in `${HTC_CWD}/htc_job_status.job`.**
 
 ### Update the calculation status  
-By default, this program scan/update the calculations every 10 mins. If you want to ask the program to scan/update as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file in 10 s. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**. *Note that `__update_now__` could be created anywhere under `${HTC_CWD}`. It could be exactly under `${HTC_CWD}` or under any `sub-...-sub-folder` of `${HTC_CWD}`. The program is able to find and respond to it.*  
+By default, this program scans/updates the calculations every 10 mins. If you want to ask the program to scan/update as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file in 10 s. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**.   
+~~*Note that `__update_now__` could be created anywhere under `${HTC_CWD}`. It could be exactly under `${HTC_CWD}` or under any `sub-...-sub-folder` of `${HTC_CWD}`. The program is able to find and respond to it.*~~ We abandon this function because it may be a great burden and take much time to go to every `sub-...-sub-folder` of `${HTC_CWD}` to look for `__update_now__`, especially when there are hundreds of thousands of files/sub-directories under `${HTC_CWD}`. This is in fact contradicting the idea of this signal file, i.e. *scan/update calculations as soon as possible*.
 
 ### How to change a certain number of calculations from their original status to a target status  
 Under `${HTC_CWD}`, you can create a signal file named `__change_signal_file__` to change a certain number of calculations from their original status (signal file) to a target status (signal file). In `__change_signal_file__`, three parameters should be defined in the following format, e.g.

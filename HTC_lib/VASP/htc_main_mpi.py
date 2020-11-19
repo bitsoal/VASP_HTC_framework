@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[6]:
+# In[1]:
 
 
 import os, sys, time, pprint
@@ -21,34 +21,13 @@ comm = MPI.COMM_WORLD
 size = comm.Get_size()
 rank = comm.Get_rank()
 
-from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, write_cal_status
 from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_files, backup_a_file
 from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
 from HTC_lib.VASP.Preprocess_and_Postprocess.Parse_calculation_workflow import parse_calculation_workflow
 from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, update_job_status
 from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import submit_jobs, kill_error_jobs
-
-
-# In[6]:
-
-
-def write_cal_status(cal_status, filename):
-    to_be_written_status_list = ["manual_folder_list", "skipped_folder_list", "error_folder_list", "killed_folder_list", 
-                                 "sub_dir_cal_folder_list", "running_folder_list"]
-    last_written_status_list = ["vis_folder_list", "prior_ready_folder_list", "ready_folder_list", "done_folder_list", 
-                                "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list"]
-    for status_key in cal_status.keys():
-        if status_key not in to_be_written_status_list and status_key not in last_written_status_list:
-            to_be_written_status_list.append(status_key)
-    to_be_written_status_list.extend(last_written_status_list)
-    
-    with open(filename, "w") as f:
-        f.write("\n{}:".format(get_time_str()))
-        for status_key in to_be_written_status_list:
-            f.write("\n{}:\n".format(status_key))
-            for folder in cal_status[status_key]:
-                f.write("\t{}\n".format(folder))
 
 
 # In[2]:
@@ -143,8 +122,14 @@ def synchron():
 if __name__ == "__main__":
     debugging = True
     
+    if debugging: print("{}: Reading the pre-defined calculation workflow in process {}".format(get_time_str(), rank), flush=True)
     workflow = read_workflow()
-    if rank == 0: backup_htc_files(workflow=workflow)
+    if rank == 0: 
+        if debugging: print("{}: process 0 starts the backup of htc files".format(get_time_str()), flush=True)
+        backup_htc_files(workflow=workflow)
+        if debugging: print("{}: process 0 finishes the backup of htc files".format(get_time_str()), flush=True)
+    if debugging: print("{}: process {} is waiting for process 0 to finish the backup of htc files".format(get_time_str(), rank), flush=True)
+    synchron()
     
     structure_file_folder = workflow[0]["structure_folder"]
     cal_folder = workflow[0]["cal_folder"]
@@ -159,6 +144,8 @@ if __name__ == "__main__":
     main_dir = os.getcwd()
     stop_file_path = os.path.join(main_dir, "__stop__")
     htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.dat")
+    update_now_file_path = os.path.join(main_dir, "__update_now__")
+    change_signal_file_path = os.path.join(main_dir, "__change_signal_file__")
     
     if rank == 0: # calculation status is checked and updated only in process 0 (master process)
         no_of_same_cal_status, cal_status_0 = 0, {}
@@ -184,7 +171,8 @@ if __name__ == "__main__":
 
             try:
                 update_job_status(cal_folder=cal_folder, workflow=workflow, which_status=which_status, 
-                                  job_list=sub_job_list, stop_file_path=stop_file_path)
+                                  job_list=sub_job_list, quick_response= (rank == 0))
+                #allow process 0 to quickly respond to signal file __update_now__ and __change_signal_file__. response period = 3 mins
             except:
                 continue_running = False
                 raise                
@@ -291,19 +279,16 @@ if __name__ == "__main__":
         if continue_running == False: break
             
         if rank == 0:
-            os.chdir(main_dir)
             for i in range(60):
-                update_now_list = list(Path(main_dir).glob("**/__update_now__"))
-                if os.path.isfile("__stop__"):
+                if os.path.isfile(stop_file_path):
                     break
-                elif update_now_list:
-                    for update_now in update_now_list:
-                        os.remove(update_now)
+                elif os.path.isfile(update_now_file_path):
+                    os.remove(update_now)
                     break
-                elif os.path.isfile("__change_signal_file__"):
-                    cal_status = change_signal_file(cal_status, "__change_signal_file__")
-                    os.remove("__change_signal_file__")
-                    write_cal_status(cal_status, "htc_job_status.dat")
+                elif os.path.isfile(change_signal_file_path):
+                    cal_status = change_signal_file(cal_status, change_signal_file_path)
+                    write_cal_status(cal_status, htc_job_status_file_path)
+                    os.remove(change_signal_file_path)
                 else:
                     time.sleep(10)
         synchron()

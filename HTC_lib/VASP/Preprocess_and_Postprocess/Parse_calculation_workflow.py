@@ -444,6 +444,7 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
         
     #tags only required and optional for the first firework
     if step_no == 1:
+        firework["htc_cwd"] = current_directory
         assert "job_query_command" in firework.keys(), "Error: must specify job_query_command in the first firework. (e.g. 'bjobs -w' on GRC)"
         assert "job_killing_command" in firework.keys(), "Error: must specify job_killing_command by job_killing_command in the first firework. (e.g. 'bkill' on GRC)"
         assert "where_to_parse_queue_id" in firework.keys(), "Error: must specify which file to parse queue id by where_to_parse_queue_id in the first firework. (e.g. if job_submission_command is 'bsub < vasp.lsf > job_id', it is 'job_id')"
