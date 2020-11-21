@@ -660,12 +660,9 @@ Default: **No default command. Any command that can be executed in the linux ter
 ~~default: `No`~~
 
 -----------------------------------
-- **error\_
-- 
-- 
-- \_files**, optional.  
+- **error\_backup\_files**, optional.  
 When an error occurs to a calculation and the program is able to handle it, the VASP input|output files specified by `error_backup_files` will be copied/saved under `error_folder/error_#`. In the meanwhile, the files specified by `vasp.out`, `queue_stdout_file_prefix`, `queue_stdout_file_suffix`, `queue_stderr_file_prefix`, `queue_stderr_file_suffix` will also be copied/saved under the same folder.  
-*When an error cannot be automatically fixed by the program, researchers have to manually get rid of it. In this case, these backup files might be helpful.*
+*When an error cannot be automatically fixed by the program, you have to manually get rid of it. In this case, these backup files might be helpful.*
   
 default:   
 `for step 1: error_backup_files = INCAR, POSCAR, CONTCAR, KPOINTS, XDATCAR, OUTCAR, OSZICAR`  
