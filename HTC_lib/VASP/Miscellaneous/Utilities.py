@@ -345,7 +345,10 @@ def write_cal_status(cal_status, filename):
     folder_name = filename.replace(".json", "") + "_folder"
     if os.path.isdir(folder_name):
         for file_ in os.listdir(folder_name):
-            os.remove(os.path.join(folder_name, file_))
+            try:
+                os.remove(os.path.join(folder_name, file_))
+            except:
+                print("Fail to remove %s. Does it really exist?" % os.path.join(folder_name, file_))
     else:
         os.mkdir(folder_name)
     

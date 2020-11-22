@@ -249,7 +249,7 @@ if __name__ == "__main__":
                 cal_status = check_calculations_status(cal_folder=cal_folder)
                 write_cal_status(cal_status, htc_job_status_file_path)
                 max_no_of_ready_jobs = (workflow[0]["max_no_of_ready_jobs"] - len(cal_status["ready_folder_list"]) - len(cal_status["prior_ready_folder_list"]))/size
-                del max_no_of_ready_jobs
+                del cal_status
                 if max_no_of_ready_jobs < 1: break
 
         if os.path.isfile(stop_file_path): continue
