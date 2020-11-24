@@ -268,6 +268,10 @@ def check_calculations_status(cal_folder):
                     break
             if file_belong_to_other:
                 job_status_dict["other_folder_list"].append(job)
+                
+    #Sort the ready jobs such that the series of jobs associated with one material can be run continuously
+    job_status_dict["ready_folder_list"] = sorted(job_status_dict["ready_folder_list"])
+    job_status_dict["prior_ready_folder_list"] = sorted(job_status_dict["prior_ready_folder_list"])
     
     return job_status_dict
 
