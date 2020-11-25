@@ -44,6 +44,7 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
     available_submissions = min([available_submissions, len(ready_jobs)])
     for i in range(available_submissions):
         cal_loc = ready_jobs[i]
+        print("{}: Submit the job under {}".format(get_time_str(), cal_loc), flush=True)
         Job_management(cal_loc, workflow).submit()
 
 

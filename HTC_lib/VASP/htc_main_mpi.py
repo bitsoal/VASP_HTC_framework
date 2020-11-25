@@ -116,19 +116,19 @@ def synchron():
         buf = comm.recv(source=0)
 
 
-# In[2]:
+# In[1]:
 
 
 if __name__ == "__main__":
     debugging = True
     
-    if debugging: print("{}: Reading the pre-defined calculation workflow in process {}".format(get_time_str(), rank), flush=True)
+    if debugging: print("{}: process {} is reading the pre-defined calculation workflow".format(get_time_str(), rank), flush=True)
     workflow = read_workflow()
     if rank == 0: 
         if debugging: print("{}: process 0 starts the backup of htc files".format(get_time_str()), flush=True)
         backup_htc_files(workflow=workflow)
         if debugging: print("{}: process 0 finishes the backup of htc files".format(get_time_str()), flush=True)
-    if debugging: print("{}: process {} is waiting for process 0 to finish the backup of htc files".format(get_time_str(), rank), flush=True)
+    elif debugging: print("{}: process {} is waiting for process 0 to finish the backup of htc files".format(get_time_str(), rank), flush=True)
     synchron()
     
     structure_file_folder = workflow[0]["structure_folder"]
@@ -150,64 +150,74 @@ if __name__ == "__main__":
     if rank == 0: # calculation status is checked and updated only in process 0 (master process)
         no_of_same_cal_status, cal_status_0 = 0, {}
     
-    if debugging: print("{}: Before the while loop in process {}".format(get_time_str(), rank), flush=True)
+    if debugging: print("{}: process {} is entering the while loop.".format(get_time_str(), rank), flush=True)
     continue_running = True
     while continue_running:
         if os.path.isfile(stop_file_path):
-            print(">>>Detect file __stop__ in {}\n ---->stop this program in process {}.".format(main_dir, rank))
+            print(">>>Process {} detected file __stop__ in {}\n ---->stop this program in this process.".format(rank, main_dir),flush=True)
             break
             
         for which_status in ["running_folder_list", "error_folder_list", "killed_folder_list", 
                              "sub_dir_cal_folder_list", "done_folder_list"]:
-            if debugging: print("{}: start updating {} in process {}".format(get_time_str(), which_status, rank), flush=True)
             if rank == 0:
-                cal_status = check_calculations_status(cal_folder=cal_folder)
+                if debugging: print("{}: process 0 starts to check statuses of all calculations.".format(get_time_str()), flush=True)
+                cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
                 sub_job_lists = divide_a_list_evenly(cal_status[which_status], no_of_sublists=size)
                 for i in range(1, size):
+                    if debugging: print("{}: process 0 starts to divide {} and send them to process {}".format(get_time_str(), which_status, i), flush=True)
                     comm.send(sub_job_lists[i], dest=i, tag=i)
                 sub_job_list = sub_job_lists[0]
             else:
                 sub_job_list = comm.recv(source=0, tag=rank)
+                if debugging: print("{}: process {} received {} from process 0".format(get_time_str(), rank, which_status), flush=True)
 
             try:
+                if debugging: print("{}: process {} starts updating {}".format(get_time_str(), rank, which_status), flush=True)
                 update_job_status(cal_folder=cal_folder, workflow=workflow, which_status=which_status, 
                                   job_list=sub_job_list, quick_response= (rank == 0))
+                if debugging: print("{}: process {} finished updating {}".format(get_time_str(), rank, which_status), flush=True)
                 #allow process 0 to quickly respond to signal file __update_now__ and __change_signal_file__. response period = 3 mins
             except:
                 continue_running = False
                 raise                
             finally:
                 if rank == 0:
+                    if debugging: print("{}: process 0 receives update statuses from all other processes".format(get_time_str()), flush=True)
                     if False in [comm.recv(source=i, tag=i) for i in range(1, size)]:
                         continue_running = False
                     [comm.send(continue_running, dest=i, tag=i) for i in range(1, size)]
+                    if debugging: print("{}: process 0 sent variable continue_running to all other processes".format(get_time_str()), flush=True)
                 else:
+                    if debugging: print("{}: process {} is sending the update status to process 0".format(get_time_str(), rank), flush=True)
                     comm.send(continue_running, dest=0, tag=rank)
                     continue_running = comm.recv(source=0, tag=rank) 
+                    if debugging: print("{}: process {} received variable continue_running from process 0".format(get_time_str(), rank), flush=True)
             if continue_running == False: break
             if os.path.isfile(stop_file_path): break
-            if debugging: print("{}: end updating {} in process {}".format(get_time_str(),which_status, rank), flush=True)
+            if debugging: print("{}: process {} finished updating {}".format(get_time_str(), rank, which_status), flush=True)
         if continue_running == False: break
         if os.path.isfile(stop_file_path): continue
             
             
         if rank == 0:  
-            if debugging: print("{}: dispatching structure lists from process 0 to others".format(get_time_str()), flush=True)
             structure_file_sublist_list = divide_a_list_evenly(a_list=os.listdir(structure_file_folder), no_of_sublists=size)            
             structure_file_sublist = structure_file_sublist_list[0]
             for i in range(1, size): # send structure file sublists to process 1, 2, ..., size-1
+                if debugging: print("{}: process 0 is dispatching divided structure lists to process {}".format(get_time_str(), i), flush=True)
                 comm.send(structure_file_sublist_list[i], dest=i, tag=i)
-            cal_status = check_calculations_status(cal_folder=cal_folder)
+                if debugging: print("{}: process 0 sucessfully dispatched divided structure lists to process {}".format(get_time_str(), i), flush=True)
+            cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
             max_no_of_ready_jobs = (workflow[0]["max_no_of_ready_jobs"] - len(cal_status["ready_folder_list"]) - len(cal_status["prior_ready_folder_list"]))/size
             del cal_status
         else:
-            if debugging: print("{}: receiving structure list from process 0 in process {}".format(get_time_str(), rank), flush=True)
+            if debugging: print("{}: process {} is receiving structure list from process 0".format(get_time_str(), rank), flush=True)
             structure_file_sublist = comm.recv(source=0, tag=rank) # receive structure file sublist from process 0
+            if debugging: print("{}: process {} sucessfully received structure list from process 0".format(get_time_str(), rank), flush=True)
             max_no_of_ready_jobs = 0
         max_no_of_ready_jobs = comm.bcast(max_no_of_ready_jobs, root=0)
-        if debugging: print("{}: finished dispatch of structure lists to process {}".format(get_time_str(), rank), flush=True)
+        #if debugging: print("{}: finished dispatch of structure lists to process {}".format(get_time_str(), rank), flush=True)
         
-        if debugging: print("{}: start to prepare vasp input files in process {}".format(get_time_str(), rank), flush=True)      
+        if debugging: print("{}: process {} start to prepare vasp input files".format(get_time_str(), rank), flush=True)      
         t1, comm_period = time.time(), 300
         for structure_file in structure_file_sublist:
             try:
@@ -227,18 +237,18 @@ if __name__ == "__main__":
                         comm.send(continue_running, dest=0, tag=rank)
                         continue_running = comm.recv(source=0, tag=rank)
                     t1 = time.time()
-            if os.path.isfile(stop_file_path): break
             if continue_running == False: break
-            if debugging: print("{}: finished input preparation for {} in process {}".format(get_time_str(), structure_file, rank), flush=True)
-               
+            if debugging: print("{}: process {} finished input preparation for {}".format(get_time_str(), rank, structure_file), flush=True)
+            if os.path.isfile(stop_file_path): break
+                
             if rank == 0:
                 if os.path.isfile(update_now_file_path):
-                    cal_status = check_calculations_status(cal_folder=cal_folder)
+                    cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
                     write_cal_status(cal_status, htc_job_status_file_path)
                     del cal_status
                     os.remove(update_now_file_path)
                 if os.path.isfile(change_signal_file_path):
-                    cal_status = check_calculations_status(cal_folder=cal_folder)
+                    cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
                     write_cal_status(cal_status, htc_job_status_file_path)
                     del cal_status
                     os.remove(change_signal_file_path)
@@ -246,7 +256,7 @@ if __name__ == "__main__":
             #Every process individually checks cal status instead of receiving from process 0 
             #--> Avoid a deadlock state in process 1, 2, ..., size-1 if process 0 encounters an error
             if max_no_of_ready_jobs < 1:
-                cal_status = check_calculations_status(cal_folder=cal_folder)
+                cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
                 write_cal_status(cal_status, htc_job_status_file_path)
                 max_no_of_ready_jobs = (workflow[0]["max_no_of_ready_jobs"] - len(cal_status["ready_folder_list"]) - len(cal_status["prior_ready_folder_list"]))/size
                 del cal_status
@@ -259,10 +269,10 @@ if __name__ == "__main__":
         synchron()
         
         if rank == 0:
-            if debugging: print("{}: start submitting ready jobs in process {}".format(get_time_str(), rank), flush=True)
-            cal_status = check_calculations_status(cal_folder=cal_folder)
+            if debugging: print("{}: process 0 starts submitting ready jobs".format(get_time_str()), flush=True)
+            cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
             submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
-            cal_status = check_calculations_status(cal_folder=cal_folder)      
+            cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)      
             write_cal_status(cal_status, htc_job_status_file_path)
             
             #check if all calculations are complete. If this is the case, stop. At the end, all calculations should be labeled by signal file __done__, __skipped__, __done_cleaned_analyzed__ and __done_failed_to_clean_analyze__
@@ -273,12 +283,15 @@ if __name__ == "__main__":
                 with open(htc_job_status_file_path, "a") as f:
                     f.write("\n***" + output_str + "***")
                 continue_running = False
+        else:
+            if debugging: print("{}: process {} is waiting for process 0 to finish job submission".format(get_time_str(), rank), flush=True)
+        synchron()
         continue_running = comm.bcast(continue_running, root=0)
-        if debugging: print("{}: completed job submission in process 0. Reported from process {}".format(get_time_str(), rank), flush=True)
+        if debugging: print("{}: Process {} found that process 0 completed job submission.".format(get_time_str(), rank), flush=True)
         if continue_running == False: break
         
         if rank == 0:
-            #If cal_status is unchanged for the 5 consecutive scannings, also stop.
+            #If cal_status is unchanged for the 1000 consecutive scannings, also stop.
             if cal_status == cal_status_0:
                 no_of_same_cal_status += 1
             else:
@@ -290,8 +303,9 @@ if __name__ == "__main__":
                 with open(htc_job_status_file_path, "a") as f:
                     f.write("\n***" + output_str + "***")
                 continue_running = False
+        synchron()
         continue_running = comm.bcast(continue_running, root=0)
-        if debugging: print("{}: process 0 find that cal status is still updating. Reported from process {}".format(get_time_str(), rank), flush=True)
+        if debugging: print("{}: Process 0 tells process {} that cal status is still updating.".format(get_time_str(), rank), flush=True)
         if continue_running == False: break
             
         if rank == 0:

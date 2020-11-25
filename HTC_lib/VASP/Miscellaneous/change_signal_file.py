@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[42]:
+# In[1]:
 
 
 import os, sys
@@ -18,7 +18,7 @@ if HTC_package_path not in sys.path:
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str
 
 
-# In[43]:
+# In[2]:
 
 
 def read_setup_of_changing_signal_file(filename, log_filename):
@@ -67,7 +67,7 @@ def read_setup_of_changing_signal_file(filename, log_filename):
     return setup_dict
 
 
-# In[44]:
+# In[3]:
 
 
 def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
@@ -93,11 +93,14 @@ def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
         return cal_status_dict
     
     target_status_key = setup_dict["target_signal_file"].strip("_") + "_folder_list"
-    target_cal_folder_list = []
+    #target_cal_folder_list = []
     if target_status_key not in cal_status_dict.keys():
         cal_status_dict[target_status_key] = []
-    for i in range(min([len(cal_status_dict[original_status_key]), setup_dict["no_of_changes"]])):
-        target_cal_folder_list.append(cal_status_dict[original_status_key].pop())
+    no_of_changes = min([len(cal_status_dict[original_status_key]), setup_dict["no_of_changes"]])
+    target_cal_folder_list = cal_status_dict[original_status_key][:no_of_changes]
+    cal_status_dict[original_status_key] = cal_status_dict[original_status_key][no_of_changes:]
+    #for i in range(min([len(cal_status_dict[original_status_key]), setup_dict["no_of_changes"]])):
+    #    target_cal_folder_list.append(cal_status_dict[original_status_key].pop())
     
     with open(log_filename, "a") as log_f:
         log_f.write(get_time_str() + " ")
@@ -106,13 +109,15 @@ def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
         os.rename(os.path.join(target_cal_folder, setup_dict["original_signal_file"]), os.path.join(target_cal_folder, setup_dict["target_signal_file"]))
         with open(os.path.join(target_cal_folder, "log.txt"), "a") as log_f:
             log_f.write("{}: Signal File Change:\n".format(get_time_str()))
-            log_f.write("\tThis calculation is randomly chosen and its status is changed from {} to {}\n".format(setup_dict["original_signal_file"], setup_dict["target_signal_file"]))
+            log_f.write("\tThis calculation is chosen and its status is changed from {} to {}\n".format(setup_dict["original_signal_file"], setup_dict["target_signal_file"]))
         
         cal_status_dict[target_status_key].append(target_cal_folder)
         
         with open(log_filename, "a") as log_f:
             log_f.write(get_time_str() + " Done ")
             log_f.write(target_cal_folder + "\n")
+    
+    cal_status_dict[target_status_key] = sorted(cal_status_dict[target_status_key])
     
     return cal_status_dict
 

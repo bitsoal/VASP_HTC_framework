@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[2]:
 
 
 import os, sys, time, random
+from pathlib import Path
 
 ##############################################################################################################
 ##DO NOT change this part.
@@ -16,7 +17,7 @@ if HTC_package_path not in sys.path:
 ##############################################################################################################
 
 
-from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename, decorated_subprocess_check_output
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename #, decorated_subprocess_check_output
 from HTC_lib.VASP.Miscellaneous.Utilities import get_current_firework_from_cal_loc, write_cal_status
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
@@ -35,7 +36,7 @@ from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_checker
 def respond_to(signal_file, workflow):
     main_dir = workflow[0]["htc_cwd"]
     htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.json")
-    job_status_dict = check_calculations_status(cal_folder=workflow[0]["cal_folder"])
+    job_status_dict = check_calculations_status(cal_folder=workflow[0]["cal_folder"], workflow=workflow)
     
     if signal_file == "__update_now__":
         write_cal_status(cal_status=job_status_dict, filename=htc_job_status_file_path)
@@ -82,18 +83,18 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], qui
     quick_response_period = 120 #seconds
     
     if which_status == "all":
-        job_status_dict = check_calculations_status(cal_folder=cal_folder)
+        job_status_dict = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
         
         #update_running_jobs_status(running_jobs_list=job_status_dict["running_folder_list"], workflow=workflow)
         update_job_status(cal_folder, workflow, which_status="running_folder_list", 
                           job_list=job_status_dict["running_folder_list"], quick_response=quick_response)
         
-        job_status_dict = check_calculations_status(cal_folder=cal_folder)
+        job_status_dict = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
         #kill_error_jobs(error_jobs=job_status_dict["error_folder_list"], workflow=workflow)
         update_job_status(cal_folder, workflow, which_status="error_folder_list", 
                           job_list=job_status_dict["error_folder_list"], quick_response=quick_response)
         
-        job_status_dict = check_calculations_status(cal_folder=cal_folder)
+        job_status_dict = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
         
         #update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
         update_job_status(cal_folder, workflow, which_status="killed_folder_list", 
@@ -130,7 +131,7 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], qui
                 if os.path.isfile(change_signal_file_path): respond_to(signal_file="__change_signal_file__", workflow=workflow)
                 t0 = time.time()
             if random.random() > 0.75:
-                job_status_dict = check_calculations_status(cal_folder=cal_folder)
+                job_status_dict = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
                 no_of_ready_jobs = len(job_status_dict["prior_ready_folder_list"]) + len(job_status_dict["ready_folder_list"])
                 del job_status_dict
                 if no_of_ready_jobs >= workflow[0]["max_no_of_ready_jobs"]:
@@ -154,70 +155,118 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], qui
         
 
 
-# In[2]:
+# def check_calculations_status_0(cal_folder):
+#     """
+#     Check the status of all calculations under folder cal_folder 
+#     input argument:
+#         - cal_folder (str): Under cal_folder, a sub-folder will be created where a set of DFT calculations defined by workflow will be made.
+#                         Note that the absolute path should be provided.
+#     return a dictionary having keys below:
+#         - ready_folder_list (list): a list of absolute pathes where the calculations are ready.
+#                                     Note that the pathes where instead file __prior_ready__ exists will be put at the beginning
+#                                     of list read_folder_list.
+#         - running_folder_list (list): a list of absolute pathes where the calculations are ongoing.
+#         - done_folder_list (list): a list of absolute pathes where the calculations are done.
+#         - error_folder_list (list): a list of absolute pathes where the calculations encounter errors.
+#         - killed_folder_list (list): a list of absolute pathes where the calculation has been killed.
+#         - manual_folder_list (list): a list of absolute pathes where the error can not be fixed automatically.
+#         - vis_folder_list (list): a list of absolute pathes where the input files for calculations need to be prepared
+#     """
+#     signal_file_list = ["__manual__", "__test__", "__vis__", "__skipped__", "__ready__", "__prior_ready__", 
+#                         "__error__", "__running__", "__done__", "__killed__"]
+#     job_status_folder_list = ["manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", 
+#                               "ready_folder_list", "prior_ready_folder_list", "error_folder_list", "running_folder_list", 
+#                               "done_folder_list", "killed_folder_list", "other_folder_list"]
+#     job_status_dict = {key: [] for key in job_status_folder_list}
+#     if not os.path.isdir(cal_folder):
+#         return job_status_dict
+#         
+#     mater_folder_list = os.listdir(cal_folder)
+#     firework_folder_list = []
+#     for mater_folder in mater_folder_list:
+#         mater_folder_path = os.path.join(cal_folder, mater_folder)
+#         #in case any file appears in cal_folder.
+#         if not os.path.isdir(mater_folder_path):
+#             continue
+#         #ignore irrelevant files or folders
+#         firework_name_list = [firework_name for firework_name in os.listdir(mater_folder_path) if firework_name.startswith("step")]
+#         firework_folder_list += [os.path.join(mater_folder_path, firework_name) for firework_name in firework_name_list]
+#     
+#     #categorize fireworks
+#     for firework_folder in firework_folder_list:
+#         firework_belongs_to_other = True
+#         for signal_file_ind, signal_file in enumerate(signal_file_list):
+#             if os.path.isfile(os.path.join(firework_folder, signal_file)):
+#                 job_status_dict[job_status_folder_list[signal_file_ind]].append(firework_folder)
+#                 firework_belongs_to_other = False
+#                 break
+#         if firework_belongs_to_other:
+#             job_status_dict["other_folder_list"].append(firework_folder)
+#        
+#     return job_status_dict
+# 
+
+# In[31]:
 
 
-def check_calculations_status_0(cal_folder):
+def are_all_cal_for_a_material_complete(mat_folder, cal_name_list):
     """
-    Check the status of all calculations under folder cal_folder 
-    input argument:
-        - cal_folder (str): Under cal_folder, a sub-folder will be created where a set of DFT calculations defined by workflow will be made.
-                        Note that the absolute path should be provided.
-    return a dictionary having keys below:
-        - ready_folder_list (list): a list of absolute pathes where the calculations are ready.
-                                    Note that the pathes where instead file __prior_ready__ exists will be put at the beginning
-                                    of list read_folder_list.
-        - running_folder_list (list): a list of absolute pathes where the calculations are ongoing.
-        - done_folder_list (list): a list of absolute pathes where the calculations are done.
-        - error_folder_list (list): a list of absolute pathes where the calculations encounter errors.
-        - killed_folder_list (list): a list of absolute pathes where the calculation has been killed.
-        - manual_folder_list (list): a list of absolute pathes where the error can not be fixed automatically.
-        - vis_folder_list (list): a list of absolute pathes where the input files for calculations need to be prepared
+    input arguements:
+        - mat_folder (str): the absolute path to the folder under which a series of pre-defined calculations are run for a given material
+        - cal_name_list (list of str): a list of calculation folder names. E.g. ["step_1_xxx", "step_2_yyy", "step_3_zzz"]
+    return:
+        -True if all calculations in cal_name_list are complete as indicated by the presence of either of signal files below:
+            "__skipped__", "__done__", "__done_cleaned_analyzed__" and "__done_failed_to_clean_analyze__"
+        -False otherwise.
+    Note that 
+        1. if all calculations in cal_name_list are complete, a file named as "__complete__" will be created under mat_folder. The existence of 
+        "__complete__" tells check_calculations_status(cal_folder) to skip mat_folder. As htc goes on, the number of compelte calculations increases.
+        their status should either of the above and remains in most cases. It makes no sense to spend much time repeatedly checking the unchanged 
+        status of these calculations. Skipping these complete mat_folder would save much time.
+        2. If you always want to check mat_folder, create a signal file "__incomplete__" under mat_folder. In this case, this function directly returns False
     """
-    signal_file_list = ["__manual__", "__test__", "__vis__", "__skipped__", "__ready__", "__prior_ready__", 
-                        "__error__", "__running__", "__done__", "__killed__"]
-    job_status_folder_list = ["manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", 
-                              "ready_folder_list", "prior_ready_folder_list", "error_folder_list", "running_folder_list", 
-                              "done_folder_list", "killed_folder_list", "other_folder_list"]
-    job_status_dict = {key: [] for key in job_status_folder_list}
-    if not os.path.isdir(cal_folder):
-        return job_status_dict
-        
-    mater_folder_list = os.listdir(cal_folder)
-    firework_folder_list = []
-    for mater_folder in mater_folder_list:
-        mater_folder_path = os.path.join(cal_folder, mater_folder)
-        #in case any file appears in cal_folder.
-        if not os.path.isdir(mater_folder_path):
-            continue
-        #ignore irrelevant files or folders
-        firework_name_list = [firework_name for firework_name in os.listdir(mater_folder_path) if firework_name.startswith("step")]
-        firework_folder_list += [os.path.join(mater_folder_path, firework_name) for firework_name in firework_name_list]
+    sub_dir_list = os.listdir(mat_folder)
     
-    #categorize fireworks
-    for firework_folder in firework_folder_list:
-        firework_belongs_to_other = True
-        for signal_file_ind, signal_file in enumerate(signal_file_list):
-            if os.path.isfile(os.path.join(firework_folder, signal_file)):
-                job_status_dict[job_status_folder_list[signal_file_ind]].append(firework_folder)
-                firework_belongs_to_other = False
-                break
-        if firework_belongs_to_other:
-            job_status_dict["other_folder_list"].append(firework_folder)
-       
-    return job_status_dict
+    if "__complete__" in sub_dir_list:
+        return True
+    elif "__incomplete__" in sub_dir_list:
+        return False
+    
+    signal_file_list = ["__done__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__skipped__"]
+    for cal_name in cal_name_list:
+        if cal_name in sub_dir_list:
+            if not any([os.path.isfile(os.path.join(mat_folder, cal_name, signal_file)) for signal_file in signal_file_list]):
+                return False                
+        else:
+            return False
+    
+    open(os.path.join(mat_folder, "__complete__"), "w").close()
+    return True
 
 
-# In[2]:
+# signal_file_list = ["__complete__", "__done__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__manual__", "__test__", "__vis__", 
+#                         "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__", "__error__", "__running__",  "__killed__"]
+# job_status_folder_list = ["complete_folder_list", "done_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list", 
+#                               "manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", "ready_folder_list", 
+#                               "prior_ready_folder_list", "sub_dir_cal_folder_list", "error_folder_list", "running_folder_list", 
+#                               "killed_folder_list", "other_folder_list"]
+# 
+# for sig_1, sig_2 in zip(signal_file_list, job_status_folder_list):
+#     sig_1 = sig_1.strip("_")
+#     sig_2 = sig_2.split("_folder_list")[0]
+#     print(sig_1 == sig_2, sig_1)
+
+# In[43]:
 
 
-def check_calculations_status(cal_folder):
+def check_calculations_status(cal_folder, workflow):
     """
     Check the status of all calculations under folder cal_folder 
     input argument:
         - cal_folder (str): The absolute path to a directory under which the program creates a sub-directory for every to-be-calculated
                             materials. In the sub-directory, a series of DFT calculations predefined will be carried out.
                             This function checks the calculation status of all DFT calculations under the folder referenced by cal_folder/
+        - workflow: the workflow parsed by function read_HTC_calculation_setup_folder in HTC_lib/VASP/Preprocess_and_Postprocess/Parse_calculation_workflow.py
     return a dictionary having keys below:
         - ready_folder_list (list): a list of absolute pathes where the calculations are ready.
                                     Note that the pathes where instead file __prior_ready__ exists will be put at the beginning
@@ -230,21 +279,35 @@ def check_calculations_status(cal_folder):
         - vis_folder_list (list): a list of absolute pathes where the input files for calculations need to be prepared
         - ...
     """
-    signal_file_list = ["__manual__", "__test__", "__vis__", "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__",
-                        "__error__", "__running__", "__done__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__killed__"]
-    job_status_folder_list = ["manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", 
-                              "ready_folder_list", "prior_ready_folder_list", "sub_dir_cal_folder_list", "error_folder_list", "running_folder_list", 
-                              "done_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list", 
+    signal_file_list = ["__done__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__manual__", "__test__", "__vis__", 
+                        "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__", "__error__", "__running__",  "__killed__"]
+    job_status_folder_list = ["done_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list", 
+                              "manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", "ready_folder_list", 
+                              "prior_ready_folder_list", "sub_dir_cal_folder_list", "error_folder_list", "running_folder_list", 
                               "killed_folder_list", "other_folder_list"]
     job_status_dict = {key: [] for key in job_status_folder_list}
+    job_status_dict["complete_folder_list"] = []
     
+    cal_name_list = [firework["firework_folder_name"] for firework in workflow[::-1]]
     
-    jobs_in_str = decorated_subprocess_check_output("find %s -type f -name INCAR" % cal_folder)[0]
     job_list = []
-    for job in jobs_in_str.split("\n"):
-        job = job.strip()
-        if job and "step" in job and "error_folder" not in job:
-            job_list.append(os.path.split(job)[0])
+    for mat_folder in os.listdir(cal_folder):
+        mat_folder = os.path.join(cal_folder, mat_folder)
+        if os.path.isdir(mat_folder):
+            if are_all_cal_for_a_material_complete(mat_folder=mat_folder, cal_name_list=cal_name_list):
+                job_status_dict["complete_folder_list"].append(mat_folder)
+            else:
+                for incar_loc in [str(incar_loc) for incar_loc in Path(mat_folder).glob("**/INCAR")]:
+                    if "step" in incar_loc and "error_folder" not in incar_loc:
+                        job_list.append(os.path.split(incar_loc)[0])
+    
+    #Old, slow but safe codes to obtain job_list
+    #jobs_in_str = decorated_subprocess_check_output("find %s -type f -name INCAR" % cal_folder)[0]
+    #job_list = []
+    #for job in jobs_in_str.split("\n"):
+    #    job = job.strip()
+    #    if job and "step" in job and "error_folder" not in job:
+    #        job_list.append(os.path.split(job)[0])
     
     for job in job_list:
         file_list = os.listdir(job)
@@ -268,10 +331,12 @@ def check_calculations_status(cal_folder):
                     break
             if file_belong_to_other:
                 job_status_dict["other_folder_list"].append(job)
-                
+         
+    for status in job_status_dict.keys():
+        job_status_dict[status] = sorted(job_status_dict[status])
     #Sort the ready jobs such that the series of jobs associated with one material can be run continuously
-    job_status_dict["ready_folder_list"] = sorted(job_status_dict["ready_folder_list"])
-    job_status_dict["prior_ready_folder_list"] = sorted(job_status_dict["prior_ready_folder_list"])
+    #job_status_dict["ready_folder_list"] = sorted(job_status_dict["ready_folder_list"])
+    #job_status_dict["prior_ready_folder_list"] = sorted(job_status_dict["prior_ready_folder_list"])
     
     return job_status_dict
 
@@ -425,7 +490,7 @@ def update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list, workflow):
                           where_to_execute=sub_dir_cal_path, defined_by_which_htc_tag="sub_dir_cal_cmd")
 
 
-# In[1]:
+# In[44]:
 
 
 def clean_analyze_or_update_successfully_finished_jobs(done_jobs_list, workflow):

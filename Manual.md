@@ -794,7 +794,9 @@ When the workflow is running, some **built-in** signal file will be present in e
 - `__done_cleaned_analyzed__`: When the command(s) defined by `cmd_to_process_finished_jobs` is successfully run on a job labelled by `__done__`, `__done__` --> `__done_cleaned_analyzed__`.   
 - `__done_failed_to_clean_analyze__`: When the command(s) defined by `cmd_to_process_finished_jobs` fails to run on a job labelled by `__done__`, `__done__` --> `__done_failed_to_clean_analyze__`.   
 
-***Signal file priority:*** `__manual__` > `__vis__` > `__skipped__` > `__ready__` > `prior_ready__` > `__sub_dir_cal__` > `__error__` > `__running__` > `__done__` > `__done_cleaned_analyzed__` > `__done_failed_to_clean_analyze__` > `__killed__`  
+***Signal file priority:*** `__done__` > `__done_cleaned_analyzed__` > `__done_failed_to_clean_analyze__` >`__manual__` > `__vis__` > `__skipped__` > `__ready__` > `prior_ready__` > `__sub_dir_cal__` > `__error__` > `__running__` >  `__killed__`  
+
+*Note that signal file `__complete__` is introduced to the material folder. This signal file indicates that all of the pre-defined calculations for a given material are complete. It make no sense to still check these finished calculations repeatedly. As such, the program shoud stop checking the status of these calculations and just look for those to-be-updated calculations. This would save much time because as htc goes on, more and more jobs are in the complete status. If you insist checking the calculations of a material repeatedly, delete `__complete__` and create `__incomplete__`.* 
 
 
 **Note that when you manually fix an error or tune VASP input files under a filework folder, DO remove these signal tags so that the program has nothing to do with this firework folder. After modifications, you have two ways to bring it back to the program scope (_The second way is recommended_):**

@@ -89,22 +89,22 @@ if __name__ == "__main__":
             break
         
         update_job_status(cal_folder=cal_folder, workflow=workflow)
-        cal_status = check_calculations_status(cal_folder=cal_folder)
+        cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
         max_no_of_ready_jobs = workflow[0]["max_no_of_ready_jobs"] - len(cal_status["prior_ready_folder_list"]) - len(cal_status["ready_folder_list"])
         if os.path.isfile(stop_file_path): break
         for structure_file in os.listdir(structure_file_folder):
             #pre_and_post_process returns the number of prepared calculations
             max_no_of_ready_jobs -= pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
             if os.path.isfile(update_now_file_path):
-                cal_status = check_calculations_status(cal_folder=cal_folder)
+                cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
                 write_cal_status(cal_status, htc_job_status_file_path)
                 os.remove(update_now_file_path)
             if os.path.isfile(change_signal_file_path):
-                cal_status = check_calculations_status(cal_folder=cal_folder)
+                cal_status = check_calculations_status(cal_folder=cal_folder,workflow=workflow)
                 write_cal_status(cal_status, htc_job_status_file_path)
                 os.remove(change_signal_file_path)    
             if max_no_of_ready_jobs < 1:
-                cal_status = check_calculations_status(cal_folder=cal_folder)
+                cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
                 write_cal_status(cal_status, htc_job_status_file_path)
                 max_no_of_ready_jobs = workflow[0]["max_no_of_ready_jobs"] - len(cal_status["ready_folder_list"]) - len(cal_status["prior_ready_folder_list"])
                 del max_no_of_ready_jobs
@@ -112,9 +112,9 @@ if __name__ == "__main__":
             if os.path.isfile(stop_file_path): break
         if os.path.isfile(stop_file_path): continue
             
-        cal_status = check_calculations_status(cal_folder=cal_folder)
+        cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
         submit_jobs(cal_jobs_status=cal_status, workflow=workflow, max_jobs_in_queue=max_running_job)
-        cal_status = check_calculations_status(cal_folder=cal_folder)      
+        cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow)      
         
         write_cal_status(cal_status, htc_job_status_file_path)
                         
