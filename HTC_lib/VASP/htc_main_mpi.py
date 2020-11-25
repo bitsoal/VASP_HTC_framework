@@ -146,6 +146,7 @@ if __name__ == "__main__":
     htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.json")
     update_now_file_path = os.path.join(main_dir, "__update_now__")
     change_signal_file_path = os.path.join(main_dir, "__change_signal_file__")
+    update_input_file_path = os.path.join(main_dir, "__update_input__")
     
     if rank == 0: # calculation status is checked and updated only in process 0 (master process)
         no_of_same_cal_status, cal_status_0 = 0, {}
@@ -319,9 +320,31 @@ if __name__ == "__main__":
                     cal_status = change_signal_file(cal_status, change_signal_file_path)
                     write_cal_status(cal_status, htc_job_status_file_path)
                     os.remove(change_signal_file_path)
+                elif os.path.isfile(update_input_file_path):
+                    if debugging: print("{}: __update_input__ is found found in ${HTC_CWD}. Process 0 reads the newly pre-defined calculation workflow".format(get_time_str()), flush=True)
+                    workflow = read_workflow()
+                    os.remove(update_input_file_path)
+                    break
                 else:
                     time.sleep(10)
         synchron()
+        if debugging: print("{}: Process {} finds that process 0 broadcasts the pre-defined workflow".format(get_time_str(), rank), flush=True)
+        workflow = comm.bcast(workflow, root=0)
+        if debugging: print("{}: Prcess {} received the the pre-defined workflow from process 0".format(get_time_str(), rank), flush=True)
+        
+        synchron()
         if debugging: print("\n{}: ***process {} arrives at the end of the while loop. Will enter the next round of iteration.***\n".format(get_time_str(), rank), flush=True)
         synchron()
+
+
+# In[2]:
+
+
+import os
+
+
+# In[ ]:
+
+
+os.chdir
 

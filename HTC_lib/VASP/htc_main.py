@@ -81,6 +81,7 @@ if __name__ == "__main__":
     htc_job_status_file_path = os.path.join(main_dir, "htc_job_status.json")
     update_now_file_path = os.path.join(main_dir, "__update_now__")
     change_signal_file_path = os.path.join(main_dir, "__change_signal_file__")
+    update_input_file_path = os.path.join(main_dir, "__update_input__")
     
     no_of_same_cal_status, cal_status_0 = 0, {}
     while True:
@@ -150,6 +151,10 @@ if __name__ == "__main__":
                 cal_status = change_signal_file(cal_status, change_signal_file_path)
                 write_cal_status(cal_status, htc_job_status_file_path)
                 os.remove(change_signal_file_path)
+            elif os.path.isfile(update_input_file_path):
+                workflow = read_workflow()
+                os.remove(update_input_file_path)
+                break
             else:
                 time.sleep(10)
 
