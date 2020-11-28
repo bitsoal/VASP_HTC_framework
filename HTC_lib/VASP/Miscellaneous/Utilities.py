@@ -359,3 +359,37 @@ def write_cal_status(cal_status, filename):
                 for job in job_list:
                     f.write(job + "\n")
 
+
+# In[1]:
+
+
+def divide_a_list_evenly(a_list, no_of_sublists):
+    """
+    Divide a list into no_of_sublists sublists as evenly as possible and return the list of divided sublists.
+    """
+    assert no_of_sublists >= 1, "Can not divide a list into {} sublists. no_of_sublists should be >= 1".format(no_of_sublists)
+    
+    a_list = list(a_list)
+    
+    list_length = len(a_list)
+    sublist_length = round(list_length / no_of_sublists, ndigits=None)
+    sublist_length = max([sublist_length, 1])
+    
+    sublist_list = []
+    ind_start = 0
+    while ind_start < list_length and len(sublist_list) < no_of_sublists:
+        ind_end = ind_start + sublist_length
+        if ind_end <= list_length:
+            sublist_list.append(a_list[ind_start:ind_end])
+        else:
+            sublist_list.append(a_list[ind_start:])
+        ind_start = ind_end
+        
+    sublist_length0 = len(sublist_list)
+    if sublist_length0 == no_of_sublists:
+        sublist_list[-1].extend(a_list[ind_start:])
+    else:
+        sublist_list.extend([[] for i in range(no_of_sublists - sublist_length0)])
+    
+    return sublist_list
+

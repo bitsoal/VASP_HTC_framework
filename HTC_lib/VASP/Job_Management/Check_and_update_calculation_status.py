@@ -16,7 +16,6 @@ if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
 ##############################################################################################################
 
-
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename #, decorated_subprocess_check_output
 from HTC_lib.VASP.Miscellaneous.Utilities import get_current_firework_from_cal_loc, write_cal_status
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
@@ -50,10 +49,10 @@ def respond_to(signal_file, workflow):
         raise Exception("argument signal_file of function respond_to must be either '__update_now__' or '__change_signal_file__'")
 
 
-# In[6]:
+# In[2]:
 
 
-def update_job_status(cal_folder, workflow, which_status='all', job_list=[], quick_response=True):
+def update_job_status(cal_folder, workflow, which_status='all', job_list=[], quick_response=True, rank=None):
     """
     arguements:
         - cal_folder: the path to the folder under which high-throughput calculations are performed.
@@ -80,6 +79,7 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], qui
     htc_job_status_file_path = os.path.join(workflow[0]["htc_cwd"], "htc_job_status.json")
     update_now_file_path = os.path.join(workflow[0]["htc_cwd"], "__update_now__")
     change_signal_file_path = os.path.join(workflow[0]["htc_cwd"], "__change_signal_file__")
+    skip_signal_file_path = os.path.join(workflow[0]["htc_cwd"], "__skip__")
     quick_response_period = 120 #seconds
     
     if which_status == "all":
@@ -122,7 +122,18 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], qui
     elif which_status == "sub_dir_cal_folder_list":
         if quick_response: t0 = time.time()
         for cal_loc in job_list:
+            if os.path.isfile(skip_signal_file_path):
+                if isinstance(rank, int):
+                    print("{}: process {} finds __skip__ under HTC_CWD. Skip checking of the remaining sub-dir cal".format(get_time_str(), rank), flush=True)
+                else:
+                    print("{}: finds __skip__ under HTC_CWD. Skip checking of the remaining sub-dir cal".format(get_time_str()), flush=True)
+                #os.remove(skip_signal_file_path)
+                return True
             assert os.path.isfile(os.path.join(cal_loc, "__sub_dir_cal__")), "The status of the following job is not __sub_dir_cal__: {}".format(cal_loc)
+            if isinstance(rank, int):
+                print("{}: process {} checks sub-dir cal under {}".format(get_time_str(), rank, cal_loc), flush=True)
+            else:
+                print("{}: check sub-dir cal under {}".format(get_time_str(), cal_loc), flush=True)
             update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=[cal_loc], workflow=workflow)
             if os.path.isfile(stop_file_path): #update_sub_dir_cal_jobs_status may involve very slow external commands.
                 break  #This if clause ensures a quick response to __stop__ file
@@ -140,6 +151,10 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], qui
         if quick_response: t0 = time.time()
         for cal_loc in job_list:
             assert os.path.isfile(os.path.join(cal_loc, "__done__")), "The status of the following job is not __done__: {}".format(cal_loc)
+            if isinstance(rank, int):
+                print("{}: process {} cleans|analyzes complete cal under {}".format(get_time_str(), rank, cal_loc), flush=True)
+            else:
+                print("{}: cleans|analyzes complete cal under {}".format(get_time_str(), cal_loc), flush=True)
             clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=[cal_loc], workflow=workflow)
             if os.path.isfile(stop_file_path): #clean_analyze_or_update_successfully_finished_jobs may involve very slow external commands.
                 break  #This if clause ensures a quick response to __stop__ file
@@ -256,10 +271,10 @@ def are_all_cal_for_a_material_complete(mat_folder, cal_name_list):
 #     sig_2 = sig_2.split("_folder_list")[0]
 #     print(sig_1 == sig_2, sig_1)
 
-# In[43]:
+# In[2]:
 
 
-def check_calculations_status(cal_folder, workflow):
+def check_calculations_status(cal_folder, workflow, mat_folder_name_list=None, cal_loc_list=None):
     """
     Check the status of all calculations under folder cal_folder 
     input argument:
@@ -267,6 +282,14 @@ def check_calculations_status(cal_folder, workflow):
                             materials. In the sub-directory, a series of DFT calculations predefined will be carried out.
                             This function checks the calculation status of all DFT calculations under the folder referenced by cal_folder/
         - workflow: the workflow parsed by function read_HTC_calculation_setup_folder in HTC_lib/VASP/Preprocess_and_Postprocess/Parse_calculation_workflow.py
+        - mat_folder_name_list: a list of material folder under cal_folder or its sub-list. If it is provided, this function just checks calculations under these
+                            material folders. Otherwise, check all calculations under cal_folder
+        - cal_loc_list: a list of absolute paths to calculations under material folders.
+        Scope of status checking: 
+            - if cal_loc_list is provided, this function only checks the statuses of the calculations in this list.
+            - if cal_loc_list is not provided but mat_folder_name_list is provided, this function checks the status of all calculations
+                under each material folder listed in mat_folder_name_list
+            - if neither cal_loc_list nor mat_folder_name_list is provided, check all calculations under cal_folder.
     return a dictionary having keys below:
         - ready_folder_list (list): a list of absolute pathes where the calculations are ready.
                                     Note that the pathes where instead file __prior_ready__ exists will be put at the beginning
@@ -288,18 +311,26 @@ def check_calculations_status(cal_folder, workflow):
     job_status_dict = {key: [] for key in job_status_folder_list}
     job_status_dict["complete_folder_list"] = []
     
-    cal_name_list = [firework["firework_folder_name"] for firework in workflow[::-1]]
-    
+    directory_list = []
+    if cal_loc_list != None:
+        directory_list = cal_loc_list
+    else:
+        cal_name_list = [firework["firework_folder_name"] for firework in workflow[::-1]]
+        if mat_folder_name_list == None:
+            mat_folder_name_list = os.listdir(cal_folder)
+        for mat_folder in mat_folder_name_list:
+            mat_folder = os.path.join(cal_folder, mat_folder)
+            if os.path.isdir(mat_folder):
+                if are_all_cal_for_a_material_complete(mat_folder=mat_folder, cal_name_list=cal_name_list):
+                    job_status_dict["complete_folder_list"].append(mat_folder)
+                else:
+                    directory_list.append(mat_folder)
+        
     job_list = []
-    for mat_folder in os.listdir(cal_folder):
-        mat_folder = os.path.join(cal_folder, mat_folder)
-        if os.path.isdir(mat_folder):
-            if are_all_cal_for_a_material_complete(mat_folder=mat_folder, cal_name_list=cal_name_list):
-                job_status_dict["complete_folder_list"].append(mat_folder)
-            else:
-                for incar_loc in [str(incar_loc) for incar_loc in Path(mat_folder).glob("**/INCAR")]:
-                    if "step" in incar_loc and "error_folder" not in incar_loc:
-                        job_list.append(os.path.split(incar_loc)[0])
+    for directory in directory_list:
+        for incar_loc in [str(incar_loc) for incar_loc in Path(directory).glob("**/INCAR")]:
+            if "step" in incar_loc and "error_folder" not in incar_loc:
+                job_list.append(os.path.split(incar_loc)[0])
     
     #Old, slow but safe codes to obtain job_list
     #jobs_in_str = decorated_subprocess_check_output("find %s -type f -name INCAR" % cal_folder)[0]
