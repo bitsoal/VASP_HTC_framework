@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 import os, sys, re, subprocess, shutil
@@ -34,7 +34,7 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
     if no_of_running_jobs < max_jobs_in_queue:
         available_submissions = max_jobs_in_queue - no_of_running_jobs
     else:
-        return False
+        return []
         #available_submissions = 0
         
     #print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions, \
@@ -46,6 +46,7 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
         cal_loc = ready_jobs[i]
         print("{}: Submit the job under {}".format(get_time_str(), cal_loc), flush=True)
         Job_management(cal_loc, workflow).submit()
+    return ready_jobs[:available_submissions]
 
 
 # In[3]:

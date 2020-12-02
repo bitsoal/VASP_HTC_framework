@@ -19,6 +19,9 @@ from pymatgen import Structure
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename#, get_current_firework_from_cal_loc
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
+from HTC_lib.VASP.Miscellaneous.Cal_status_dictionary_operation import Cal_status_dict_operation
+
+from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status
 
 from HTC_lib.VASP.INCAR.Write_VASP_INCAR import Write_Vasp_INCAR
 from HTC_lib.VASP.KPOINTS.Write_VASP_KPOINTS import Write_Vasp_KPOINTS
@@ -60,7 +63,7 @@ from HTC_lib.VASP.POSCAR.Write_VASP_POSCAR import Write_Vasp_POSCAR
 #     
 # 
 
-# In[2]:
+# In[1]:
 
 
 def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
@@ -80,12 +83,27 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
         #with open(os.path.join(mater_cal_folder, "log.txt"), "w") as f:
         #    f.write("{} INFO: Create this folder {}\n".format(get_time_str(), mater_cal_folder))
         
+    if os.path.isfile(os.path.join(mater_cal_folder, "__complete__")):
+        cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, cal_loc_list=[])
+        cal_status_diff = Cal_status_dict_operation.diff_status_dict(cal_status, cal_status)
+        return 0, cal_status_diff
+        
     current_firework_list = get_current_firework(mater_cal_folder=mater_cal_folder, workflow=workflow)
+    
+    cal_folder_list = [os.path.join(mater_cal_folder, current_firework["firework_folder_name"]) for current_firework in current_firework_list]
+    old_cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, cal_loc_list=cal_folder_list)
+    
     for current_firework in current_firework_list:
         prepare_input_files(cif_filename=cif_filename, cif_folder=cif_folder, mater_cal_folder=mater_cal_folder, 
                             current_firework=current_firework, workflow=workflow)
         post_process(mater_cal_folder=mater_cal_folder, current_firework=current_firework, workflow=workflow)
-    return len(current_firework_list)
+    
+    new_cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, cal_loc_list=cal_folder_list)
+    no_of_new_ready_jobs = len(new_cal_status["prior_ready_folder_list"]) + len(new_cal_status["ready_folder_list"])
+    no_of_new_ready_jobs -= len(old_cal_status["prior_ready_folder_list"])
+    no_of_new_ready_jobs -= len(old_cal_status["ready_folder_list"])
+    cal_status_diff = Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
+    return no_of_new_ready_jobs, cal_status_diff
 
 
 # In[1]:

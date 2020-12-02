@@ -812,9 +812,19 @@ When the workflow is running, some **built-in** signal file will be present in e
 
 **If you take a look at `${HTC_CWD}/htc_job_status.json`, you will find some calculations may be categorized into a non-built-in type, say `xyz_folder_list`. This is because for a given calculation, the program will first search for any of the above built-in signal files. If none of them is found, the program will then check whether there is any file starting and ending with double underscores (`__`). If found, such a file will be treated as an *unknown* signal file and the calculation will be categorized into such a type. Otherwise, put it into `other_folder_list`. Note that if there are more than one unknown signal files detected for one calculation, say `__xyz__` and `__abc__`, this calculation will be put into both `xyz_folder_list` and `abc_folder_list`. But for any calculation tagged by a built-in signal file, it is unique in `${HTC_CWD}/htc_job_status.json`.**
 
-### Update the calculation status  
-By default, this program scans/updates the calculations every 10 mins. If you want to ask the program to scan/update the calculations and write the latest status into `htc_job_status.json` as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`. The progrm will respond to this signal file as soon as possible. Note that before the update starts, this program will remove `__update_now__`, namely **one-time signal file**.   
-~~*Note that `__update_now__` could be created anywhere under `${HTC_CWD}`. It could be exactly under `${HTC_CWD}` or under any `sub-...-sub-folder` of `${HTC_CWD}`. The program is able to find and respond to it.*~~ We abandon this function because it may be a great burden and take much time to go to every `sub-...-sub-folder` of `${HTC_CWD}` to look for `__update_now__`, especially when there are hundreds of thousands of files/sub-directories under `${HTC_CWD}`. This is in fact contradicting the idea of this signal file, i.e. *scan/update calculations as soon as possible*.
+### Update the calculation status and go to job submission  
+- **`__update_now__` under `${HTC_CWD}`**, *one-time signal file*:   
+	By default, the program scans/updates the calculations every 10 mins. Meanwhile, scanning the status of certain calculations may involve very slow external commands (e.g. `sub_dir_cmd`, `incar_cmd`, `poscar_cmd`, ...). It may already take much time (few minutes) to run such external commands on a calculation; Running these slow commands to all of such kind of calculations may take serveral hours. If you want to skip update of the rest of such kind of calculations and write the latest status into `htc_job_status.json` as soon as possible, just create a file named `__update_now__` under `${HTC_CWD}`.   
+	~~*Note that `__update_now__` could be created anywhere under `${HTC_CWD}`. It could be exactly under `${HTC_CWD}` or under any `sub-...-sub-folder` of `${HTC_CWD}`. The program is able to find and respond to it.*~~ We abandon this function because it may be a great burden and take much time to go to every `sub-...-sub-folder` of `${HTC_CWD}` to look for `__update_now__`, especially when there are hundreds of thousands of files/sub-directories under `${HTC_CWD}`. This is in fact contradicting the idea of this signal file, i.e. *scan/update calculations as soon as possible*.  
+- **`__scan_all__` under `${HTC_CWD}`**, *one-time signal file*      
+	As the high-throughput calculations go on, more and more calculations are carried out. One problem is that the time spent in checking the status of all calculations would increase significantly. To overcome this issue, three actions below are taken:    
+		1. When the program starts, it will scan ALL calculations and save these statuses into a python variable `cal_status(_dict)`. Later on, the program will JUST scan the calculations whose statues are just internally updated by the program and update `cal_status(_dict)` with the new calculation statuses. For example, when the program is checking calculation A under `cal_loc_A`, which is tagged with `__running__`, it will change `__running__` to `__done__` if calculation A finished successfully, or to `__error__` if calculation A is dead because of an error, or remain at `__running__` if calculation A has not finished. Having checked/updated calculation A, the program will try to figure out the new status of calculation A and update `cal_status(_dict)`.        
+		2. Sometimes, you need to manually handle some calculations (e.g. those tagged by `__manual__`) and manually change the status of these calculations. In this case, the program won't detect the changes in the status of these calculations. You can create `__scan_all__` under `${HTC_CWD}` to ask the program to scan ALL calculations.    
+		3. Normally, a series of calculations are carried out for a material and they are put into the same folder, which is called **material folder**. The program will tag a material folder with `__complete__` if all calculations under this folder are complete. This would speed up the process of scanning all calculations because the status of completed calculations will remain unchanged and the existence of `__complete__` under a material folder tells the program to safely skip this material folder. Of course, you need to remove `__complete__` if you want to add more calculations to a material.    
+- **`__go_to_submission__` under `${HTC_CWD}`**, *one-time signal file*     
+	As explained by its name, this signal file asks the program to directly go to job submission.   
+
+***It may take some time to wait for the program to handle `__udpate_now__`, `__scan_all__` and `__go_to_submission__`. When these one-time signal files are removed by this program, it means that they have been handled***
 
 ### How to change a certain number of calculations from their original status to a target status  
 Under `${HTC_CWD}`, you can create a signal file named `__change_signal_file__` to change a certain number of calculations from their original status (signal file) to a target status (signal file). In `__change_signal_file__`, three parameters should be defined in the following format, e.g.
@@ -828,21 +838,22 @@ The above setup means to randomly pick at most 20 calculations originally tagged
 * Note that `original_signal_file` must be one of the existent signal files (See above for all valid|built-in signal files), whereas `target_signal_file` could be anything.  
 * We also ask you to define `original_signal_file` and `target_signal_file` in such a way that they start and end with double underscores (`__`)
 * If `target_signal_file` is not in the builit-in signal file list, this program will do nothing to the calculations tagged by `target_signal_file`  
-* `__change_signal_file__` is a **one-time** signal file. After the program responds to this signal file, it will be removed and the response to it will be written into `${HTC_CWD}/__change_signal_file__.log`  
+* `__change_signal_file__` is a **one-time** signal file. After the program responds to this signal file, it will be removed and the response to it will be written into `${HTC_CWD}/__change_signal_file__.log`   
 
-### Pack many small calculation jobs into one. (alpha phase)  
-Normally, one job, one submission. On the other hand, you can also pack a bunch of small jobs into one, and just submit once. Let's call those to-be-packed small jobs `sub-jobs`. `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` may help you to create a job submision script to pack `sub-jobs` for PBS batch scheduler. **The idea is to request a certain number of CPUs and memory at once, and then re-allocate them to a bunch of sub-jobs.** You need to change the parameters needed at the beginning of `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py`, which are well self-explained. Let's call the created submission script `packed_jobs_script.pbs`  
+### Read the updated pre-defined calculation workflow on the fly
+- **`__update_input__` under `${HTC_CWD}`**, one-time signal file   
+	During the high-throughput calculations, you may want to make changes to the pre-defined calculation workflow in either `HTC_calculation_setup_folder` or `HTC_calculation_setup_file`. The presence of one-time signal file `__update_input__` under `${HTC_CWD}` tells the program to read the updated calculation workflow. No need to kill and re-execute the program any more :). *Again, it may take some time to wait for the program to handle this signal file.*  
+
+~### Pack many small calculation jobs into one. (alpha phase)~  
+~`Normally, one job, one submission. On the other hand, you can also pack a bunch of small jobs into one, and just submit once. Let's call those to-be-packed small jobs `sub-jobs`. `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` may help you to create a job submision script to pack `sub-jobs` for PBS batch scheduler. **The idea is to request a certain number of CPUs and memory at once, and then re-allocate them to a bunch of sub-jobs.** You need to change the parameters needed at the beginning of `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py`, which are well self-explained. Let's call the created submission script `packed_jobs_script.pbs`  
 `packed_jobs_script.pbs` assumes that the status of each to-be-packed sub-job is `__packed__`. Prior to run VASP, it directs `${PBS_JOBID}` to a file named `job_id` under each sub-job and changes the status of each sub-job from `__packed__` to `__packed_running__`. If the VASP calculation associated with a sub-job finishes before running out of time, `__packed_running__` will be changed to `__runing__`. So, those finished sub-jobs can be handled directly by the program.  
-We suggest you to use `__change_signal_file__` to change a certain number of calculation jobs from `__ready__` to `__packed__`. For exmaple, you want to pack 20 calculation jobs:  
->`__change_signal_file__`
->>`original_signal_file = __ready__`  
->>`target_signal_file = __packed__`  
->>`no_of_changes = 20`  
+We suggest you to use `__change_signal_file__` to change a certain number of calculation jobs from `__ready__` to `__packed__`. For exmaple, you want to pack 20 calculation jobs:~  
+~>`__change_signal_file__`~
+~>>`original_signal_file = __ready__`~  
+~>>`target_signal_file = __packed__`~  
+~>>`no_of_changes = 20`~  
 
-Then you can find the absolute path to those calculations tagged by `__packed__` in `${HTC_CWD}/htc_job_status.json` as well as in file `${HTC_CWD}/htc_job_status_folder/packed_folder_list`. Copy the latter to somewhere, and feed this copied file to `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` by setting parameter `filename` at the beginning. 
-
-
-
+~Then you can find the absolute path to those calculations tagged by `__packed__` in `${HTC_CWD}/htc_job_status.json` as well as in file `${HTC_CWD}/htc_job_status_folder/packed_folder_list`. Copy the latter to somewhere, and feed this copied file to `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` by setting parameter `filename` at the beginning.~ 
 
 
 ### How to stop the program.

@@ -1,14 +1,73 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[19]:
 
 
-from Utilities import divide_a_list_evenly
-import json
+import json, copy, time, os, random
 
 
-# In[2]:
+# In[ ]:
+
+
+def get_time_str():
+    return time.strftime("%Y-%m-%d-%H:%M:%S")
+
+
+# In[32]:
+
+
+def recursively_mkdir(directory):
+    if not os.path.isdir(directory):
+        head, tail = os.path.split(directory)
+        tail_list = [tail]
+        while not os.path.isdir(head):
+            head, tail = os.path.split(head)
+            tail_list.append(tail)
+        while tail_list:
+            head = os.path.join(head, tail_list.pop(-1))
+            os.mkdir(head)
+
+
+# In[10]:
+
+
+def divide_a_list_evenly(a_list, no_of_sublists):
+    """
+    Divide a list into no_of_sublists sublists as evenly as possible and return the list of divided sublists.
+    """
+    assert no_of_sublists >= 1, "Can not divide a list into {} sublists. no_of_sublists should be >= 1".format(no_of_sublists)
+    list_length = len(a_list)
+    
+    org_a_list = copy.deepcopy(a_list)
+    random_list = []
+    for i in range(list_length):
+        random_list.append(org_a_list.pop(random.randint(0, list_length - i - 1)))
+    a_list = random_list
+    
+    sublist_length = round(list_length / no_of_sublists, ndigits=None)
+    sublist_length = max([sublist_length, 1])
+    
+    sublist_list = []
+    ind_start = 0
+    while ind_start < list_length and len(sublist_list) < no_of_sublists:
+        ind_end = ind_start + sublist_length
+        if ind_end <= list_length:
+            sublist_list.append(a_list[ind_start:ind_end])
+        else:
+            sublist_list.append(a_list[ind_start:])
+        ind_start = ind_end
+        
+    sublist_length0 = len(sublist_list)
+    if sublist_length0 == no_of_sublists:
+        sublist_list[-1].extend(a_list[ind_start:])
+    else:
+        sublist_list.extend([[] for i in range(no_of_sublists - sublist_length0)])
+    
+    return sublist_list
+
+
+# In[33]:
 
 
 class Cal_status_dict_operation():
@@ -73,12 +132,27 @@ class Cal_status_dict_operation():
         for job_status_pair in new_job_status_set.difference(old_job_status_set):
             updated_dict[job_status_pair[0]] = job_status_pair[1]
             
-        removed_job_list = [job_status_pair[0] for job_status_pair in old_job_status_set.difference(new_job_status_set)]
+        removed_job_list = []
+        for job_status_pair in old_job_status_set.difference(new_job_status_set):
+            if not os.path.isdir(job_status_pair[0]):
+                removed_job_list.append(job_status_pair[0])
         
         return {"updated": updated_dict, "removed": removed_job_list, "status_list": list(status_set)}
     
     @classmethod
+    def merge_cal_status_diff(cls, a_list_of_cal_status_diff):
+        total_cal_status_diff = {"updated": {}, "removed": [], "status_list": []}
+        for cal_status_diff in a_list_of_cal_status_diff:
+            total_cal_status_diff["updated"].update(cal_status_diff["updated"])
+            total_cal_status_diff["removed"].extend(cal_status_diff["removed"])
+            total_cal_status_diff["status_list"].extend(cal_status_diff["status_list"])
+        total_cal_status_diff["removed"] = list(set(total_cal_status_diff["removed"]))
+        total_cal_status_diff["status_list"] = list(set(total_cal_status_diff["status_list"]))
+        return total_cal_status_diff
+    
+    @classmethod
     def update_old_cal_status_dict(cls, old_cal_status_dict, cal_status_dict_diff):
+        #cal_status_dict_diff = cls.diff_status_dict(old_cal_status_dict, new_cal_status_dict)
         reversed_old_cal_status_dict = cls.reverse_cal_status_dict(old_cal_status_dict)
         
         for removed_job in cal_status_dict_diff["removed"]:
@@ -89,6 +163,8 @@ class Cal_status_dict_operation():
     
     @classmethod
     def write_cal_status(cls, cal_status, filename):
+        #recursively_mkdir(os.path.split(filename)[0])
+        
         with open(filename, "w") as f:
             f.write("#{}\n".format(get_time_str()))
             json.dump(cal_status, f, indent=4)
@@ -180,15 +256,16 @@ class Cal_status_dict_operation():
 #     
 #     return get_cal_status_dict_from_reversed(reversed_old_cal_status_dict, status_list=cal_status_dict_diff["status_list"])
 
-# In[6]:
+# In[12]:
 
 
 if __name__ == "__main__":
+    A_dict = {"a": [1, 2], "b": [3, 4], "c":[5, 6], "d": [7]}
     a_dict = {"a": [1, 2], "b": [3], "c": [5, 6]}
     b_dict = {"a":[1], "b": [2, 3], "d": [4]}
 
     dict_diff = Cal_status_dict_operation.diff_status_dict(a_dict, b_dict)
     print(dict_diff)
     
-    print(Cal_status_dict_operation.update_old_cal_status_dict(old_cal_status_dict=a_dict, cal_status_dict_diff=dict_diff))
+    print(Cal_status_dict_operation.update_old_cal_status_dict(A_dict, dict_diff))
 
