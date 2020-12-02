@@ -59,7 +59,7 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
         - cal_folder: the path to the folder under which high-throughput calculations are performed.
         - workflow: the workflow parsed by function read_HTC_calculation_setup_folder in HTC_lib/VASP/Preprocess_and_Postprocess/Parse_calculation_workflow.py
         - which_status: tell this function that the calculations labelled by which status are going to be updated.
-                1. which_status could be 'running_folder_list', 'error_folder_list', 'killed_folder_list', 'sub_dir_cal_folder_list' and 'done_folder_list'
+                1. which_status could be 'manual_folder_list', 'running_folder_list', 'error_folder_list', 'killed_folder_list', 'sub_dir_cal_folder_list' and 'done_folder_list'
                 2. which_status could also be 'all' --> update all calculations labelled by any status above.
                 default: 'all'
         - job_list: if which_status is in condition 1, you must provide a list of to-be-updated calculations labelled by which_status.
@@ -100,6 +100,10 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
         #clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
         update_job_status(cal_folder, workflow, which_status="done_folder_list", 
                           job_list=job_status_dict["done_folder_list"])
+    elif which_status == "manual_folder_list":
+        old_cal_status = {"manual_folder_list": job_list}
+        new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=job_list)
+        return Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
     elif which_status == "running_folder_list":
         existent_cal_list = []
         for cal_loc in job_list:

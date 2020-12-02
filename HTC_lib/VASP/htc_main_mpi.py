@@ -290,7 +290,7 @@ if __name__ == "__main__":
         if rank == 0: 
             Cal_status_dict_operation.write_cal_status(cal_status=total_cal_status, filename=htc_job_status_file_path)
         if debugging: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
-        for which_status in ["running_folder_list", "error_folder_list", "killed_folder_list", 
+        for which_status in ["manual_folder_list", "running_folder_list", "error_folder_list", "killed_folder_list", 
                              "sub_dir_cal_folder_list", "done_folder_list"]:
             sub_job_list = scattered_cal_status[which_status]
             if os.path.isfile(go_to_sub_signal_file_path):
@@ -475,6 +475,8 @@ if __name__ == "__main__":
                     break #Will be handled at the start of the external while loop
                 elif os.path.isfile(update_input_file_path):
                     break #Will be handled at the end of the external while loop
+                elif os.path.isfile(scan_all_file_path):
+                    break #Will be handled at the start of the external while loop
                 else:
                     time.sleep(10)
             while_loop_t0 = time.time()

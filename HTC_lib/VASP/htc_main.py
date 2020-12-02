@@ -4,7 +4,7 @@
 # In[3]:
 
 
-import os, sys, time, pprint
+import os, sys, time, pprint, copy
 
 ##############################################################################################################
 ##DO NOT change this part.
@@ -15,12 +15,12 @@ if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
 ##############################################################################################################
 
-from pathlib import Path
 
-
-from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, write_cal_status
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str
 from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_files, backup_a_file
 from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
+from HTC_lib.VASP.Miscellaneous.Cal_status_dictionary_operation import Cal_status_dict_operation, divide_a_list_evenly
+
 from HTC_lib.VASP.Preprocess_and_Postprocess.Parse_calculation_workflow import parse_calculation_workflow
 from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, update_job_status

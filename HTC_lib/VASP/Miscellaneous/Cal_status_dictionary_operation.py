@@ -154,12 +154,14 @@ class Cal_status_dict_operation():
     def update_old_cal_status_dict(cls, old_cal_status_dict, cal_status_dict_diff):
         #cal_status_dict_diff = cls.diff_status_dict(old_cal_status_dict, new_cal_status_dict)
         reversed_old_cal_status_dict = cls.reverse_cal_status_dict(old_cal_status_dict)
+        status_list = list(old_cal_status_dict.keys()) + cal_status_dict_diff["status_list"]
+        status_list = list(set(status_list))
         
         for removed_job in cal_status_dict_diff["removed"]:
             reversed_old_cal_status_dict.pop(removed_job)
         reversed_old_cal_status_dict.update(cal_status_dict_diff["updated"])
         
-        return cls.get_cal_status_dict_from_reversed(reversed_old_cal_status_dict, status_list=cal_status_dict_diff["status_list"])
+        return cls.get_cal_status_dict_from_reversed(reversed_old_cal_status_dict, status_list=status_list)
     
     @classmethod
     def write_cal_status(cls, cal_status, filename):
