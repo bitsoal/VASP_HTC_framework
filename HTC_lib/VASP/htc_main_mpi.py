@@ -466,7 +466,7 @@ if __name__ == "__main__":
                 print("{}: Process {} finds that cal status is still updating.".format(get_time_str(), rank), flush=True)
             
         if rank == 0:
-            while (time.time() - while_loop_t0) < while_loop_t0:
+            while (time.time() - while_loop_t0) < while_loop_period:
                 if os.path.isfile(stop_file_path):
                     break #Will be handled at the start of the external while loop
                 elif os.path.isfile(update_now_file_path):
