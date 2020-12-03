@@ -228,6 +228,7 @@ def handle_update_now_and_change_signal_file_in_parallel(comm, rank, size, total
 
 if __name__ == "__main__":
     debugging = True
+    scattered = True
     
     if debugging: print("{}: process {} is reading the pre-defined calculation workflow".format(get_time_str(), rank), flush=True)
     workflow = read_workflow()
@@ -289,7 +290,7 @@ if __name__ == "__main__":
             
         if rank == 0: 
             Cal_status_dict_operation.write_cal_status(cal_status=total_cal_status, filename=htc_job_status_file_path)
-        if debugging: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
+        if scattered: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
         for which_status in ["manual_folder_list", "running_folder_list", "error_folder_list", "killed_folder_list", 
                              "sub_dir_cal_folder_list", "done_folder_list"]:
             sub_job_list = scattered_cal_status[which_status]
@@ -327,7 +328,7 @@ if __name__ == "__main__":
                                                                                                       scattered_cal_status_dict=scattered_cal_status, workflow=workflow)
             if rank == 0:
                 Cal_status_dict_operation.write_cal_status(cal_status=total_cal_status, filename=htc_job_status_file_path)
-            if debugging: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
+            if scattered: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
             if debugging: print("{}: process {} finished updating {}".format(get_time_str(), rank, which_status), flush=True)
                 
         if continue_running == False: break
@@ -399,7 +400,7 @@ if __name__ == "__main__":
                                                                                                       scattered_cal_status_dict=scattered_cal_status, workflow=workflow)
         if rank == 0:
             Cal_status_dict_operation.write_cal_status(cal_status=total_cal_status, filename=htc_job_status_file_path)
-        if debugging: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
+        if scattered: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
         ## END of "Prepare VASP input files"
         ###############################################################################
         
@@ -427,7 +428,7 @@ if __name__ == "__main__":
                                                                                                       scattered_cal_status_dict=scattered_cal_status, workflow=workflow)
         if rank == 0: 
             Cal_status_dict_operation.write_cal_status(cal_status=total_cal_status, filename=htc_job_status_file_path)
-        if debugging: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
+        if scattered: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
         synchron(comm=comm, rank=rank, size=size)
         if debugging: print("{}: Process {} found that process 0 completed job submission.".format(get_time_str(), rank), flush=True)
         ##END of "Job submission"
