@@ -100,8 +100,10 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
     
     new_cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, cal_loc_list=cal_folder_list)
     no_of_new_ready_jobs = len(new_cal_status["prior_ready_folder_list"]) + len(new_cal_status["ready_folder_list"])
+    no_of_new_ready_jobs += len(new_cal_status["sub_dir_cal_folder_list"])
     no_of_new_ready_jobs -= len(old_cal_status["prior_ready_folder_list"])
     no_of_new_ready_jobs -= len(old_cal_status["ready_folder_list"])
+    no_of_new_ready_jobs -= len(old_cal_status["sub_dir_cal_folder_list"])
     cal_status_diff = Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
     return no_of_new_ready_jobs, cal_status_diff
 
