@@ -21,7 +21,7 @@ from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, copy_and_move_fil
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 from HTC_lib.VASP.Miscellaneous.Cal_status_dictionary_operation import Cal_status_dict_operation
 
-from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status
+from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, are_all_cal_for_a_material_complete
 
 from HTC_lib.VASP.INCAR.Write_VASP_INCAR import Write_Vasp_INCAR
 from HTC_lib.VASP.KPOINTS.Write_VASP_KPOINTS import Write_Vasp_KPOINTS
@@ -63,7 +63,7 @@ from HTC_lib.VASP.POSCAR.Write_VASP_POSCAR import Write_Vasp_POSCAR
 #     
 # 
 
-# In[1]:
+# In[3]:
 
 
 def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
@@ -87,6 +87,13 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
         cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, cal_loc_list=[])
         cal_status_diff = Cal_status_dict_operation.diff_status_dict(cal_status, cal_status)
         return 0, cal_status_diff
+    else:
+        cal_name_list = [firework["firework_folder_name"] for firework in workflow[::-1]]
+        if are_all_cal_for_a_material_complete(mat_folder=mater_cal_folder, cal_name_list=cal_name_list):
+            old_cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, mat_folder_name_list=[mater_cal_folder])
+            open(os.path.join(mater_cal_folder, "__complete__"), "w").close()
+            new_cal_status = {"complete_folder_list": [mater_cal_folder]}
+            return 0, Cal_status_dict_operation.diff_status_dict(old_cal_status, new_cal_status)
         
     current_firework_list = get_current_firework(mater_cal_folder=mater_cal_folder, workflow=workflow)
     

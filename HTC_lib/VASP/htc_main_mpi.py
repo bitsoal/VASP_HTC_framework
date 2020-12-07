@@ -290,9 +290,13 @@ if __name__ == "__main__":
             
         if rank == 0: 
             Cal_status_dict_operation.write_cal_status(cal_status=total_cal_status, filename=htc_job_status_file_path)
+            to_be_updated_status_list = Cal_status_dict_operation.get_to_be_updated_status_list(total_cal_status)
+        else:
+            to_be_updated_status_list = None
+        to_be_updated_status_list = comm.bcast(to_be_updated_status_list, root=0)
         if scattered: Cal_status_dict_operation.write_cal_status(cal_status=scattered_cal_status, filename=scattered_htc_job_status_file_path)
-        for which_status in ["manual_folder_list", "running_folder_list", "error_folder_list", "killed_folder_list", 
-                             "sub_dir_cal_folder_list", "done_folder_list"]:
+        synchron(comm=comm, rank=rank, size=size)
+        for which_status in to_be_updated_status_list:
             sub_job_list = scattered_cal_status[which_status]
             if os.path.isfile(go_to_sub_signal_file_path):
                 print("{}: process {} finds __go_to_submission__ under HTC_CWD. Skip update of {}".format(get_time_str(), rank, which_status), flush=True)

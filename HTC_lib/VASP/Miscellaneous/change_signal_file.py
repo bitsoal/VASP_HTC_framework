@@ -63,11 +63,23 @@ def read_setup_of_changing_signal_file(filename, log_filename):
             log_f.write(get_time_str() + " ")
             log_f.write("Error: " + output_str + "\n")
         return {}
+    
+    if "calculation_name" not in setup_dict.keys():
+        with open(log_filename, "a") as log_f:
+            log_f.write(get_time_str() + " ")
+            log_f.write("'calculation_name' is not provided --> set it to 'all'\n")
+        setup_dict["calculation_name"] = "all"
+    else:
+        if not setup_dict["calculation_name"].startswith("step_"):
+            with open(log_filename, "a") as log_f:
+                log_f.write(get_time_str() + " ")
+                log_f.write("'calculation_name' should have a format: step_x_xyz. For example, 'step_1_str_opt' or 'step_2_scf'\n")
+            return {}
         
     return setup_dict
 
 
-# In[3]:
+# In[1]:
 
 
 def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
@@ -96,9 +108,18 @@ def change_signal_file(cal_status_dict, filename="__change_signal_file__"):
     #target_cal_folder_list = []
     if target_status_key not in cal_status_dict.keys():
         cal_status_dict[target_status_key] = []
-    no_of_changes = min([len(cal_status_dict[original_status_key]), setup_dict["no_of_changes"]])
-    target_cal_folder_list = cal_status_dict[original_status_key][:no_of_changes]
-    cal_status_dict[original_status_key] = cal_status_dict[original_status_key][no_of_changes:]
+    effective_org_job_list, ineffective_org_job_list = [], []
+    if setup_dict["calculation_name"] == "all":
+        effective_org_job_list =  cal_status_dict[original_status_key]
+    else:
+        for job in cal_status_dict[original_status_key]:
+            if setup_dict["calculation_name"] in job:
+                effective_org_job_list.append(job)
+            else:
+                ineffective_org_job_list.append(job)
+    no_of_changes = min([len(effective_org_job_list), setup_dict["no_of_changes"]])
+    target_cal_folder_list = effective_org_job_list[:no_of_changes]
+    cal_status_dict[original_status_key] = sorted(effective_org_job_list[no_of_changes:] + ineffective_org_job_list)
     #for i in range(min([len(cal_status_dict[original_status_key]), setup_dict["no_of_changes"]])):
     #    target_cal_folder_list.append(cal_status_dict[original_status_key].pop())
     

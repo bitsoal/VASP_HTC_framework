@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
+
+raise Exception("htc_main.py will be updated later. Now you can try the parallel version, i.e. htc_main_mpi.py")
 
 import os, sys, time, pprint, copy
 

@@ -67,7 +67,7 @@ def divide_a_list_evenly(a_list, no_of_sublists):
     return sublist_list
 
 
-# In[33]:
+# In[9]:
 
 
 class Cal_status_dict_operation():
@@ -158,7 +158,8 @@ class Cal_status_dict_operation():
         status_list = list(set(status_list))
         
         for removed_job in cal_status_dict_diff["removed"]:
-            reversed_old_cal_status_dict.pop(removed_job)
+            #The second parameter is provided as None to avoid raising error if removed_job is not found.
+            reversed_old_cal_status_dict.pop(removed_job, None) 
         reversed_old_cal_status_dict.update(cal_status_dict_diff["updated"])
         
         return cls.get_cal_status_dict_from_reversed(reversed_old_cal_status_dict, status_list=status_list)
@@ -187,6 +188,20 @@ class Cal_status_dict_operation():
                     f.write("#{}\n".format(get_time_str()))
                     for job in job_list:
                         f.write(job + "\n")
+                        
+    @classmethod
+    def get_to_be_updated_status_list(cls, cal_status):
+        status_tail = ["running_folder_list", "error_folder_list", "killed_folder_list", "sub_dir_cal_folder_list", "done_folder_list"]
+        screened_status_list = ["complete_folder_list", "done_cleaned_analyzed_folder_list"]
+        status_list = []
+        
+        
+        for status, job_list in cal_status.items():
+            if len(job_list) > 0 and status not in status_tail and status not in screened_status_list:
+                status_list.append(status)
+        status_list.extend(status_tail)
+        
+        return status_list
 
 
 # def merge_dicts(a_list_of_dicts):

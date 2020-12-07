@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[6]:
 
 
 import os, sys, time, random
@@ -17,7 +17,7 @@ if HTC_package_path not in sys.path:
 ##############################################################################################################
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, decorated_os_rename #, decorated_subprocess_check_output
-from HTC_lib.VASP.Miscellaneous.Utilities import get_current_firework_from_cal_loc, write_cal_status
+from HTC_lib.VASP.Miscellaneous.Utilities import get_current_firework_from_cal_loc, get_mat_folder_name_from_cal_loc, write_cal_status
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
 from HTC_lib.VASP.Miscellaneous.Cal_status_dictionary_operation import Cal_status_dict_operation
@@ -50,7 +50,7 @@ def respond_to(signal_file, workflow):
         raise Exception("argument signal_file of function respond_to must be either '__update_now__' or '__change_signal_file__'")
 
 
-# In[1]:
+# In[2]:
 
 
 def update_job_status(cal_folder, workflow, which_status='all', job_list=[], rank=None):
@@ -100,10 +100,6 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
         #clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
         update_job_status(cal_folder, workflow, which_status="done_folder_list", 
                           job_list=job_status_dict["done_folder_list"])
-    elif which_status == "manual_folder_list":
-        old_cal_status = {"manual_folder_list": job_list}
-        new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=job_list)
-        return Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
     elif which_status == "running_folder_list":
         for cal_loc in job_list:
             if debugging: 
@@ -156,17 +152,24 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
                 assert os.path.isfile(os.path.join(cal_loc, "__done__")), "{}: The status of the following job is not __done__: {}".format(get_time_str(), cal_loc)
             clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=[cal_loc], workflow=workflow)
             old_cal_status = {"done_folder_list": [cal_loc]}
-            new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=[cal_loc])
+            if os.path.isfile(os.path.join(get_mat_folder_name_from_cal_loc(cal_loc), "__complete__")):
+                new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=[])
+            else:
+                new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=[cal_loc])
             cal_status_diff_list.append(Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status))
             if os.path.isfile(stop_file_path) or os.path.isfile(update_now_file_path) or os.path.isfile(change_signal_file_path) or os.path.isfile(go_to_sub_signal_file_path): 
                 #clean_analyze_or_update_successfully_finished_jobs may involve very slow external commands.
                 break  #This if clause ensures a quick response to signal files
         return Cal_status_dict_operation.merge_cal_status_diff(cal_status_diff_list)
+    else:
+        old_cal_status = {which_status: job_list}
+        new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=job_list)
+        return Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
     
         
 
 
-# In[31]:
+# In[3]:
 
 
 def are_all_cal_for_a_material_complete(mat_folder, cal_name_list):
@@ -175,9 +178,9 @@ def are_all_cal_for_a_material_complete(mat_folder, cal_name_list):
         - mat_folder (str): the absolute path to the folder under which a series of pre-defined calculations are run for a given material
         - cal_name_list (list of str): a list of calculation folder names. E.g. ["step_1_xxx", "step_2_yyy", "step_3_zzz"]
     return:
-        -True if all calculations in cal_name_list are complete as indicated by the presence of either of signal files below:
+        - True if all calculations in cal_name_list are complete as indicated by the presence of either of signal files below:
             "__skipped__", "__done__", "__done_cleaned_analyzed__" and "__done_failed_to_clean_analyze__"
-        -False otherwise.
+        - False otherwise.
     Note that 
         1. if all calculations in cal_name_list are complete, a file named as "__complete__" will be created under mat_folder. The existence of 
         "__complete__" tells check_calculations_status(cal_folder) to skip mat_folder. As htc goes on, the number of compelte calculations increases.
@@ -196,7 +199,7 @@ def are_all_cal_for_a_material_complete(mat_folder, cal_name_list):
     for cal_name in cal_name_list:
         if cal_name in sub_dir_list:
             if not any([os.path.isfile(os.path.join(mat_folder, cal_name, signal_file)) for signal_file in signal_file_list]):
-                return False                
+                return False               
         else:
             return False
     
@@ -247,7 +250,7 @@ def check_calculations_status(cal_folder, workflow, mat_folder_name_list=None, c
         - vis_folder_list (list): a list of absolute pathes where the input files for calculations need to be prepared
         - ...
     """
-    signal_file_list = ["__done__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__manual__", "__test__", "__vis__", 
+    signal_file_list = ["__done__",  "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__manual__", "__test__", "__vis__", 
                         "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__", "__error__", "__running__",  "__killed__"]
     job_status_folder_list = ["done_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list", 
                               "manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", "ready_folder_list", 
@@ -466,7 +469,7 @@ def update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list, workflow):
                           where_to_execute=sub_dir_cal_path, defined_by_which_htc_tag="sub_dir_cal_cmd")
 
 
-# In[44]:
+# In[5]:
 
 
 def clean_analyze_or_update_successfully_finished_jobs(done_jobs_list, workflow):
@@ -482,6 +485,9 @@ def clean_analyze_or_update_successfully_finished_jobs(done_jobs_list, workflow)
         current_firework = get_current_firework_from_cal_loc(cal_loc, workflow)
         
         if not current_firework["cmd_to_process_finished_jobs"]:
+            #decorated_os_rename(loc=cal_loc, old_filename="__done__", new_filename="__done_not_clean_analyze__")
+            #with open(log_filename, "a") as log_f:
+            #    log_f.write("\t{}: cmd_to_process_finished_jobs is empty: __done__ --> __done_not_clean_analyze__\n".format(get_time_str()))
             continue
         
         log_filename = os.path.join(cal_loc, "log.txt")
