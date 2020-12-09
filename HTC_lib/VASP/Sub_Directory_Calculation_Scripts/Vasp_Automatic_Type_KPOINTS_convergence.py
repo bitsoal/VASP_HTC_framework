@@ -343,6 +343,7 @@ def read_and_set_default_arguments(argv_list):
     argv_dict["NL_list"] = NL_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]
     argv_dict["kpoints_setup_list"] = kpoints_setup_list[:min([len(NL_list), argv_dict["max_no_of_points"]])]
     argv_dict["is_it_0D"] = is_it_0D
+    assert is_it_0D == False, "Given the parameters in kpoints_convergence_setup.json, this is zero-dimensional material. No need to test total energy convergence w.r.t. KPOINTS."
     argv_dict["is_nl_end_included"] = (argv_dict["NL_list"][-1] == NL_list[-1])
     
     sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
