@@ -77,7 +77,8 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
         - workflow: the return of function parse_calculation_workflow, which define a set of DFT calculations and related pre- and post- processes
     """       
     
-    mater_cal_folder = os.path.join(cal_folder, cif_filename.split(".")[0])
+    mater_folder_name = cif_filename.split(".")[0]
+    mater_cal_folder = os.path.join(cal_folder, mater_folder_name)
     if not os.path.isdir(mater_cal_folder):
         os.mkdir(mater_cal_folder)
         #with open(os.path.join(mater_cal_folder, "log.txt"), "w") as f:
@@ -90,7 +91,7 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
     else:
         cal_name_list = [firework["firework_folder_name"] for firework in workflow[::-1]]
         if are_all_cal_for_a_material_complete(mat_folder=mater_cal_folder, cal_name_list=cal_name_list):
-            old_cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, mat_folder_name_list=[mater_cal_folder])
+            old_cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, mat_folder_name_list=[mater_folder_name])
             open(os.path.join(mater_cal_folder, "__complete__"), "w").close()
             new_cal_status = {"complete_folder_list": [mater_cal_folder]}
             return 0, Cal_status_dict_operation.diff_status_dict(old_cal_status, new_cal_status)
