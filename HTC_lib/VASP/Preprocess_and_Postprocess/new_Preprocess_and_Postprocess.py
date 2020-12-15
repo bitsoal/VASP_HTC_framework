@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[1]:
 
 
 import os, pprint, sys, shutil
@@ -63,7 +63,7 @@ from HTC_lib.VASP.POSCAR.Write_VASP_POSCAR import Write_Vasp_POSCAR
 #     
 # 
 
-# In[3]:
+# In[2]:
 
 
 def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
@@ -91,9 +91,11 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
     else:
         cal_name_list = [firework["firework_folder_name"] for firework in workflow[::-1]]
         if are_all_cal_for_a_material_complete(mat_folder=mater_cal_folder, cal_name_list=cal_name_list):
+            os.remove(os.path.join(mater_cal_folder, "__complete__"))
             old_cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, mat_folder_name_list=[mater_folder_name])
             open(os.path.join(mater_cal_folder, "__complete__"), "w").close()
             new_cal_status = {"complete_folder_list": [mater_cal_folder]}
+            #print("old cal status: ", old_cal_status, "new cal status: ", new_cal_status, "cal status diff: ", Cal_status_dict_operation.diff_status_dict(old_cal_status, new_cal_status))
             return 0, Cal_status_dict_operation.diff_status_dict(old_cal_status, new_cal_status)
         
     current_firework_list = get_current_firework(mater_cal_folder=mater_cal_folder, workflow=workflow)

@@ -269,7 +269,7 @@ def check_calculations_status(cal_folder, workflow, mat_folder_name_list=None, c
         for mat_folder in mat_folder_name_list:
             mat_folder = os.path.join(cal_folder, mat_folder)
             if os.path.isdir(mat_folder):
-                if are_all_cal_for_a_material_complete(mat_folder=mat_folder, cal_name_list=cal_name_list):
+                if os.path.isfile(os.path.join(mat_folder, "__complete__")): #are_all_cal_for_a_material_complete(mat_folder=mat_folder, cal_name_list=cal_name_list):
                     job_status_dict["complete_folder_list"].append(mat_folder)
                 else:
                     directory_list.append(mat_folder)
