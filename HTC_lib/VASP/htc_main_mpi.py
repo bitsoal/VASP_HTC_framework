@@ -118,7 +118,7 @@ def synchron(comm, rank, size):
 
 
 def check_calculations_status_in_parallel(comm, rank, size, cal_folder, workflow):
-    debugging = True
+    debugging = (rank == 0)
     
     if rank == 0:
         mat_folder_name_sublist_list = divide_a_list_evenly(a_list=os.listdir(cal_folder), no_of_sublists=size)
@@ -154,7 +154,7 @@ def check_calculations_status_in_parallel(comm, rank, size, cal_folder, workflow
 
 
 def update_cal_status_in_parallel(comm, rank, size, scattered_cal_status, scattered_cal_status_diff, cal_folder, workflow):
-    debugging = True
+    debugging = (rank == 0)
     
     scattered_cal_status = copy.deepcopy(scattered_cal_status)
     
@@ -189,7 +189,7 @@ def update_cal_status_in_parallel(comm, rank, size, scattered_cal_status, scatte
 
 
 def handle_update_now_and_change_signal_file_in_parallel(comm, rank, size, total_cal_status_dict, scattered_cal_status_dict, workflow):
-    debugging = True
+    debugging = (rank == 0)
     
     total_cal_status_dict = copy.deepcopy(total_cal_status_dict)
     scattered_cal_status_dict = copy.deepcopy(scattered_cal_status_dict)
@@ -227,8 +227,8 @@ def handle_update_now_and_change_signal_file_in_parallel(comm, rank, size, total
 
 
 if __name__ == "__main__":
-    debugging = True
-    scattered = True
+    debugging = (rank == 0)
+    scattered = False
     
     if debugging: print("{}: process {} is reading the pre-defined calculation workflow".format(get_time_str(), rank), flush=True)
     workflow = read_workflow()

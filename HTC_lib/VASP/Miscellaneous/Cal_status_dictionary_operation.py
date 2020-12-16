@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[19]:
+# In[1]:
 
 
 import json, copy, time, os, random
 
 
-# In[ ]:
+# In[2]:
 
 
 def get_time_str():
     return time.strftime("%Y-%m-%d-%H:%M:%S")
 
 
-# In[32]:
+# In[3]:
 
 
 def recursively_mkdir(directory):
@@ -29,7 +29,7 @@ def recursively_mkdir(directory):
             os.mkdir(head)
 
 
-# In[10]:
+# In[4]:
 
 
 def divide_a_list_evenly(a_list, no_of_sublists):
@@ -67,7 +67,7 @@ def divide_a_list_evenly(a_list, no_of_sublists):
     return sublist_list
 
 
-# In[9]:
+# In[5]:
 
 
 class Cal_status_dict_operation():
@@ -134,8 +134,8 @@ class Cal_status_dict_operation():
             
         removed_job_list = []
         for job_status_pair in old_job_status_set.difference(new_job_status_set):
-            if not os.path.isdir(job_status_pair[0]):
-                removed_job_list.append(job_status_pair[0])
+            #if not os.path.isdir(job_status_pair[0]):
+            removed_job_list.append(job_status_pair[0])
         
         return {"updated": updated_dict, "removed": removed_job_list, "status_list": list(status_set)}
     

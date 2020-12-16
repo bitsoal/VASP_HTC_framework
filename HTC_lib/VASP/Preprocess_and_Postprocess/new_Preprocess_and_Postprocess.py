@@ -95,7 +95,7 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
             old_cal_status = check_calculations_status(cal_folder=cal_folder, workflow=workflow, mat_folder_name_list=[mater_folder_name])
             open(os.path.join(mater_cal_folder, "__complete__"), "w").close()
             new_cal_status = {"complete_folder_list": [mater_cal_folder]}
-            #print("old cal status: ", old_cal_status, "new cal status: ", new_cal_status, "cal status diff: ", Cal_status_dict_operation.diff_status_dict(old_cal_status, new_cal_status))
+            #pprint.pprint("old cal status: ", old_cal_status, "\nnew cal status: ", new_cal_status, "\ncal status diff: ", Cal_status_dict_operation.diff_status_dict(old_cal_status, new_cal_status))
             return 0, Cal_status_dict_operation.diff_status_dict(old_cal_status, new_cal_status)
         
     current_firework_list = get_current_firework(mater_cal_folder=mater_cal_folder, workflow=workflow)
