@@ -147,6 +147,7 @@ def search_file(cal_loc, prefix="", suffix=""):
             f.write("\t\tcreate __manual__\n")
         with open(os.path.join(cal_loc, "__manual__"), "w") as f:
             f.write("The given prefix {} and suffix {} are not unique enough to match only file".format(prefix, suffix))
+        return None
         #raise Exception("See error above.")
     elif len(target_file_list) == 1:
         return target_file_list[0]

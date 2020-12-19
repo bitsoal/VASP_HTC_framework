@@ -700,6 +700,7 @@ The job name shown in the job status query output.
 In PBS queue system, `job_name` is the one specified by the field `#PBS -N "xxx"`  
 In LSF queue system, `job_name` is the one specified by the field `#BSUB -J "xxx"`  
 where `xxx` in the double quotation marks are `job_name`  
+Note that if provided, we will append a white space to the specified `job_name`. This would allow us to distinguish `xxx` from `xxxy`.  
 Default: `empty` 
 
 - **max\_running\_job** (integer), optional for the first firework    

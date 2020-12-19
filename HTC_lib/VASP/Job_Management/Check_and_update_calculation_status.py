@@ -104,7 +104,7 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
         for cal_loc in job_list:
             if debugging: 
                 assert os.path.isfile(os.path.join(cal_loc, "__running__")), "{}: The status of the following job is not __running__: {}".format(get_time_str(), cal_loc)
-            update_running_jobs_status(running_jobs_list=[cal_loc], workflow=workflow)
+        update_running_jobs_status(running_jobs_list=job_list, workflow=workflow)
         old_cal_status = {"running_folder_list": job_list}
         new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=job_list)
         return Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
@@ -366,10 +366,7 @@ def update_running_jobs_status(running_jobs_list, workflow):
             
         if os.path.isfile(os.path.join(job_path, "__running__")):
             if Queue_std_files(cal_loc=job_path, workflow=workflow).find_std_files() != [None, None]:
-                continue
-                
-            
-                    
+                continue    
                 
             queue_id = Job_management(cal_loc=job_path, workflow=workflow).find_queue_id()
             #print(queue_id, queue_id in job_status_str)

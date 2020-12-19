@@ -137,7 +137,7 @@ class Job_management():
     @classmethod
     def count_running_jobs(cls, workflow):
         all_jobs_in_queue = cls.check_jobs_in_queue_system(workflow)
-        job_name = workflow[0]["job_name"]
+        job_name = workflow[0]["job_name"] + " "
         no_of_running_jobs = 0
         for job_ in all_jobs_in_queue:
             if job_name in job_:
