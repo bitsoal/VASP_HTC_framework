@@ -594,7 +594,7 @@ Default: empty
 ------------------------------------
 
 **incar\_cmd, poscar\_cmd, kpoints\_cmd** and **potcar\_cmd**, optional,   
-These tags work in the same way as `user_defined_cmd` and `final_user_defined_cmd`. The are provided to avoid heavily using the reliance on `user_defined_cmd` and `final_user_defined_cmd`. The commands specified by these tags are **first** executed to **create** or **modify** INCAR, POSCAR, KPOINTS and POTCAR. The execution of these commands may have an impact on other HTC tags:   
+These tags work in the same way as `user_defined_cmd` and `final_user_defined_cmd`. They are provided to avoid heavily using `user_defined_cmd` and `final_user_defined_cmd`. The commands specified by these tags are **first** executed to **create** or **modify** INCAR, POSCAR, KPOINTS and POTCAR. The execution of these commands may have impacts on other HTC tags:   
 - `poscar_cmd`: If the commands specified by this tag creates POSCAR, tag `sort_structure` is deactivated.   
 - `potcar_cmd`: If this tag creates POTCAR, pymatgen won't be called to create POTCAR  
 - `kpoints_cmd`: all other HTC tags related to KPOINTS should work.  
