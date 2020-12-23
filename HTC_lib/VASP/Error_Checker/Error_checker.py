@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 import os, time, shutil, sys, re, subprocess
@@ -1453,11 +1453,13 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
         except Exception as inst:
             decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
+            shutil.copyfile(src=os.path.join(self.cal_loc, "OSZICAR"), dst=os.path.join(self.cal_loc, "OSZICAR_for_debugging"))
             with open(self.log_txt, "a") as log_f:
                 log_f.write("{}: ".format(get_time_str()))
                 log_f.write(" An error occurs when parsing OSZICAR using pymatgen.io.vasp.outputs.Oszicar. See below:\n")
                 log_f.write("\t{}".format(inst))
                 log_f.write("\t__running__ --> __manual__\n")
+                log_f.write("\tcopy OSZICAR to OSZICAR_for_debugging.\n")
             return False
             
         for electronic_steps in oszicar.electronic_steps:
@@ -1716,11 +1718,13 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             oszicar = Oszicar(filename=os.path.join(self.cal_loc, "OSZICAR"))
         except Exception as inst:
             decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
+            shutil.copyfile(src=os.path.join(self.cal_loc, "OSZICAR"), dst=os.path.join(self.cal_loc, "OSZICAR_for_debugging"))
             with open(self.log_txt, "a") as log_f:
                 log_f.write("{}: ".format(get_time_str()))
                 log_f.write(" An error occurs when parsing OSZICAR using pymatgen.io.vasp.outputs.Oszicar. See below:\n")
                 log_f.write("\t{}".format(inst))
                 log_f.write("\t__running__ --> __manual__\n")
+                log_f.write("\tcopy OSZICAR to OSZICAR_for_debugging.\n")
             return False
         
         if len(oszicar.electronic_steps) < NSW:
@@ -1809,11 +1813,13 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 return False
         except Exception as inst:
             decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
+            shutil.copyfile(src=os.path.join(self.cal_loc, "OSZICAR"), dst=os.path.join(self.cal_loc, "OSZICAR_for_debugging"))
             with open(self.log_txt, "a") as log_f:
                 log_f.write("{}: ".format(get_time_str()))
                 log_f.write(" An error occurs when parsing OSZICAR using pymatgen.io.vasp.outputs.Oszicar. See below:\n")
                 log_f.write("\t{}".format(inst))
                 log_f.write("\t__running__ --> __manual__\n")
+                log_f.write("\tcopy OSZICAR to OSZICAR_for_debugging.\n")
             return False
         
         return True
