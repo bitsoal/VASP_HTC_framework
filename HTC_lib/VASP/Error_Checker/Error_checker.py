@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[10]:
 
 
 import os, time, shutil, sys, re, subprocess
@@ -25,6 +25,7 @@ from HTC_lib.VASP.Miscellaneous.Query_from_OUTCAR import find_incar_tag_from_OUT
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, search_file, decorated_os_rename, get_current_firework_from_cal_loc
 from HTC_lib.VASP.INCAR.Write_VASP_INCAR import get_bader_charge_tags
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
+from HTC_lib.VASP.Error_Checker.Error_checker_auxiliary_function import get_trimed_oszicar
 
 
 # In[2]:
@@ -1450,7 +1451,10 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         
         #print(NELM, EDIFF)
         try:
-            oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
+            if get_trimed_oszicar(cal_loc=self.cal_loc, original_oszicar="OSZICAR", output_oszicar="oszicar"):
+                oszicar = Oszicar(os.path.join(self.cal_loc, "oszicar"))
+            else: # The ongoing calculation may not have a complete OSZICAR
+                return True
         except Exception as inst:
             decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
             shutil.copyfile(src=os.path.join(self.cal_loc, "OSZICAR"), dst=os.path.join(self.cal_loc, "OSZICAR_for_debugging"))
@@ -1461,6 +1465,9 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 log_f.write("\t__running__ --> __manual__\n")
                 log_f.write("\tcopy OSZICAR to OSZICAR_for_debugging.\n")
             return False
+        finally:
+            if os.path.isfile(os.path.join(self.cal_loc, "oszicar")):
+                os.remove(os.path.join(self.cal_loc, "oszicar"))
             
         for electronic_steps in oszicar.electronic_steps:
             #print(len(electronic_steps))
@@ -1715,7 +1722,10 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         #IBRION = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="IBRION")
         
         try:
-            oszicar = Oszicar(filename=os.path.join(self.cal_loc, "OSZICAR"))
+            if get_trimed_oszicar(cal_loc=self.cal_loc, original_oszicar="OSZICAR", output_oszicar="oszicar"):
+                oszicar = Oszicar(os.path.join(self.cal_loc, "oszicar"))
+            else: # The ongoing calculation may not have a complete OSZICAR
+                return True
         except Exception as inst:
             decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
             shutil.copyfile(src=os.path.join(self.cal_loc, "OSZICAR"), dst=os.path.join(self.cal_loc, "OSZICAR_for_debugging"))
@@ -1726,6 +1736,9 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 log_f.write("\t__running__ --> __manual__\n")
                 log_f.write("\tcopy OSZICAR to OSZICAR_for_debugging.\n")
             return False
+        finally:
+            if os.path.isfile(os.path.join(self.cal_loc, "oszicar")):
+                os.remove(os.path.join(self.cal_loc, "oszicar"))
         
         if len(oszicar.electronic_steps) < NSW:
             #check if CONTCAR is empty.
@@ -1806,7 +1819,11 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return False
         
         try:
-            oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
+            if get_trimed_oszicar(cal_loc=self.cal_loc, original_oszicar="OSZICAR", output_oszicar="oszicar"):
+                oszicar = Oszicar(os.path.join(self.cal_loc, "oszicar"))
+            else: # The ongoing calculation may not have a complete OSZICAR
+                return True
+            #oszicar = Oszicar(os.path.join(self.cal_loc, "OSZICAR"))
             if oszicar.final_energy > 0:
                 decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
                 self.write_error_log()
@@ -1821,6 +1838,9 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 log_f.write("\t__running__ --> __manual__\n")
                 log_f.write("\tcopy OSZICAR to OSZICAR_for_debugging.\n")
             return False
+        finally:
+            if os.path.isfile(os.path.join(self.cal_loc, "oszicar")):
+                os.remove(os.path.join(self.cal_loc, "oszicar"))
         
         return True
     
