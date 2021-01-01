@@ -385,9 +385,11 @@ def prepare_cal_files(argv_dict):
                     
         if is_preparation_needed:
             if os.path.isfile(os.path.join(sub_dir_name, "opt_nl_if_conv_failed")):
-                pass
-                #open(os.path.join(sub_dir_name, "__ready__"), "w").close()
-                #print("%s: The VASP input files are already ready. Just create __ready__".format(sub_dir_name))
+                if is_opt_nl_if_conv_failed_appended:
+                    pass
+                else:
+                    open(os.path.join(sub_dir_name, "__ready__"), "w").close()
+                    print("{}: The VASP input files are already ready. Just create __ready__".format(sub_dir_name))
             else:
                 shutil.copy("POSCAR", os.path.join(sub_dir_name, "POSCAR"))
                 shutil.copy("KPOINTS", os.path.join(sub_dir_name, "KPOINTS"))
