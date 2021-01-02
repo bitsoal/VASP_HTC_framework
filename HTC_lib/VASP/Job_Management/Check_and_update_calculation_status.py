@@ -251,11 +251,12 @@ def check_calculations_status(cal_folder, workflow, mat_folder_name_list=None, c
         - ...
     """
     signal_file_list = ["__done__",  "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__manual__", "__test__", "__vis__", 
-                        "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__", "__error__", "__running__",  "__killed__"]
-    job_status_folder_list = ["done_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list", 
-                              "manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", "ready_folder_list", 
-                              "prior_ready_folder_list", "sub_dir_cal_folder_list", "error_folder_list", "running_folder_list", 
-                              "killed_folder_list", "other_folder_list"]
+                        "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__", "__error__", "__running__",  "__killed__", "__nkx_gt_ikptd__"]
+    job_status_folder_list = [signal_file.strip("_") + "_folder_list" for signal_file in signal_file_list]
+    #job_status_folder_list = ["done_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list", 
+    #                          "manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", "ready_folder_list", 
+    #                          "prior_ready_folder_list", "sub_dir_cal_folder_list", "error_folder_list", "running_folder_list", 
+    #                          "killed_folder_list", "other_folder_list", "nkx_gt_ikptd_folder_list"]
     job_status_dict = {key: [] for key in job_status_folder_list}
     job_status_dict["complete_folder_list"] = []
     
@@ -427,26 +428,31 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
                 f.write("{} Killed: {}\n".format(get_time_str(), cal_name))
                 f.write("\t\t\tThe error times hit the max_error_times ({})\n".format(max_error_times))
                 f.write("\t\t\t__killed__ -> __manual__\n")
-        elif error_checker.correct():
-            #Queue_std_files(cal_loc=killed_job, workflow=workflow).remove_std_files()
-            #to_be_removed = ["OUTCAR", "OSZICAR", workflow[0]["vasp.out"]]
-            #for file_ in to_be_removed:
-            #    if os.path.isfile(os.path.join(killed_job, file_)):
-            #        os.remove(os.path.join(killed_job, file_))
-                    
-            os.remove(os.path.join(killed_job, "__killed__"))
-            open(os.path.join(killed_job, "__ready__"), "w").close()
-            with open(os.path.join(killed_job, "log.txt"), "a") as f:
-                f.write("{} Killed: Successfully correct the error {} under {}\n".format(get_time_str(), error_type, cal_name))
-                f.write("\t\t\t__killed__ --> __ready__\n")
-            
         else:
-            decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
-            #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
-            with open(os.path.join(killed_job, "log.txt"), "a") as f:
-                f.write("{} Killed: Fail to correct the error {} under {}\n".format(get_time_str(), error_type, cal_name))
-                f.write("\t\t\t__killed__ --> __manual__\n")
-            
+            output = error_checker.correct()
+            if output == True:
+                #Queue_std_files(cal_loc=killed_job, workflow=workflow).remove_std_files()
+                #to_be_removed = ["OUTCAR", "OSZICAR", workflow[0]["vasp.out"]]
+                #for file_ in to_be_removed:
+                #    if os.path.isfile(os.path.join(killed_job, file_)):
+                #        os.remove(os.path.join(killed_job, file_))
+                        
+                os.remove(os.path.join(killed_job, "__killed__"))
+                open(os.path.join(killed_job, "__ready__"), "w").close()
+                with open(os.path.join(killed_job, "log.txt"), "a") as f:
+                    f.write("{} Killed: Successfully correct the error {} under {}\n".format(get_time_str(), error_type, cal_name))
+                    f.write("\t\t\t__killed__ --> __ready__\n")
+            elif output == "already_handled":
+                #This means that all loging and changing the signal file has been done by error_checker.correct.
+                #So no action is taken here.
+                pass
+            else:
+                decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
+                #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
+                with open(os.path.join(killed_job, "log.txt"), "a") as f:
+                    f.write("{} Killed: Fail to correct the error {} under {}\n".format(get_time_str(), error_type, cal_name))
+                    f.write("\t\t\t__killed__ --> __manual__\n")
+                
     
 
 
