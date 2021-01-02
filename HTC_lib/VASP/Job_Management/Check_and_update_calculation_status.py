@@ -252,7 +252,7 @@ def check_calculations_status(cal_folder, workflow, mat_folder_name_list=None, c
     """
     signal_file_list = ["__done__",  "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__manual__", "__test__", "__vis__", 
                         "__skipped__", "__ready__", "__prior_ready__", "__sub_dir_cal__", "__error__", "__running__",  "__killed__", "__nkx_gt_ikptd__"]
-    job_status_folder_list = [signal_file.strip("_") + "_folder_list" for signal_file in signal_file_list]
+    job_status_folder_list = [signal_file.strip("_") + "_folder_list" for signal_file in signal_file_list] + ["other_folder_list"]
     #job_status_folder_list = ["done_folder_list", "done_cleaned_analyzed_folder_list", "done_failed_to_clean_analyze_folder_list", 
     #                          "manual_folder_list", "test_folder_list", "vis_folder_list", "skipped_folder_list", "ready_folder_list", 
     #                          "prior_ready_folder_list", "sub_dir_cal_folder_list", "error_folder_list", "running_folder_list", 

@@ -67,9 +67,9 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__bader_charge__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
     after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
-    after_cal += ["__pzunmtr_or_pzstein__"]
+    after_cal += ["__pzunmtr_or_pzstein__", "__nkx_gt_ikptd__"]
     after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
-    after_cal += ["__nkx_gt_ikptd__"]
+    
     
     if isinstance(error_type, str):  
         if error_type in error_checker_dict:
@@ -1454,9 +1454,9 @@ class Vasp_out_nkx_gt_ikptd(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
             decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
             #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            super(Vasp_out_pzunmtr_or_pzstein, self).write_file_absence_log(filename_list = [self.target_file], 
-                                                                            initial_signal_file="__running__", 
-                                                                            final_signal_file="__error__")
+            super(Vasp_out_nkx_gt_ikptd, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                      initial_signal_file="__running__", 
+                                                                      final_signal_file="__error__")
             return False
         
         if all([find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str) for target_str in self.target_str_list]):
@@ -1469,7 +1469,7 @@ class Vasp_out_nkx_gt_ikptd(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             
             
     def write_error_log(self):
-        super(Vasp_out_pzunmtr_or_pzstein, self).write_error_log(target_error_str=self.target_str, error_type="__nkx_gt_ikptd__")
+        super(Vasp_out_nkx_gt_ikptd, self).write_error_log(target_error_str=self.target_str, error_type="__nkx_gt_ikptd__")
     
     
     def correct(self):
