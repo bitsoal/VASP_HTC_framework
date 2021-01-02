@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[10]:
+# In[2]:
 
 
 import os, time, shutil, sys, re, subprocess
@@ -28,7 +28,7 @@ from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 from HTC_lib.VASP.Error_Checker.Error_checker_auxiliary_function import get_trimed_oszicar
 
 
-# In[2]:
+# In[3]:
 
 
 def Vasp_Error_checker(error_type, cal_loc, workflow):  
@@ -61,13 +61,15 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__zpotrf__": Vasp_out_zpotrf, 
                           "__real_optlay__": Vasp_out_real_optlay, 
                           "__bader_charge__": Bader_Charge, 
-                          "__pzunmtr_or_pzstein__": Vasp_out_pzunmtr_or_pzstein}
+                          "__pzunmtr_or_pzstein__": Vasp_out_pzunmtr_or_pzstein, 
+                          "__nkx_gt_ikptd__": Vasp_out_nkx_gt_ikptd}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__bader_charge__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
     after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
     after_cal += ["__pzunmtr_or_pzstein__"]
     after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
+    after_cal += ["__nkx_gt_ikptd__"]
     
     if isinstance(error_type, str):  
         if error_type in error_checker_dict:
@@ -93,7 +95,7 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
         return True
 
 
-# In[1]:
+# In[4]:
 
 
 class Write_and_read_error_tag(object):
@@ -121,7 +123,7 @@ class Write_and_read_error_tag(object):
         return error_tag
 
 
-# In[4]:
+# In[5]:
 
 
 class Queue_std_files():
@@ -164,7 +166,7 @@ class Queue_std_files():
             os.remove(os.path.join(self.cal_loc, self.stderr_file))
 
 
-# In[5]:
+# In[6]:
 
 
 def  find_target_str(cal_loc, target_file, target_str):
@@ -188,7 +190,7 @@ def  find_target_str(cal_loc, target_file, target_str):
     return found_target_str
 
 
-# In[6]:
+# In[7]:
 
 
 class Vasp_Error_Saver(object):
@@ -271,7 +273,7 @@ class Vasp_Error_Saver(object):
                 return "error_"+str(error_times+1)
 
 
-# In[7]:
+# In[8]:
 
 
 class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
@@ -1410,6 +1412,80 @@ class Vasp_out_pzunmtr_or_pzstein(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return True
         
         return False                       
+
+
+# In[11]:
+
+
+class Vasp_out_nkx_gt_ikptd(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "VERY BAD NEWS! internal error in subroutine IBZKPT" or "NKX>IKPTD"
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    correct method: This error indicates the k-point hits the inherent upper bound of VASP. It cannot be fixed
+                What we do is to __killed__ --> __nkx_gt_ikptd__
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str_list = ["VERY BAD NEWS! internal error in subroutine IBZKPT:", "NKX>IKPTD"]
+        
+    def check(self):
+        """
+        Return:
+            - False if an error is found;
+            - True otherwise.
+        """        
+        #this method is not active until the job is done
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_pzunmtr_or_pzstein, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                            initial_signal_file="__running__", 
+                                                                            final_signal_file="__error__")
+            return False
+        
+        if all([find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str) for target_str in self.target_str_list]):
+            self.target_str = "\n".join(self.target_str_list)
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            self.write_error_log()
+            return False
+        else:
+            return True
+            
+            
+    def write_error_log(self):
+        super(Vasp_out_pzunmtr_or_pzstein, self).write_error_log(target_error_str=self.target_str, error_type="__nkx_gt_ikptd__")
+    
+    
+    def correct(self):
+        """
+        - return True if the error is corrected;
+        - return False if the error fails to be corrected;
+        - return "already_handled": For a specific error that fails to be corrected within this method, if you want to change its signal file from __killed__ to
+            to one rather than __manual__, you need to do so within this correct method. In this case, the general logging associated with False is unlikely appropriate.
+            You also need to write the log file within this correct method.
+        """
+        decorated_os_rename(loc=self.cal_loc, old_filename="__killed__", new_filename="__nkx_gt_ikptd__")
+        with open(self.log_txt, "a") as log_f:
+            log_f.write("{} Killed: This error (__nkx_gt_ikptd__) means that the k-points are so dense for {} as to exceed the inherent upper bound of VASP.\n".format(get_time_str(), self.firework_name))
+            log_f.write("\t\t\tTo get rid of this error, you need to adjust NKDIMD and NTETD in main.F.\n")
+            log_f.write("\t\t\tHere we do nothing but change __killed__ to __nkx_gt_ikptd__\n")
+        return "already_handled"
 
 
 # In[21]:
