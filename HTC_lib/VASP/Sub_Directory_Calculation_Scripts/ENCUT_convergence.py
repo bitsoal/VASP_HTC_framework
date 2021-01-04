@@ -287,6 +287,22 @@ def prepare_cal_files(argv_dict):
 # In[3]:
 
 
+def read_and_write_no_to(filename, read_mode=True, no=0):
+    if read_mode:
+        if not os.path.isfile(filename):
+            return 0
+        with open(filename, "r") as f:
+            no = list(f)[0].strip("\n").strip()
+        return int(no)
+    else:
+        with open(filename, "w") as f:
+            f.write(str(no))
+        
+
+
+# In[4]:
+
+
 def are_all_sub_dir_cal_finished(argv_dict):
     
     for encut in argv_dict["encut_list"]:
@@ -295,6 +311,23 @@ def are_all_sub_dir_cal_finished(argv_dict):
         if True not in [os.path.isfile(os.path.join(sub_dir_name, target_file)) for target_file in 
                         ["__done__", "__skipped__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__"]]:
             return False
+        
+        with open(os.path.join(sub_dir_name, "OSZICAR"), "r") as oszicar:
+            for line in oszicar:
+                pass
+        incomplete_oszicar_counter = os.path.join(sub_dir_name, "_no_of_incomplete_OSZICAR_")
+        if "F=" not in line or "E0=" not in line:
+            no = read_and_write_no_to(filename=incomplete_oszicar_counter, read_mode=True)
+            if no <= 5:
+                read_and_write_no_to(filename=incomplete_oszicar_counter, read_mode=False, no=no+1)
+            else:
+                open("__manual__", "w").close()
+                print("Although the calculation under {} finished, OSZICAR is found incomplete 5 times. Please check.".format(sub_dir_name))
+                print("Create __manual__")
+            return False
+        else:
+            if os.path.isfile(incomplete_oszicar_counter):
+                os.remove(incomplete_oszicar_counter)
         
     return True
 
@@ -337,7 +370,7 @@ def find_converged_encut(argv_dict):
             energy = float(re.search("E0=([\s0-9E\.\-\+]+)d E", line)[1].strip())
             energy_list.append(energy)
         except:
-            open("__fail_to_parse_energy_E0_from_{}__".format(os.path.join(sub_dir_name, "OSZICAR")), "w").close()
+            open("__fail_to_parse_energy_E0_from_{}__".format(sub_dir_name + "_OSZICAR"), "w").close()
             return 0
             
     energy_diff_list = [energy_2 - energy_1 for energy_1, energy_2 in zip(energy_list[:-1], energy_list[1:])]
