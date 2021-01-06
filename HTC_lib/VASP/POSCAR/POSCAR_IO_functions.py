@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[6]:
+# In[4]:
 
 
 import os, re, sys
@@ -18,6 +18,27 @@ def cal_angle_between_two_vectors(vec_1, vec_2):
     dot_product = np.dot(unit_vec_1, unit_vec_2)
     
     return np.arccos(dot_product) / np.pi * 180
+
+
+# In[12]:
+
+
+def get_lattice_properties(lattice_matrix):
+    latt_prop_dict = {}
+    latt_vec_a, latt_vec_b, latt_vec_c = lattice_matrix[0, :], lattice_matrix[1, :], lattice_matrix[2, :]
+    latt_prop_dict["inv_lattice_matrix"] = np.linalg.inv(lattice_matrix)
+    latt_prop_dict["lattice_constant_a"] = np.linalg.norm(latt_vec_a)
+    latt_prop_dict["lattice_constant_b"] = np.linalg.norm(latt_vec_b)
+    latt_prop_dict["lattice_constant_c"] = np.linalg.norm(latt_vec_c)
+    #alpha: angle between latt_vec_b and latt_vec_c; 
+    #beta: angle between latt_vec_a and latt_vec_c
+    #gamma: angle between latt_vec_a and latt_vec_b
+    #The above convention is adopted by pymatgen (https://github.com/materialsproject/pymatgen/blob/v2020.8.13/pymatgen/core/lattice.py)
+    #as well as wikipedia (webpage: Crystal system)
+    latt_prop_dict["alpha"] = cal_angle_between_two_vectors(latt_vec_b, latt_vec_c)
+    latt_prop_dict["beta"] = cal_angle_between_two_vectors(latt_vec_a, latt_vec_c)
+    latt_prop_dict["gamma"] = cal_angle_between_two_vectors(latt_vec_a, latt_vec_b)
+    return latt_prop_dict
 
 
 # In[3]:
@@ -47,7 +68,7 @@ def read_poscar(poscar_filename="POSCAR", cal_loc="."):
     poscar_dict["lattice_constant_b"] = np.linalg.norm(poscar_dict["lattice_matrix"][1, :])
     poscar_dict["lattice_constant_c"] = np.linalg.norm(poscar_dict["lattice_matrix"][2, :])
     #alpha: angle between latt_vec_b and latt_vec_c; 
-    #beta: angle between latt_vec_a and latt_vec_b
+    #beta: angle between latt_vec_a and latt_vec_c
     #gamma: angle between latt_vec_a and latt_vec_b
     #The above convention is adopted by pymatgen (https://github.com/materialsproject/pymatgen/blob/v2020.8.13/pymatgen/core/lattice.py)
     #as well as wikipedia (webpage: Crystal system)
@@ -99,8 +120,10 @@ def read_poscar(poscar_filename="POSCAR", cal_loc="."):
         coords.append([float(num) for num in items[:3]])
         if poscar_dict["is_selective_dynamics_on"]:
             selective_dynamics_mode.append(items[3:6])
-    if poscar_dict["is_selective_dynamics_on"]:
-        poscar_dict["selective_dynamics_mode"] = selective_dynamics_mode
+        else:
+            selective_dynamics_mode.append(["", "", ""])
+    #if poscar_dict["is_selective_dynamics_on"]:
+    poscar_dict["selective_dynamics_mode"] = selective_dynamics_mode
     
     if coordinate_type == "cartesian":
         cart_coords = np.array(coords) * scaling_factor #The universal scaling factor is applied to the atomic positions only if they are in cartesian coordinates.
@@ -111,6 +134,51 @@ def read_poscar(poscar_filename="POSCAR", cal_loc="."):
     poscar_dict["cart_coords"] = cart_coords
     poscar_dict["frac_coords"] = frac_coords
     
+    return poscar_dict
+
+
+# In[13]:
+
+
+def sort_poscar(by, key=None, reverse=False, poscar_filename="POSCAR", cal_loc="."):
+    """
+    Read and sort POSCAR.
+    The python built-in function sorted(iterable, /, *, key=None, reverse=False) will be deployed to sort POSCAR.
+    Arguments 'key' (default: None) and 'reverse' (default: False) will be passed to function sorted.
+    As for 'iterable' of function sorted, it is provided by argument 'by' of the current function:
+        This function passes a N-entry list as 'iterable' to function sorted to figure the new order to sort the whole POSCAR.
+            N is the number of that quantities specified by argument 'by'. 
+            The i-th entry (0-based index) is a 2-element list: [i, the i-th quantity]
+            See below for the i-th quantity
+    -by (str): It could be anyone below:
+        * "atomic_species": the i-th quantity is the atomic species (str) of the i-th atom in the original POSCAR
+        * "cart_coords": the i-th quantity is the cartesian coordinate (1D numpy array of length 3 and type float) of the i-th atom in the original POSCAR
+        * "frac_coords": the i-th quantity is the fractional coordinate (1D numpy array of length 3 and type float) of the i-th atom in the original POSCAR
+        * "selective_dynamics_mode": the i-th quantity is the selective mode (a list of 3 and type str) of the i-th atom in the original POSCAR
+        * "lattice_matrix": the i-th quantity is the i-th lattice vector (1D numpy array of length 3 and type float) in the original POSCAR
+    -poscar_filename (default: "POSCAR"): the filename of POSCAR
+    -cal_loc (default: "."): the path to that POSCAR
+    Return a sorted poscar dict whose format is the same as the output of function read_poscar.
+    """
+    available_by_list = ["atomic_species", "cart_coords", "frac_coords", "selective_dynamics_mode", "lattice_matrix"]
+    assert by in available_by_list, 'Input argument "by" of fuction sort_poscar must be "atomic_species", "cart_coords", "frac_coords", "selective_dynamics_mode" or "lattice_matrix"'
+    poscar_dict = read_poscar(poscar_filename=poscar_filename, cal_loc=cal_loc)
+    
+    sorted_index_list = [ind_value_pair[0] for ind_value_pair in sorted(iterable=enumerate(poscar_dict[by]), key=key, reverse=reverse)]
+    if by in ["atomic_species", "cart_coords", "frac_coords", "selective_dynamics_mode"]:
+        for quantity in ["atomic_species", "cart_coords", "frac_coords", "selective_dynamics_mode"]:
+            poscar_dict[quantity] = [poscar_dict[quantity][ind] for ind in sorted_index_list]
+    elif by == "lattice_matrix":
+        new_lattice_matrix = [poscar_dict["lattice_matrix"][ind] for ind in sorted_index_list]
+        poscar_dict["lattice_matrix"] = new_lattice_matrix
+        poscar_dict.update(get_lattice_properties(new_lattice_matrix))
+        for quantity in ["cart_coords", "frac_coords", "selective_dynamics_mode"]:
+            for atom_ind, atom_quantity in enumerate(poscar_dict[quantity]):
+                new_atom_quantity = [atom_quantity[ind] for ind in sorted_index_list]
+                poscar_dict[quantity][atom_ind] = new_atom_quantity
+    else:
+        raise Exception("You should not arrive here!")
+        
     return poscar_dict
 
 
