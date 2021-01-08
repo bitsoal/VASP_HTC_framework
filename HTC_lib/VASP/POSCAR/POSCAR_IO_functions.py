@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[4]:
+# In[1]:
 
 
 import os, re, sys
@@ -20,7 +20,7 @@ def cal_angle_between_two_vectors(vec_1, vec_2):
     return np.arccos(dot_product) / np.pi * 180
 
 
-# In[12]:
+# In[3]:
 
 
 def get_lattice_properties(lattice_matrix):
@@ -41,7 +41,7 @@ def get_lattice_properties(lattice_matrix):
     return latt_prop_dict
 
 
-# In[3]:
+# In[4]:
 
 
 def read_poscar(poscar_filename="POSCAR", cal_loc="."):
@@ -137,7 +137,7 @@ def read_poscar(poscar_filename="POSCAR", cal_loc="."):
     return poscar_dict
 
 
-# In[13]:
+# In[5]:
 
 
 def sort_poscar(by, key=None, reverse=False, poscar_filename="POSCAR", cal_loc="."):
@@ -164,7 +164,7 @@ def sort_poscar(by, key=None, reverse=False, poscar_filename="POSCAR", cal_loc="
     assert by in available_by_list, 'Input argument "by" of fuction sort_poscar must be "atomic_species", "cart_coords", "frac_coords", "selective_dynamics_mode" or "lattice_matrix"'
     poscar_dict = read_poscar(poscar_filename=poscar_filename, cal_loc=cal_loc)
     
-    sorted_index_list = [ind_value_pair[0] for ind_value_pair in sorted(iterable=enumerate(poscar_dict[by]), key=key, reverse=reverse)]
+    sorted_index_list = [ind_value_pair[0] for ind_value_pair in sorted(enumerate(poscar_dict[by]), key=key, reverse=reverse)]
     if by in ["atomic_species", "cart_coords", "frac_coords", "selective_dynamics_mode"]:
         for quantity in ["atomic_species", "cart_coords", "frac_coords", "selective_dynamics_mode"]:
             poscar_dict[quantity] = [poscar_dict[quantity][ind] for ind in sorted_index_list]
@@ -180,6 +180,60 @@ def sort_poscar(by, key=None, reverse=False, poscar_filename="POSCAR", cal_loc="
         raise Exception("You should not arrive here!")
         
     return poscar_dict
+
+
+# In[15]:
+
+
+def get_reduced_atomic_species_and_no_of_atoms(full_atomic_species_list):
+    reduced_atomic_species_list = []
+    for species in full_atomic_species_list:
+        if species not in reduced_atomic_species_list:
+            reduced_atomic_species_list.append(species)
+            
+    no_of_atoms_list = [full_atomic_species_list.count(species) for species in reduced_atomic_species_list]
+    return reduced_atomic_species_list, no_of_atoms_list
+
+
+# In[36]:
+
+
+def write_poscar(poscar_dict, filename="POSCAR", cal_loc="."):
+    poscar_lines = []
+    
+    #The comment line
+    poscar_lines.append(poscar_dict["original_poscar"][0])
+        
+    #The scaling factor line
+    poscar_lines.append("1\n")
+        
+    #The lattice matrix
+    for latt_vec in poscar_dict["lattice_matrix"]:
+        poscar_lines.append("{:.16f}\t{:.16f}\t{:.16f}\n".format(*latt_vec))
+        
+    #The atomic species and the number of atom of each species
+    reduced_atomic_species, no_of_atoms = get_reduced_atomic_species_and_no_of_atoms(poscar_dict["atomic_species"])
+    poscar_lines.append("\t".join(reduced_atomic_species) + "\n")
+    poscar_lines.append("\t".join([str(no_of_atom) for no_of_atom in no_of_atoms]) + "\n")
+    
+    #selective dynamics line
+    if poscar_dict["is_selective_dynamics_on"]:
+        poscar_lines.append("Selective Dynamics\n")
+        
+    #Coordinate type
+    poscar_lines.append("Direct\n")
+    
+    #Fractional coordinates
+    if poscar_dict["is_selective_dynamics_on"]:
+        for frac_coord, dynamics_mode in zip(poscar_dict["frac_coords"], poscar_dict["selective_dynamics_mode"]):
+            poscar_lines.append("{:.16f}\t{:.16f}\t{:.16f}\t".format(*frac_coord) + "\t".join(dynamics_mode) + "\n")
+    else:
+        for frac_coord in poscar_dict["frac_coords"]:
+            poscar_lines.append("{:.16f}\t{:.16f}\t{:.16f}\t".format(*frac_coord) + "\n")
+            
+    with open(os.path.join(cal_loc, filename), "w") as poscar_f:
+        for line in poscar_lines:
+            poscar_f.write(line)
 
 
 # In[13]:
@@ -224,7 +278,7 @@ def test_all(folder_list_filename):
             print("fail to read {}/POSCAR".format(folder))            
 
 
-# In[23]:
+# In[7]:
 
 
 def test_a_single_cal(folder):
@@ -247,7 +301,7 @@ def test_a_single_cal(folder):
     print("cart_coords: ", cal_mae(poscar["cart_coords"], struct.cart_coords))
 
 
-# In[21]:
+# In[9]:
 
 
 if __name__ == "__main__":

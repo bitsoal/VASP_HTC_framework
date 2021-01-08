@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[3]:
 
 
 import os, time, shutil, sys, re, subprocess
@@ -25,10 +25,13 @@ from HTC_lib.VASP.Miscellaneous.Query_from_OUTCAR import find_incar_tag_from_OUT
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, search_file, decorated_os_rename, get_current_firework_from_cal_loc
 from HTC_lib.VASP.INCAR.Write_VASP_INCAR import get_bader_charge_tags
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
+from HTC_lib.VASP.POTCAR.potcar_toolkit import Potcar
+from HTC_lib.VASP.POSCAR.POSCAR_IO_functions import sort_poscar, write_poscar
+
 from HTC_lib.VASP.Error_Checker.Error_checker_auxiliary_function import get_trimed_oszicar
 
 
-# In[3]:
+# In[11]:
 
 
 def Vasp_Error_checker(error_type, cal_loc, workflow):  
@@ -95,7 +98,7 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
         return True
 
 
-# In[4]:
+# In[5]:
 
 
 class Write_and_read_error_tag(object):
@@ -123,7 +126,7 @@ class Write_and_read_error_tag(object):
         return error_tag
 
 
-# In[5]:
+# In[6]:
 
 
 class Queue_std_files():
@@ -166,7 +169,7 @@ class Queue_std_files():
             os.remove(os.path.join(self.cal_loc, self.stderr_file))
 
 
-# In[6]:
+# In[7]:
 
 
 def  find_target_str(cal_loc, target_file, target_str):
@@ -190,7 +193,7 @@ def  find_target_str(cal_loc, target_file, target_str):
     return found_target_str
 
 
-# In[7]:
+# In[8]:
 
 
 class Vasp_Error_Saver(object):
@@ -273,7 +276,7 @@ class Vasp_Error_Saver(object):
                 return "error_"+str(error_times+1)
 
 
-# In[8]:
+# In[10]:
 
 
 class Vasp_Error_Checker_Logger(Write_and_read_error_tag):
@@ -729,6 +732,102 @@ class Vasp_out_posmap(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         else:
             return False
         
+
+
+# In[12]:
+
+
+class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "REAL_OPTLAY: internal error (1)"
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        #super(Vasp_out_posmap, self).__init__(cal_loc, workflow)
+        self.target_str = "REAL_OPTLAY: internal error (1)"
+        
+        
+        
+    def check(self):
+        """
+        Return:
+            - False if an error is found;
+            - True otherwise.
+        """        
+        #This method is deactive until the job is done
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+            super(Vasp_out_real_optlay, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                     initial_signal_file="__running__", 
+                                                                     final_signal_file="__error__")
+            return False
+        
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            self.write_error_log()
+            return False
+        else:
+            return True
+    
+            
+    def write_error_log(self):
+        super(Vasp_out_real_optlay, self).write_error_log(target_error_str=self.target_str, error_type="__real_optlay__")
+    
+    def correct(self):
+        """
+        This correction is borrowed from the vasp forum:
+        https://www.vasp.at/forum/viewtopic.php?f=4&t=5354
+        combine them such that the element with the hightest ENMAX is the first one (please don't forget that you will also have to re-arrange POSCAR!)
+        """
+        potcar = Potcar(filename="POTCAR", cal_loc=self.cal_loc)
+        old_atomic_species = potcar.get_atomic_species()
+        enmax_enmin_dict = potcar.get_enmax_enmin()
+        newly_ordered_atomic_species = sorted(enmax_enmin_dict.keys(), key=lambda species: float(enmax_enmin_dict[species]["ENMAX"]), reverse=True)
+        
+        if old_atomic_species == newly_ordered_atomic_species:
+            return False
+        else:
+            super(Vasp_out_real_optlay, self).backup()
+            old_struct = Structure.from_file(os.path.join(self.cal_loc, "POSCAR")).get_sorted_structure()
+            poscar_dict = sort_poscar(by="atomic_species", key=lambda species: float(enmax_enmin_dict[species[1]]["ENMAX"]), reverse=True, 
+                                      poscar_filename="POSCAR", cal_loc=self.cal_loc)
+            write_poscar(poscar_dict=poscar_dict, filename="POSCAR", cal_loc=self.cal_loc)
+            new_struct = Structure.from_file(os.path.join(self.cal_loc, "POSCAR")).get_sorted_structure()
+            
+            if old_struct.species != new_struct.species:
+                with open(self.log_txt, "a") as log_f:
+                    log_f.write("{} Debug: The old and new sorted POSCAR have different atomic species list.".format(get_time_str()))
+                return False
+            if np.max(np.abs(old_struct.frac_coords - new_struct.frac_coords)) > 1.0E-5:
+                with open(self.log_txt, "a") as log_f:
+                    log_f.write("{} Debug: The old and new sorted POSCAR have fractional coordinate difference > 1.0e-5.".format(get_time_str()))
+                return False
+            
+            potcar.sort_and_write_potcar(new_atomic_species_sequence=newly_ordered_atomic_species, filename="POTCAR", cal_loc=self.cal_loc)
+            
+            with open(self.log_txt, "a") as log_f:
+                log_f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
+                log_f.write("\t\t\tSort POSCAR and POTCAR in such a way that the atomic species are arranged in a descending order of ENMAX\n")
+                
+            return True
 
 
 # In[13]:
@@ -1271,76 +1370,72 @@ class Vasp_out_edddav(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         return False                       
 
 
-# In[19]:
-
-
-class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
-    """
-    Error checking type: after the calculation.
-    Target file: vasp.out or the one specified by tag vasp.out
-    Target error string: "REAL_OPTLAY: internal error"
-    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
-    input arguments:
-        -cal_loc: the location of the to-be-checked calculation
-        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
-    check method: return True, if not found; return False and write error logs otherwise.
-    correct method: if LREAL = .TRUE., reset it to .FALSE. and return True; Otherwise, return False
-    """
-    def __init__(self, cal_loc, workflow):
-        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
-        
-        self.workflow = workflow
-        self.cal_loc = cal_loc
-        self.firework_name = os.path.split(cal_loc)[-1]
-        self.log_txt = os.path.join(self.cal_loc, "log.txt")
-        self.target_file = self.workflow[0]["vasp.out"]
-        self.target_str = "REAL_OPTLAY: internal error"
-        
-    def check(self):
-        """
-        Return:
-            - False if an error is found;
-            - True otherwise.
-        """        
-        #this method is not active until the job is done
-        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
-            return True
-        
-        #Since the job is done, vasp.out must exist
-        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
-            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
-            #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
-            super(Vasp_out_real_optlay, self).write_file_absence_log(filename_list = [self.target_file], 
-                                                                     initial_signal_file="__running__", 
-                                                                     final_signal_file="__error__")
-            return False
-        
-        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
-            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
-            self.write_error_log()
-            return False
-        else:
-            return True
-            
-            
-    def write_error_log(self):
-        super(Vasp_out_real_optlay, self).write_error_log(target_error_str=self.target_str, error_type="__real_optlay__")
-    
-    
-    def correct(self):
-        target_str = "Therefore set LREAL=.FALSE. in the  INCAR file"
-        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str):
-            super(Vasp_out_real_optlay, self).backup()
-            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": ".FALSE."}, rename_old_incar=False)
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": ".FALSE."}, rename_old_incar=False, 
-                              incar_template=self.workflow[0]["incar_template_list"], 
-                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
-            super(Vasp_out_real_optlay, self).write_correction_log(new_incar_tags={"LREAL": ".FALSE."})
-            return True
-        
-        
-        return False                       
-
+# class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+#     """
+#     Error checking type: after the calculation.
+#     Target file: vasp.out or the one specified by tag vasp.out
+#     Target error string: "REAL_OPTLAY: internal error"
+#     inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+#     input arguments:
+#         -cal_loc: the location of the to-be-checked calculation
+#         -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+#     check method: return True, if not found; return False and write error logs otherwise.
+#     correct method: if LREAL = .TRUE., reset it to .FALSE. and return True; Otherwise, return False
+#     """
+#     def __init__(self, cal_loc, workflow):
+#         Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+#         
+#         self.workflow = workflow
+#         self.cal_loc = cal_loc
+#         self.firework_name = os.path.split(cal_loc)[-1]
+#         self.log_txt = os.path.join(self.cal_loc, "log.txt")
+#         self.target_file = self.workflow[0]["vasp.out"]
+#         self.target_str = "REAL_OPTLAY: internal error"
+#         
+#     def check(self):
+#         """
+#         Return:
+#             - False if an error is found;
+#             - True otherwise.
+#         """        
+#         #this method is not active until the job is done
+#         if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+#             return True
+#         
+#         #Since the job is done, vasp.out must exist
+#         if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+#             decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+#             #os.rename(os.path.join(self.cal_loc, "__running__"), os.path.join(self.cal_loc, "__error__"))
+#             super(Vasp_out_real_optlay, self).write_file_absence_log(filename_list = [self.target_file], 
+#                                                                      initial_signal_file="__running__", 
+#                                                                      final_signal_file="__error__")
+#             return False
+#         
+#         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+#             decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+#             self.write_error_log()
+#             return False
+#         else:
+#             return True
+#             
+#             
+#     def write_error_log(self):
+#         super(Vasp_out_real_optlay, self).write_error_log(target_error_str=self.target_str, error_type="__real_optlay__")
+#     
+#     
+#     def correct(self):
+#         target_str = "Therefore set LREAL=.FALSE. in the  INCAR file"
+#         if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str):
+#             super(Vasp_out_real_optlay, self).backup()
+#             #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": ".FALSE."}, rename_old_incar=False)
+#             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": ".FALSE."}, rename_old_incar=False, 
+#                               incar_template=self.workflow[0]["incar_template_list"], 
+#                               valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
+#             super(Vasp_out_real_optlay, self).write_correction_log(new_incar_tags={"LREAL": ".FALSE."})
+#             return True
+#         
+#         
+#         return False                       
 
 # In[20]:
 
