@@ -209,12 +209,12 @@ def write_poscar(poscar_dict, filename="POSCAR", cal_loc="."):
         
     #The lattice matrix
     for latt_vec in poscar_dict["lattice_matrix"]:
-        poscar_lines.append("{:.16f}\t{:.16f}\t{:.16f}\n".format(*latt_vec))
+        poscar_lines.append("{:.16f}  {:.16f}  {:.16f}\n".format(*latt_vec))
         
     #The atomic species and the number of atom of each species
     reduced_atomic_species, no_of_atoms = get_reduced_atomic_species_and_no_of_atoms(poscar_dict["atomic_species"])
-    poscar_lines.append("\t".join(reduced_atomic_species) + "\n")
-    poscar_lines.append("\t".join([str(no_of_atom) for no_of_atom in no_of_atoms]) + "\n")
+    poscar_lines.append("  ".join(reduced_atomic_species) + "\n")
+    poscar_lines.append("  ".join([str(no_of_atom) for no_of_atom in no_of_atoms]) + "\n")
     
     #selective dynamics line
     if poscar_dict["is_selective_dynamics_on"]:
@@ -226,10 +226,10 @@ def write_poscar(poscar_dict, filename="POSCAR", cal_loc="."):
     #Fractional coordinates
     if poscar_dict["is_selective_dynamics_on"]:
         for frac_coord, dynamics_mode in zip(poscar_dict["frac_coords"], poscar_dict["selective_dynamics_mode"]):
-            poscar_lines.append("{:.16f}\t{:.16f}\t{:.16f}\t".format(*frac_coord) + "\t".join(dynamics_mode) + "\n")
+            poscar_lines.append("{:.16f}  {:.16f}  {:.16f}  ".format(*frac_coord) + "  ".join(dynamics_mode) + "\n")
     else:
         for frac_coord in poscar_dict["frac_coords"]:
-            poscar_lines.append("{:.16f}\t{:.16f}\t{:.16f}\t".format(*frac_coord) + "\n")
+            poscar_lines.append("{:.16f}  {:.16f}  {:.16f}  ".format(*frac_coord) + "\n")
             
     with open(os.path.join(cal_loc, filename), "w") as poscar_f:
         for line in poscar_lines:

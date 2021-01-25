@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 import os, time, shutil, sys, re, subprocess
@@ -759,8 +759,6 @@ class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         #super(Vasp_out_posmap, self).__init__(cal_loc, workflow)
         self.target_str = "REAL_OPTLAY: internal error (1)"
         
-        
-        
     def check(self):
         """
         Return:
@@ -790,8 +788,22 @@ class Vasp_out_real_optlay(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             
     def write_error_log(self):
         super(Vasp_out_real_optlay, self).write_error_log(target_error_str=self.target_str, error_type="__real_optlay__")
-    
+        
     def correct(self):
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        
+        lreal = incar_dict.get("LREAL", ".FALSE.").lower()
+        if "f" in lreal:
+            return False
+        else:
+            super(Vasp_out_real_optlay, self).backup()
+            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"LREAL": " .FALSE."}, rename_old_incar=False, 
+                              incar_template=self.workflow[0]["incar_template_list"], 
+                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
+            super(Vasp_out_real_optlay, self).write_correction_log(new_incar_tags={"LREAL": ".FALSE."})
+            return True
+    
+    def correct_(self): #This correction seems to be unable to resolve the problem.
         """
         This correction is borrowed from the vasp forum:
         https://www.vasp.at/forum/viewtopic.php?f=4&t=5354
