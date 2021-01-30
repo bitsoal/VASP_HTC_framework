@@ -104,14 +104,19 @@ def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
         with open(filename_or_foldername, "r") as f:
             lines = [line.strip() for line in f if line.strip()]
         
+        is_it_in_cal_blk = False
         firework_block_list = []
-        for line in lines:
+        for line_ind, line in enumerate(lines):
             line = line.split("#")[0].strip()
             if line:
                 if line.startswith("**start"):
+                    assert is_it_in_cal_blk == False, "Each calculation block should end with '**end'. But it is missing somewhere above line %d" % line_ind
                     firework_block_list.append([])
+                    is_it_in_cal_blk = True
                 else:
-                    if not line.startswith("**end"):
+                    if line.startswith("**end"):
+                        is_it_in_cal_blk = False
+                    if is_it_in_cal_blk:
                         firework_block_list[-1].append(line)
         firework_block_list = [block for block in firework_block_list if block]
     elif os.path.isdir(filename_or_foldername):
