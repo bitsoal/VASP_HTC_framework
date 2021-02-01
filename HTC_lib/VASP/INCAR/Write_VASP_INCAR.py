@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[2]:
+# In[5]:
 
 
 import pprint,copy
@@ -66,6 +66,8 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
         new_incar_tags.update(get_partial_charge_tags(cal_loc=cal_loc, firework=firework, workflow=workflow))
     if firework["ldau_cal"]:
         new_incar_tags.update(generate_Hubbard_U_J_INCAR_tags(cal_loc=cal_loc, U_J_table_filename=firework["ldau_u_j_table"]))
+    if "NBANDS" in new_incar_tags:
+        new_incar_tags["NBANDS"] = get_nbands(cal_loc=cal_loc, nbands_in_add_new_incar_tags_subblk=new_incar_tags["NBANDS"])
     if new_incar_tags or remove_incar_tags:
         if write_INCAR:
             modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
@@ -100,7 +102,51 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
                 f.write("\t\t\tretrieve NGXF, NGYF, NGZF from {} and double them\n".format(os.path.split(prev_cal)[1]))
                 f.write("\t\tnew incar tags:\n")    
                 [f.write("\t\t\t{}={}\n".format(key_, value_)) for key_, value_ in new_incar_tags.items()]
+                    
+
+
+# In[14]:
+
+
+def get_nbands(cal_loc, nbands_in_add_new_incar_tags_subblk):
+    """
+    Find and Return NBANDS according to nbands_in_add_new_incar_tags_subblk. Let's denote the returned NBANDS as NBANDS_f
+    arguments:
+        -cal_loc: the absolute path to the calculation folder
+        -nbands_in_add_new_incar_tags_subblk: the value passed to tag 'NBANDS' in add_new_incar_tags sub-block (see Manual).
+            Two types of values are accepted by this argument
+                1. an integer. E.g. nbands_in_add_new_incar_tags_subblk = 52 --> NBANDS_f = 52
+                2. number X step_x. E.g. 1.5 X step_1_xyz --> find NBANDS in the OUTCAR of the previous calculation folder named as step_1_xyz, 
+                    which is denoted as NBANDS@step_1. In this case, NBANDS_f = the closest integer to 1.5 * NBANDS@step_1
+                    Note that "1.5", "X" and "step_1_xyz" must be separated by a white space
+                Note that in both cases, the specified number must be equal to or greater than 1.
+    """
+    nbands_items = nbands_in_add_new_incar_tags_subblk.strip().split()
+    if len(nbands_items) == 1:
+        nbands = int(nbands_items[0])
+        assert nbands >= 1, "The integer set in nbands_in_add_new_incar_tags_subblk must be equal to or greater than 1. See case 1 below for more details\n" + get_nbands.__doc__
+        with open(os.path.join(cal_loc, "log.txt"), "a") as log_f:
+            log_f.write("{} Parse NBANDS in add_new_incar_tags sub-block: NBANDS={}\n".format(get_time_str(), nbands_in_add_new_incar_tags_subblk))
+            log_f.write("\t\tIt is just an integer. So NBANDS = {}\n".format(nbands))
+    elif len(nbands_items) == 3:
+        multiplier = float(nbands_items[0])
+        assert multiplier >= 1, "The number set in nbands_in_add_new_incar_tags_subblk must be equal to or greater than 1. See case 2 below for more details\n" + get_nbands.__doc__
+        prev_cal_loc = os.path.join(os.path.split(cal_loc)[0], nbands_items[2])
+        try:
+            prev_nbands = find_incar_tag_from_OUTCAR(tag="NBANDS", cal_loc=prev_cal_loc)
+        except:
+            print("According to the prescribed calculation setup, NBANDS should be set to {}*NBANDS of {} for the calculation {}".format(multiplier, nbands_items[2], cal_loc))
+            print("However, the error below happens:")
+            raise
+        nbands = round(multiplier * prev_nbands)
+        with open(os.path.join(cal_loc, "log.txt"), "a") as log_f:
+            log_f.write("{} Parse NBANDS in add_new_incar_tags sub-block: NBANDS={}\n".format(get_time_str(), nbands_in_add_new_incar_tags_subblk))
+            log_f.write("\t\tMultipler and NBANDS in the previous calculation step {} are parsed to be {} and {}, respectively\n".format(nbands_items[2], multiplier, prev_nbands))
+            log_f.write("\t\tSo NBANDS = {} * {} ~ {} \n".format(multiplier, prev_nbands, nbands))
+    else:
+        raise Exception("Invalid format of argument nbands_in_add_new_incar_tags_subblk of function get_nbands. See below for more details\n" + get_nbands.__doc__)
     
+    return nbands
 
 
 # In[18]:

@@ -165,7 +165,7 @@ def read_and_set_default_arguments(argv_list):
 def prepare_cal_files(argv_dict):
     
     
-    if argv_dict["end"] not in sigma_list:
+    if argv_dict["end"] not in argv_dict["sigma_list"]:
         sigma_list = argv_dict["sigma_list"] + [argv_dict["end"]]
         is_end_sigma_appended = True
     else:
