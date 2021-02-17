@@ -985,7 +985,7 @@ class Vasp_out_invgrp(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         https://materialsproject.github.io/custodian/_modules/custodian/vasp/handlers.html#VaspErrorHandler.correct
         """
         incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
-        SYMPREC = incar_dict.get("SYMPREC", 1.0e-5)
+        SYMPREC = float(incar_dict.get("SYMPREC", 1.0e-5))
         SYMPREC_ = SYMPREC * 5
         
         if SYMPREC_ < 0.9e-4:
