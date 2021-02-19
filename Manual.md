@@ -831,10 +831,11 @@ When the workflow is running, some **built-in** signal file will be present in e
 ### How to change a certain number of calculations from their original status to a target status  
 Under `${HTC_CWD}`, you can create a signal file named `__change_signal_file__` to change a certain number of calculations from their original status (signal file) to a target status (signal file). In `__change_signal_file__`, three parameters should be defined in the following format, e.g.
 >`original_signal_file = __ready__`  
->`target_signal_file = __null__`  
+>`target_signal_file = __null__`   
+>`calculation_name = step_n_xyz #Optional`   
 >`no_of_changes = 20`  
 
-The above setup means to randomly pick at most 20 calculations originally tagged by `__ready__` (`ready_folder_list` in `htc_job_status.json`) and change them to `__null__`.   
+The above setup means to randomly pick at most 20 calculations originally tagged by `__ready__` (`ready_folder_list` in `htc_job_status.json`) and change them to `__null__`. An optional tag `calculation_name` is provided if the to-be-changed target calculations are only those at the *n*-th step.  
 
 
 * Note that `original_signal_file` must be one of the existent signal files (See above for all valid|built-in signal files), whereas `target_signal_file` could be anything.  
@@ -852,7 +853,7 @@ The above setup means to randomly pick at most 20 calculations originally tagged
 We suggest you to use `__change_signal_file__` to change a certain number of calculation jobs from `__ready__` to `__packed__`. For exmaple, you want to pack 20 calculation jobs:~  
 ~>`__change_signal_file__`~
 ~>>`original_signal_file = __ready__`~  
-~>>`target_signal_file = __packed__`~  
+~>>`target_signal_file = __packed__`~ 
 ~>>`no_of_changes = 20`~  
 
 ~Then you can find the absolute path to those calculations tagged by `__packed__` in `${HTC_CWD}/htc_job_status.json` as well as in file `${HTC_CWD}/htc_job_status_folder/packed_folder_list`. Copy the latter to somewhere, and feed this copied file to `HTC_lib/VASP/Pack_jobs/prepare_packed_job_PBS_script.py` by setting parameter `filename` at the beginning.~ 
