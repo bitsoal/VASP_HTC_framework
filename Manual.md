@@ -407,6 +407,32 @@ Default: `Must be specified in the case where partial charge_cal is set to Yes. 
 Default: `empty`  
   ![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_specific_calculation.png)
 
+----------------  
+- **NBANDS** in the **add\_new\_incar\_tags** sub-block, optional  
+In addition to its default VASP format, an additional assignment method is enabled as below.
+	- *additional assigment method*: `number X prev_cal_step_name`  
+        - `number`: a float number larger than or equal to 1  
+		- `prev_cal_step_name`: a previous calculation step name.  
+		- There must be at least a whitespace between `number` and `X`, and between `X` and `prev_cal_step_name`  
+	- *function*: Retrive NBANDS from OUTCAR of `prev_cal_step_name`, which is denoted as NBANDS_prev --> set NBANDS of the current step to the closest integer to `number * NBANDS_prev`
+
+----------------
+- **set\_ispin\_based\_on\_prev\_cal**, optional  
+Set ISPIN in INCAR of the current step based on the calculated total magnetic moment in a previous calculation step.   
+	- *Format*: `mag + unit + @ + prev_cal_step_name`  
+		- `mag`: the magnetic moment threshold. It is a float number;    
+		- `unit`: the unit of `mag`. It could be either `/atom` or `tot`;        
+		- `prev_cal_step_name`: a previous calculation step name. There should not be any whitespace in `prev_cal_step_name`.        
+	- *Function*: Read the calculated total magnetic moment (`tot_mag_prev`) from OSZICAR of `prev_cal_step_name` --> Compare `tot_mag_prev` with `mag`:
+		- If `tot_mag_prev <= mag`, set `ISPIN = 1` in INCAR of the current step;  
+		- If `tot_mag_prev > mag`, set `ISPIN = 2 ` in INCAR of the current step.  
+	- *Examples*:
+		- `0.02/atom@step_1_str_opt`;  
+		- `0.05tot@step_1_str_opt`;
+	- default: `empty`
+	- During the INCAR preparation, INCAR is modified first according to the setup in the **add\_new\_incar\_tags** sub-block. Afterwards, set ISPIN if the current tag is provided. Therefore, if provided, the current tag will overwrite the ISPIN provided in the **add\_new\_incar\_tags** sub-block.    
+
+
 ----------------
 - **bader\_charge**, optional.
 This bool tag decides whether to calculate the [Bader Charge](http://theory.cm.utexas.edu/henkelman/code/bader/). 

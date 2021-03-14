@@ -88,6 +88,7 @@ def read_poscar(poscar_filename="POSCAR", cal_loc="."):
     assert len(atom_no_items) > 0, "{}: the {}th line supplies the number of atoms per atomic species (one number for each atomic species)".format(full_poscar_filename, line_ind_of_atom_no+1)
     assert species_items == [] or len(species_items) == len(atom_no_items), "{}: line 6 (atomic species) and line 7 (the number of atoms per atomic species) should have the same length (1-1 correspondence)".format(full_poscar_filename)
     total_atom_no = sum(atom_no_items)
+    poscar_dict["total_no_of_atoms"] = total_atom_no
     
     species_list = []
     for atomic_species, atom_no in zip(species_items, atom_no_items):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[5]:
+# In[1]:
 
 
 import pprint,copy
@@ -17,6 +17,7 @@ from pymatgen import Structure
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, find_next_name, decorated_os_rename, get_current_firework_from_cal_loc
 from HTC_lib.VASP.Miscellaneous.Query_from_OUTCAR import find_incar_tag_from_OUTCAR
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
+from HTC_lib.VASP.INCAR.choose_ispin_based_on_prev_cal import choose_ispin_based_on_prev_cal
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 
 
@@ -84,6 +85,25 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
                 f.write("\n")
             if write_INCAR:
                 f.write("\t\told INCAR --> INCAR.pymatgen\n")
+                
+    #set ispin based on a previous calculation step
+    set_ispin_based_on_prev_cal = firework["set_ispin_based_on_prev_cal"]
+    if set_ispin_based_on_prev_cal:
+        result = choose_ispin_based_on_prev_cal(current_cal_loc=cal_loc, prev_cal_step=set_ispin_based_on_prev_cal["prev_cal_step"],
+                                                mag_threshold=set_ispin_based_on_prev_cal, workflow=workflow)
+        if result == False:
+            return False #The relevant information has been written into log.txt by the above function.
+        else:
+            ispin, tot_mag = result
+        modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISPIN": str(ispin)}, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
+        with open(log_txt, "a") as f:
+            f.write("{} INFO: set_ispin_based_on_prev_cal is set to {} in {}\n".format(get_time_str(), set_ispin_based_on_prev_cal["set_ispin_based_on_prev_cal_str"], firework_name))
+            f.write("\t\t\t The calculated total magnetic moment from {} is {}, ".format(set_ispin_based_on_prev_cal["prev_cal_step"], tot_mag))
+            if ispin == 1:
+                f.write("which is smaller than or equal to the prescribed threshold.\n")
+            else:
+                f.write("which is larger than the prescribed threshold.\n")
+            f.write("\t\t\t So set ISPIN to {} in INCAR\n".format(ispin))
                 
     if firework["bader_charge"]:
         if firework["step_no"] == 1:

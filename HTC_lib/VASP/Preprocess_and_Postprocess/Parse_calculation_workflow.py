@@ -262,6 +262,7 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                     "move_from_prev_cal", "contcar_to_poscar", "copy_which_step", "additional_cal_dependence", "error_backup_files", 
                     "htc_input_backup", "htc_input_backup_loc", "max_no_of_ready_jobs",
                     "remove_after_cal", "extra_copy", "final_extra_copy", "comment_incar_tags", "remove_incar_tags",
+                    "set_ispin_based_on_prev_cal",
                     "partial_charge_cal", "which_step_to_read_cbm_vbm", "EINT_wrt_CBM", "EINT_wrt_VBM", "bader_charge",
                     "ldau_cal", "ldau_u_j_table", "incar_template", "valid_incar_tags",
                     "kpoints_type", "denser_kpoints", "reciprocal_density", "kpoints_line_density",
@@ -356,6 +357,30 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                
         
     #4. INCAR related tags
+    set_ispin_based_on_prev_cal = firework.get("set_ispin_based_on_prev_cal", "")
+    if set_ispin_based_on_prev_cal != "":
+        try:
+            mag_threshold_str, prev_cal_step = [item.strip() for item in set_ispin_based_on_prev_cal.split("@") if item.strip()]
+            mag_threshold_str = mag_threshold_str.lower()
+            if mag_threshold_str.endswith("/atom"):
+                firework["set_ispin_based_on_prev_cal"] = {"mag": float(mag_threshold_str.strip("/atom")), 
+                                                           "mag_type": "per_atom", "prev_cal_step": prev_cal_step, 
+                                                           "set_ispin_based_on_prev_cal_str": set_ispin_based_on_prev_cal}
+            elif mag_threshold_str.endswith("tot"):
+                firework["set_ispin_based_on_prev_cal"] = {"mag": float(mag_threshold_str.strip("tot")), 
+                                                           "mag_type": "tot", "prev_cal_step": prev_cal_step, 
+                                                           "set_ispin_based_on_prev_cal_str": set_ispin_based_on_prev_cal}
+            else:
+                raise Exception
+        except:
+            output_str = "Failed to parse 'set_ispin_based_on_prev_cal={}' at {}\n".format(set_ispin_based_on_prev_cal, firework["firework_folder_name"])
+            output_str += "The correct format should be: \n\t\t\ta float number + /atom OR tot + @ + previous calculation step name\n"
+            output_str += "\t\t\te.g. I. 0.02/atom@step_1_str_opt <--> If the calculated magnetic moment at step_1_str_opt <= (>) 0.02 Bohr magneton/atom, set ISPIN of the current step to 1 (2)"
+            output_str += "\t\t\te.g. II. 0.02tot@step_1_str_opt <--> If the calculated total magnetic moment at step_1_str_opt <= (>) 0.02 Bohr magneton, set ISPIN of the current step to 1 (2)"
+            raise Exception(output_str)
+    else:
+        firework["set_ispin_based_on_prev_cal"] = {}
+    
     if "comment_incar_tags" in firework.keys():
         raise Exception("HTC tag 'comment_incar_tags' has been obsolete. Only use 'remove_incar_tags' to deactivate INCAR tags.")
     for tag in ["remove_incar_tags"]:
