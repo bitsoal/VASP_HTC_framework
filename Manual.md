@@ -417,7 +417,7 @@ In addition to its default VASP format, an additional assignment method is enabl
 	- *function*: Retrive NBANDS from OUTCAR of `prev_cal_step_name`, which is denoted as NBANDS_prev --> set NBANDS of the current step to the closest integer to `number * NBANDS_prev`
 
 ----------------
-- **set\_ispin\_based\_on\_prev\_cal**, optional  
+- **set\_ispin\_based\_on\_prev\_cal**, optional (**debug is underway**)  
 Set ISPIN in INCAR of the current step based on the calculated total magnetic moment in a previous calculation step.   
 	- *Format*: `mag + unit + @ + prev_cal_step_name`  
 		- `mag`: the magnetic moment threshold. It is a float number;    
