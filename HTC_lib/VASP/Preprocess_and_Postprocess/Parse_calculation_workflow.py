@@ -372,11 +372,13 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                                                            "set_ispin_based_on_prev_cal_str": set_ispin_based_on_prev_cal}
             else:
                 raise Exception
+            assert firework["set_ispin_based_on_prev_cal"]["mag"] >= 0, "the threshold should be >= 0."
         except:
             output_str = "Failed to parse 'set_ispin_based_on_prev_cal={}' at {}\n".format(set_ispin_based_on_prev_cal, firework["firework_folder_name"])
             output_str += "The correct format should be: \n\t\t\ta float number + /atom OR tot + @ + previous calculation step name\n"
-            output_str += "\t\t\te.g. I. 0.02/atom@step_1_str_opt <--> If the calculated magnetic moment at step_1_str_opt <= (>) 0.02 Bohr magneton/atom, set ISPIN of the current step to 1 (2)"
-            output_str += "\t\t\te.g. II. 0.02tot@step_1_str_opt <--> If the calculated total magnetic moment at step_1_str_opt <= (>) 0.02 Bohr magneton, set ISPIN of the current step to 1 (2)"
+            output_str += "where 'number' should be >= 0 since we only compare the magnitude.\n"
+            output_str += "\t\t\te.g. I. 0.02/atom@step_1_str_opt <--> If the calculated magnetic moment at step_1_str_opt <= (>) 0.02 Bohr magneton/atom, set ISPIN of the current step to 1 (2)\n"
+            output_str += "\t\t\te.g. II. 0.02tot@step_1_str_opt <--> If the calculated total magnetic moment at step_1_str_opt <= (>) 0.02 Bohr magneton, set ISPIN of the current step to 1 (2)\n"
             raise Exception(output_str)
     else:
         firework["set_ispin_based_on_prev_cal"] = {}

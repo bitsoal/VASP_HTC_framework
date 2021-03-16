@@ -27,7 +27,7 @@ def choose_ispin_based_on_prev_cal(current_cal_loc, prev_cal_step, mag_threshold
             e.g. {"mag": 0.02, "mag_type": "per_atom"} <--> the threshold is 0.02 Bohr magneton per atom.
                  {"mag": 0.02, "mag_type": "tot"} <--> the threshold is the total of 0.02 Bohr magneton.
     This function returns:
-        I.  (1, tot_mag) if tot_mag <= mag_threshold.
+        I.  (1, tot_mag) if abs(tot_mag) <= mag_threshold.
         II. (2, tot_mag) otherwise;
     Note that there are four special cases:
         a) prev_cal_step should not be a sub-directory calculation, where there are multiple sub-dir calculations and 
@@ -107,7 +107,7 @@ def choose_ispin_based_on_prev_cal(current_cal_loc, prev_cal_step, mag_threshold
         else:
             tot_mag_threshold = mag_threshold["mag"]
             
-        if tot_mag <= tot_mag_threshold:
+        if abs(tot_mag) <= tot_mag_threshold:
             return 1, tot_mag
         else:
             return 2, tot_mag

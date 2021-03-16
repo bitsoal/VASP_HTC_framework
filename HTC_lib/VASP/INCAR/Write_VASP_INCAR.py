@@ -100,7 +100,7 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
             f.write("{} INFO: set_ispin_based_on_prev_cal is set to {} in {}\n".format(get_time_str(), set_ispin_based_on_prev_cal["set_ispin_based_on_prev_cal_str"], firework_name))
             f.write("\t\t\t The calculated total magnetic moment from {} is {}, ".format(set_ispin_based_on_prev_cal["prev_cal_step"], tot_mag))
             if ispin == 1:
-                f.write("which is smaller than or equal to the prescribed threshold.\n")
+                f.write("whose magnitude is smaller than or equal to the prescribed threshold.\n")
             else:
                 f.write("which is larger than the prescribed threshold.\n")
             f.write("\t\t\t So set ISPIN to {} in INCAR\n".format(ispin))

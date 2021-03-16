@@ -421,7 +421,7 @@ In addition to its default VASP format, an additional assignment method is enabl
 Set ISPIN in INCAR of the current step based on the calculated total magnetic moment in a previous calculation step.   
 	- *Format*: `mag + unit + @ + prev_cal_step_name`  
 		- `mag`: the magnetic moment threshold. It is a float number;    
-		- `unit`: the unit of `mag`. It could be either `/atom` or `tot`;        
+		- `unit`: the unit of `mag`. It could be either `/atom` or `tot`; *It must be >=0 since we only compare the magnitude.*        
 		- `prev_cal_step_name`: a previous calculation step name. There should not be any whitespace in `prev_cal_step_name`.        
 	- *Function*: Read the calculated total magnetic moment (`tot_mag_prev`) from OSZICAR of `prev_cal_step_name` --> Compare `tot_mag_prev` with `mag`:
 		- If `tot_mag_prev <= mag`, set `ISPIN = 1` in INCAR of the current step;  
