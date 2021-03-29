@@ -449,6 +449,25 @@ Default: `bader_charge=No`
 	- if the current firework is the first step (no parent firework), a calculation without these tags will be carried out and then be terminated once the default values of (NGXF, NGYF, NFZF) are found in the OUTCAR. Afterwards, add all of the associated tags into INCAR for the Bader Charge calculation  
 	- if the current firework is not the first step, (NGXF, NGYF, NGZF) will be retrieved from the OUTCAR of the previous calculation which is indicated by `copy_which_step` 
 
+---------------------------------------------------  
+- **set\_lmaxmix**, optional.    
+If this tag is set to `Yes`, read elements types from `HTC_lib/VASP/INCAR/element_type_table.json` and accordingly set `LMAXMIX` in INCAR to:     
+	- 6 if there is (are) f-element(s);   
+	- 4 if there is no f-element but there is (are) d-element(s);  
+	- 2 if there are only sp-elements;   
+	
+*Note that there is no a universal categorization. So we do not provide `element_type_table.json`.* To build up your element type table, please follow the procedure as below:    
+step 1: go to `HTC_lib/VASP/INCAR/` and run `python parse_element_type_table.py`. A file named as `element_type_table` will be created. Now, it is almost an empty element table with only H, He and Li provided for your reference to the file format. (Note that we have categorized some elements in `HTC_lib/VASP/INCAR/element_type_table_embedded`. You may also consider building up your own version based on this file by copying `element_type_table_embedded` to `element_type_table` and editting the later).     
+step 2: add the elements **of interest to you** into `element_type_table`. *You do not add the whole periodic table.*   
+step 3: run `python parse_element_type_table.py` to parse `element_type_table`. If no error occurs, `element_type_table.json` will be created.  
+  
+Note that if the type of an element in a structure is not provided in `element_type_table.json`, signal file `__manual__` will be created and the relevant error information will be written into `log.txt`. In this case, please go to provide the type of that element in `element_type_table`, and run `python parse_element_type_table.py` under `HTC_lib/VASP/INCAR/` to re-generate `element_type_table.json`. You are suggested to remove this calculation folder and let this package prepare input files from scratch.  
+
+`LMAXMIX` can be set via `set_lmaxmix`, `ldau_u_j_table` and `add_new_incar_tags` sub-block. This program responds to first `add_new_incar_tags` sub-block, then `set_lmaxmix`, and finally `ldau_u_j_table`. That is, `LMAXMIX` in `add_new_incar_tags` sub-block (`set_lmaxmix`) will be overwritten by that in `set_lmaxmix` (`ldau_u_j_table`).   
+
+  
+Default: `set_lmaxmix = no`     
+
 ---------------------------------------------------
 - **ldau\_cal**, optional.  
 Invoke a LDA+U calculation. Note that you need to provide a file containing the Hubbard U and J for the atomic species to which the on-site interaction need to be added. Such file is specified by tag `ldau_u_j_table`.  

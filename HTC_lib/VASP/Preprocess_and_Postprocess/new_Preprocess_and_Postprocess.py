@@ -194,9 +194,11 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
         assert os.path.isfile(os.path.join(current_cal_loc, "POSCAR")), "Error: POSCAR is missing!"
         
         Write_Vasp_POTCAR(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
+        if os.path.isfile(os.path.join(current_cal_loc, "__manual__")): return False
         Write_Vasp_INCAR(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
+        if os.path.isfile(os.path.join(current_cal_loc, "__manual__")): return False
         Write_Vasp_KPOINTS(cal_loc=current_cal_loc, structure_filename="POSCAR", workflow=workflow)
-            
+        if os.path.isfile(os.path.join(current_cal_loc, "__manual__")): return False
         
         if current_firework["final_extra_copy"]:
             with open(log_txt, "a") as f:

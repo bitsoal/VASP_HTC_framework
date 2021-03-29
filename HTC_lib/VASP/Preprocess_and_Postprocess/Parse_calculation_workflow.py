@@ -262,7 +262,7 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                     "move_from_prev_cal", "contcar_to_poscar", "copy_which_step", "additional_cal_dependence", "error_backup_files", 
                     "htc_input_backup", "htc_input_backup_loc", "max_no_of_ready_jobs",
                     "remove_after_cal", "extra_copy", "final_extra_copy", "comment_incar_tags", "remove_incar_tags",
-                    "set_ispin_based_on_prev_cal",
+                    "set_ispin_based_on_prev_cal", "set_lmaxmix",
                     "partial_charge_cal", "which_step_to_read_cbm_vbm", "EINT_wrt_CBM", "EINT_wrt_VBM", "bader_charge",
                     "ldau_cal", "ldau_u_j_table", "incar_template", "valid_incar_tags",
                     "kpoints_type", "denser_kpoints", "reciprocal_density", "kpoints_line_density",
@@ -407,6 +407,12 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
         assert 0<firework["which_step_to_read_cbm_vbm"]<step_no, "For step {}, which_step_to_read_cbm_vbm should be >0 and <{}".format(step_no, step_no)
         assert firework["eint_wrt_vbm"] != None or firework["eint_wrt_cbm"] != None,         "For step {}, since the partial charge calculation is activated by partial_charge_cal, eith EINT_wrt_CBM or EINT_wrt_VBM shoud be set".format(step_no)
         
+    firework["set_lmaxmix"] = firework.get("set_lmaxmix", "no").lower()
+    if "y" in firework["set_lmaxmix"]:
+        firework["set_lmaxmix"] = True
+    else:
+        firework["set_lmaxmix"] = False
+    
     firework["ldau_cal"] = firework.get("ldau_cal", "no").lower()
     if "y" in firework["ldau_cal"]:
         firework["ldau_cal"] = True
