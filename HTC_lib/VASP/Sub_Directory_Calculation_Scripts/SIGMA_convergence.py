@@ -280,6 +280,10 @@ def find_converged_sigma(argv_dict):
     TS_ind, length = 0, len(TS_list)
     while TS_ind < length and abs(TS_list[TS_ind]) <= argv_dict["TS_convergence"]:
         TS_ind += 1
+        
+    if TS_ind == length: 
+        #This indicates all testing SIGMAs satify the prescribed TS convergence. --> Fail to find the largest SIGMA w.r.t which TS convergence holds.
+        return -2
     
     if TS_ind >=1:
         if TS_ind - argv_dict["which"] >= 0:
@@ -325,7 +329,7 @@ if __name__ == "__main__":
                     os.rename("__sub_dir_cal__", "__done__")
                     open("__SIGMA_convergence_hits_upper_bound__", "w").close()
                     print("All sub-dir calculations finished and the largest testing SIGMA hits the one specified by --end.")
-                    print("But all testing points satisfy the T*S convergence criterion.")
+                    print("But the largest testing point still satisfies the T*S convergence criterion.")
                     print("Set the optimal SIGMA to the one specified by --end.")
                     print("INCAR.optimal is created with optimal SIGMA = --end = {}".format(converged_sigma))
                     print("create __SIGMA_convergence_hits_upper_bound__")
@@ -340,7 +344,7 @@ if __name__ == "__main__":
             else:
                 shutil.copy(os.path.join("sigma_"+str(converged_sigma), "INCAR"), "INCAR.optimal")
                 os.rename("__sub_dir_cal__", "__done__")
-                print("All sub-dir calculations finished and covergence is reached.")
+                print("All sub-dir calculations finished and the minimum (maximum) sigma breaking (satisfying) the TS convergence criterion is identified.")
                 print("INCAR.optimal is created with optimal SIGMA = {}".format(converged_sigma))
                 print("__sub_dir_cal__ --> __done__")
         else:
