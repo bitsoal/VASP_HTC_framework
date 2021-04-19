@@ -148,7 +148,7 @@ def read_and_set_default_arguments(argv_list):
         sigma_list.append(sigma)
         sigma += step
     argv_dict["sigma_list"] = sigma_list[:min([len(sigma_list), argv_dict["max_no_of_points"]])]
-    argv_dict["is_upper_bound_reached"] = (argv_dict["sigma_list"] == sigma_list[-1])
+    argv_dict["is_upper_bound_reached"] = (argv_dict["sigma_list"][-1] == sigma_list[-1])
     
     sub_dir_creation_summary_dict = {"extra_copy_to_sub_dir": [os.path.split(file)[1] for file in argv_dict["extra_copy"]]}
     sub_dir_creation_summary_dict["sub_dir_name_list"] = ["sigma_" + str(sigma) for sigma in argv_dict["sigma_list"]]
