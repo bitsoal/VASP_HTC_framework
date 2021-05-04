@@ -103,7 +103,7 @@ def modify_vasp_incar(cal_loc, new_tags={}, remove_tags=[], rename_old_incar=Tru
     incar_dict = {}
     with open(os.path.join(cal_loc, "INCAR"), "r") as incar_f:
         for line in incar_f:
-            pairs = line.strip().split("#")[0].strip().strip(";")
+            pairs = line.strip().split("#")[0].split("!")[0].strip().strip(";")
             if pairs == "":
                 continue
             
