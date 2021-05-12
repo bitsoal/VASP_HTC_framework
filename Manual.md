@@ -303,10 +303,12 @@ Default: `No`
 
 --------------------------------
 
-- **copy\_which\_step** (integer), optional.  
-This will specify where to copy the files listed in copy\_from\_prev\_cal or move the files listed in move\_from\_prev\_cal.**Note that this tag is meaningless for the first firework**  
-**In a workflow, if there are more than one fireworks that depend on the output of the same calculation and are independent of one another, the calculations defined by them will be carried out simultaneously.**  
-Default: `step_no-1`
+- **copy\_which\_step**, required except for the first step.  
+This will specify the parent calculation step from which the files listed in copy\_from\_prev\_cal are copied or the files listed in move\_from\_prev\_cal are moved into the current calculation step.  
+*Note that this tag is meaningless for the first firework*  
+*In a workflow, if there are more than one fireworks that depend on the output of the same calculation and are independent of one another, the calculations defined by them will be carried out simultaneously.*    
+**In old versions, `copy_which_step` was an optional tag, to which the step no of the parent calculation step was passed (e.g. `copy_which_step=2`). Now, however, this tag is mandatory and must be set to the full name of the parent calculation step (format: `step_i_xyz`). This change aims to ensure that you always copy (move) files from the correct parent calculation step according to `copy_from_prev_cal` (`move_from_prev_cal`), especially when you make big changes to `HTC_calculation_setup_file` or `HTC_calculation_setup_folder`, i.e. inserting more steps between existing calculation steps or renaming existing calculation steps.**    
+
 
 -------------------------------
 
@@ -314,14 +316,16 @@ Default: `step_no-1`
 
 - **additional\_cal\_dependence**, optional.  
 By default, the calculation of the current firework may only rely on the output of its parent firework (specified by `copy_which_step`). However, chances are that the current firework may depend on the outputs of additional previous fireworks. In this case, the current firework shouldn't start unless all dependent previous fireworks are complete.  
-`additional_cal_dependence` should be a `step_no` or a array of `step_no`s of the additional dependent fireworks. If an array is given, `step_no` in the array should be separated by commas `,`.     
-Example 1: step 3 and step 5 are the self-consistent calculation (provide WAVECAR) and the band structure calculation (provide CBM, VBM, Efermi). In step 6, we want to calculate the associated partial charge density around CBM. In this case, the INCAR setting of step 6 rely on both step 3 and step 5. The corresponding setting should be  
->`copy_which_step=3`
->`additional_cal_dependence=5`   
+~~`additional_cal_dependence` should be a `step_no` or a array of `step_no`s of the additional dependent fireworks. If an array is given, `step_no` in the array should be separated by commas `,`.~~  
+`additional_cal_dependence` should be a full name of an additional dependent calculation step or a array of full names if more than one. In the latter case, separate them using commas `,`.   
+  
+Example 1: `step_3_scf` and `step_5_band_str` are the self-consistent calculation (provide WAVECAR) and the band structure calculation (provide CBM, VBM, Efermi). In step 6, we want to calculate the associated partial charge density around CBM. In this case, the INCAR setting of step 6 rely on both step 3 and step 5. The corresponding setting should be  
+>`copy_which_step=step_3_scf`  
+>`additional_cal_dependence=step_5_band_str`   
 
-Example 2: If the raw VASP input setup of step 6 is copied/moved from step 2, and the modification of the input setup of this step also relies on the output of step 3, step 4 and step 5. Then the corresponding setting should be  
->`copy_which_step=2`
->`additional_cal_dependence=3, 4, 5`
+Example 2: If the raw VASP input setup of step 6 is copied/moved from `step_2_xxx`, and the modification of the input setup of this step also is based on the output of `step_3_yyy`, `step_4_zzz` and `step_5_xyz`. Then the corresponding setting should be  
+>`copy_which_step=step_2_xxx`  
+>`additional_cal_dependence=step_3_yyy, step_4_zzz, step_5_xyz`
 
 Default: `empty` 
 

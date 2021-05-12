@@ -89,7 +89,38 @@ def read_HTC_calculation_setup_folder(foldername="HTC_calculation_setup_folder")
     return firework_block_filename_list, firework_block_list
 
 
-# In[4]:
+# In[8]:
+
+
+def check_dependent_step_names(workflow):
+    """
+    What it does:
+        I. check if every calculation step copies from the correct parent calculation step (tag: copy_which_step)
+        II. check if every calculation step has an array of correct additional depdendent steps (tag: additional_cal_dependence)
+        If there is an error, raise it; Otherwise, return True
+    """
+    if len(workflow) > 1:   
+        cal_name_list = [firework["firework_folder_name"] for firework in workflow]
+        
+        #Task I @ copy_which_step
+        for firework in workflow[1:]:
+            if firework["copy_which_step_full_name"] == "None": 
+                #this is the case where it is not the first step but creates its vasp input files from scratch.
+                continue
+            assert firework["copy_which_step_full_name"] in cal_name_list,             "tag copy_which_step in {} refers to a non-existent parent step: {}".format(firework["firework_folder_name"], 
+                                                                                           firework["copy_which_step_full_name"])
+        
+        #Task II @ additional_cal_dependence
+        for firework in workflow[1:]:
+            for dep_cal_name in firework["additional_dependence_full_name"]:
+                assert dep_cal_name in cal_name_list,                 "tag additional_cal_dependence in {} refers to a non-existent additional dependent calculation step: {}".format(
+                    firework["firework_folder_name"], dep_cal_name)
+                
+    return True
+    
+
+
+# In[10]:
 
 
 def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
@@ -146,6 +177,7 @@ def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
     workflow[0]["firework_hierarchy_dict"] = firework_hierarchy_dict
     
     workflow = [Read_Only_Dict.from_dict(firework) for firework in workflow]
+    check_dependent_step_names(workflow)
     
     #import pprint
     #pprint.pprint(workflow)
@@ -324,15 +356,36 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
     #2. tags involved in copying
     firework["copy_from_prev_cal"] = firework.get("copy_from_prev_cal", "")
     firework["copy_from_prev_cal"] = [item.strip() for item in firework["copy_from_prev_cal"].split(",") if item.strip()]
-    if "copy_which_step" in firework.keys():
-        firework["copy_which_step"] = int(firework["copy_which_step"])
-        if firework["copy_which_step"] not in [-1]+[i for i in range(1, step_no)]:
-            raise Exception("step {}: tag copy_which_step should be >=1 and <{}, or ==-1".format(step_no, step_no))
+    if step_no == 1:
+        firework["copy_which_step"] = -1
     else:
-        if step_no == 1:
+        assert "copy_which_step" in firework.keys(), "You forgot to set 'copy_from_prev_cal' in step {}. This tag was optional but is now mandatory if it is not the 1st step.".format(step_no)
+        if firework["copy_which_step"] == "-1":
             firework["copy_which_step"] = -1
+            firework["copy_which_step_full_name"] = "None"
         else:
-            firework["copy_which_step"] = step_no -1
+            if not firework["copy_which_step"].startswith("step_"):
+                output_str = "In step {}: We ask you to now set the full step name (step_i_xxx) to 'copy_which_step' ".format(step_no)
+                output_str += "rather than a step no that was adopted previously. "
+                output_str += "This change will help to check if you are copying essential vasp input and output files "
+                output_str += "from the correct parent calculation step. This is useful especially"
+                output_str += " when you make big changes to the calculation workflow, i.e. insert more steps"
+                output_str += " between existing cal steps or rename some cal steps."
+                output_str += "\n Current setting: {}".format(firework["copy_which_step"])
+                raise Exception(output_str)
+            firework["copy_which_step_full_name"] = firework["copy_which_step"]
+            firework["copy_which_step"] = int(firework["copy_which_step"].split("_")[1])
+            assert 1 <= firework["copy_which_step"] < step_no, "step {}: tag 'copy_which_step should be in >= 1 and < {}, or == -1'".format(step_no, step_no)   
+    #if "copy_which_step" in firework.keys():
+    #    firework["copy_which_step"] = int(firework["copy_which_step"])
+    #    if firework["copy_which_step"] not in [-1]+[i for i in range(1, step_no)]:
+    #        raise Exception("step {}: tag copy_which_step should be >=1 and <{}, or ==-1".format(step_no, step_no))
+    #else:
+    #    if step_no == 1:
+    #        firework["copy_which_step"] = -1
+    #    else:
+    #        firework["copy_which_step"] = step_no -1
+            
     for tag in ["extra_copy", "final_extra_copy"]:
         firework[tag] = firework.get(tag, "")
         file_list = [file_.strip() for file_ in firework[tag].split(",") if file_.strip()]
@@ -471,12 +524,37 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
     
     #8. additional calculation dependence besides those specified by copy_which_step
     if "additional_cal_dependence" in firework.keys():
-        additional_dependence_list = [int(job_step_no) for job_step_no in firework["additional_cal_dependence"].strip().split(",")]
-        for job_step_no in additional_dependence_list:
-            assert 1<=job_step_no<firework["step_no"], "For step {}, cal_dependence should be >=1 and < {}".format(step_no, step_no)
+        additional_dependence_list, additional_dependence_full_name_list = [], []
+        for cal_name in firework["additional_cal_dependence"].strip().split(","):
+            cal_name = cal_name.strip()
+            if cal_name == "": continue
+            if not cal_name.startswith("step_"):
+                output_str = "In step {}: We ask you to now provide the full step name (step_i_xxx, step_j_yyy) to 'additional_cal_dependence' ".format(step_no)
+                output_str += "rather than a step no that was adopted previously. "
+                output_str += "This change will help to check if you are referring to the correct additional dependent"
+                output_str += " calculation step(s). This is useful especially"
+                output_str += " when you make big changes to the calculation workflow, i.e. insert more steps"
+                output_str += " between existing cal steps or rename some cal steps."
+                output_str += "\n current setting: {}".format(firework["additional_cal_dependence"])
+                raise Exception(output_str)
+            else:
+                dependent_step_no = int(cal_name.split("_")[1])
+                assert 1<=dependent_step_no<step_no, "For step {}, cal_dependence should be >=1 and < {}".format(step_no, step_no)
+                additional_dependence_list.append(dependent_step_no)
+                additional_dependence_full_name_list.append(cal_name)
         firework["additional_cal_dependence"] = additional_dependence_list
+        firework["additional_dependence_full_name"] = additional_dependence_full_name_list
+        assert firework["additional_cal_dependence"], "In step {}: Parse nothing from tag additional_cal_dependence. Pls go check.".format(step_no)
     else:
         firework["additional_cal_dependence"] = []
+        firework["additional_dependence_full_name"] = []
+    #if "additional_cal_dependence" in firework.keys():
+    #    additional_dependence_list = [int(job_step_no) for job_step_no in firework["additional_cal_dependence"].strip().split(",")]
+    #    for job_step_no in additional_dependence_list:
+    #        assert 1<=job_step_no<firework["step_no"], "For step {}, cal_dependence should be >=1 and < {}".format(step_no, step_no)
+    #    firework["additional_cal_dependence"] = additional_dependence_list
+    #else:
+    #    firework["additional_cal_dependence"] = []
     
       
         
