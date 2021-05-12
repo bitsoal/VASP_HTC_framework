@@ -15,7 +15,7 @@ import json
 
 __author__ = "Yang Tong"
 __author_email__ = "yangtong@u.nus.edu"
-__version__ = 20210430
+__version__ = 20210512
 
 __doc__ = """
 
@@ -33,13 +33,13 @@ __doc__ = """
   * Put the paths of all packed small jobs into a file, one path each line. Let's call this file 'job_list_file'
     Target those small jobs you want to run with a signal file, say "__packed__"
 
-  * Test run with e.g. 2 nodes, 12 procs per job, 2*24/12=4 simultaneous jobs, 1 hour:
+  * Test run with e.g. 2 nodes, 12 procs per job, 2*24/12=4 simultaneous jobs | computational slots, 1 hour:
     Step 1. Set "select=2:ncpus=24:mpiprocs=2:ompthreads=12" and "walltime=01:00:00" in the job submission script of 
             the large queue job (Or equivalent settings for job schedulers other than PBS queues)
     Step 2. Add the command below to the job submission script:
         "mpirun -np 4 python packjobs.py --r vasp_std --ppj 12 --signal-file __packed__ --job-list-file job_list_file > log 2&1
 
-  * Production run with e.g. 50 nodes, 4 procs per job, 50*24/4=300 simultaneous jobs, 24 hours:
+  * Production run with e.g. 50 nodes, 4 procs per job, 50*24/4=300 simultaneous jobs | computational slots, 24 hours:
     Step 1. Set "select=50:ncpus=24:mpiprocs=6:ompthreads=4" and "walltime=24:00:00" in the job submission script of
             the large queue job (Or equivalent settings for job schedulers other than PBS queues)
     Step 2. Add the command below to the job submission script:
@@ -47,9 +47,15 @@ __doc__ = """
 
 * Notes
 
-  * This script does not read and store all targetted small jobs from job_list_file at the beginning. Instead, it scans
-    job_list_file, and finds and starts running the next targetted small job upon the accomplishment of the last job. 
-    In such a way, this script can respond to your update on job_list_file. Do ensure that job_list_file be always there.
+  * When it is running, this sript introduces a temporary file valid_packed_jobs to store all valid targetted small jobs read 
+    from file job_list_file. This is aimed to balance the job load across the multiple computational slots. When a computational
+    slot finishes the last assigned targetted job, that slot re-reads file job_list_file and re-writes valid targetted small jobs into 
+    file valid_packed_jobs. This way, the valid small jobs are evenly re-distributed across the multiple computational slots.
+
+  * This script does not read and store all targetted small jobs from valid_packed_jobs at the beginning. Instead, it scans
+    valid_packed_jobs, and finds and starts running the next targetted small job upon the accomplishment of the last job.
+    This way, this script can respond to your update on job_list_file. To do so, just delete file valid_packed_jobs after 
+    file job_list_file is updated. Do ensure that job_list_file be always there.
 
   * Do not simultaneously run multiple large queue jobs on the same job folder. One job folder for one large queue job.
     Otherwise, one targetted small job may be run more than once.
@@ -146,10 +152,10 @@ def parse_arguments():
 #                         job_list.append(job_path)
 #     return job_list
 
-# In[24]:
+# In[2]:
 
 
-def check_job_list_file(signal_file, job_list_file):
+def check_job_list_file(signal_file, job_list_file, print_summary=True):
     """
     Print a summary on valid packed jobs targetted with the signal file specified by argument signal_file in file job_list_file
     """
@@ -173,9 +179,10 @@ def check_job_list_file(signal_file, job_list_file):
         for jp in invalid_jobs:
             f.write(jp + "\n")
 
-    output_str = "Among the total of %d jobs in %s, %d are valid and targetted with %s. " % (len(job_path_list), job_list_file, len(valid_jobs), signal_file)
-    output_str += "See 'valid_packed_jobs' and 'invalid_packed_jobs'"
-    print(output_str, flush=True)
+    if print_summary:
+        output_str = "Among the total of %d jobs in %s, %d are valid and targetted with %s. " % (len(job_path_list), job_list_file, len(valid_jobs), signal_file)
+        output_str += "See 'valid_packed_jobs' and 'invalid_packed_jobs'"
+        print(output_str, flush=True)
 
 
 # In[1]:
@@ -215,7 +222,7 @@ def update_rank_status_file(main_dir, rank, new_status, job_path="", status_fold
             open(idle_rank_file, "w").close()
 
 
-# In[19]:
+# In[4]:
 
 
 def find_next_valid_packed_job(rank, size, signal_file, job_list_file):
@@ -268,7 +275,19 @@ def operate_job_id_file(job_path, job_id, action="write"):
     """
     with open(os.path.join(job_path, "packed_job_id"), "w") as f:
         f.write(job_id + "\n")
-                
+
+def operate_lock_file(action="write", lock_file="__locked_valid_packed_jobs_"):
+    assert action in ["write", "clean"], "argument 'action' of function 'operate_lock_file' should be either 'write' or 'clean'"
+    
+    if action == "write":
+        if os.path.isfile(lock_file):
+            return False
+        else:
+            open(lock_file, "w").close()
+            return True
+    else:
+        if os.path.isfile(lock_file):
+            os.remove(lock_file)
 
 
 # In[25]:
@@ -289,11 +308,15 @@ def run_packed_vasp_jobs(rank, size, **kwargs):
             print("%s: __stop__ is detected --> rank %d stops" % (time.ctime(), rank), flush=True)
             break
         
-        job_path = find_next_valid_packed_job(rank, size, signal_file, job_list_file)
+        #job_path = find_next_valid_packed_job(rank, size, signal_file, job_list_file)
+        job_path = find_next_valid_packed_job(rank, size, signal_file, "valid_packed_jobs")
         if job_path == None:
             update_rank_status_file(main_dir, rank, new_status="idle")
-            time.sleep(30)
-            continue
+            if operate_lock_file(action="write"):
+                check_job_list_file(signal_file=signal_file, job_list_file=job_list_file, print_summary=False)
+                operate_lock_file(action="clean")
+            else:
+                time.sleep(30)
         else:
             update_rank_status_file(main_dir, rank, new_status="running", job_path=job_path)
             
