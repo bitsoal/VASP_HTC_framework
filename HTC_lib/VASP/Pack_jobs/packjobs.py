@@ -303,7 +303,13 @@ def run_packed_vasp_jobs(rank, size, **kwargs):
     job_id = kwargs["job_id"]
     
     main_dir = os.getcwd()
-    while count_idle_ranks(main_dir, size) < size: #break if all ranks are idle.
+    count_of_all_ranks_idle = 0
+    while count_of_all_ranks_idle <= 5:
+        if count_idle_ranks(main_dir, size) < size: #break if all ranks are idle.
+            count_of_all_ranks_idle = 0
+        else:
+            count_of_all_ranks_idle += 1            
+            
         if os.path.isfile(os.path.join(main_dir, "__stop__")):
             print("%s: __stop__ is detected --> rank %d stops" % (time.ctime(), rank), flush=True)
             break
