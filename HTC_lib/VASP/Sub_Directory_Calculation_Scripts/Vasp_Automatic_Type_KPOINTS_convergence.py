@@ -501,6 +501,10 @@ def find_converged_NL(argv_dict):
                 Nk_IRBZ = int(re.findall("[0-9]+", next(ibzkpt))[0])
                 if Nk_IRBZ not in Nk_IRBZ_dict.keys():
                     Nk_IRBZ_dict[Nk_IRBZ] = {"NL": NL}
+                else:
+                    print("NL=%d has the same Nk_IRBZ=%d as NL=%d. Skip NL=%d\nCreate __multiple_NLs_to_one_Nk_IRBZ__" % (NL, Nk_IRBZ, Nk_IRBZ_dict[Nk_IRBZ]["NL"], NL))
+                    open("__multiple_NLs_to_one_Nk_IRBZ__", "w").close()
+                    continue
             except:
                 open("__fail_to_parse_the_number_of_k_points_in_IRBZ_from_{}__".format(sub_dir_name + "_IBZKPT"), "w").close()
                 return 0
@@ -529,18 +533,18 @@ def find_converged_NL(argv_dict):
     
     if argv_dict["convergence_type"] == "aver":
         average_energy_list, max_dev_list, max_diff_list = [], [], []
-        if len(argv_dict["NL_list"]) < argv_dict["no_of_consecutive_convergences"]:
+        if len(sorted_Nk_IRBZ_list) < argv_dict["no_of_consecutive_convergences"]:
             open("__no_enough_data_points_to_estimate_the_average_energy__", "w").close()
             return 0
         else:
-            for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
+            for start_ind in range(len(sorted_Nk_IRBZ_list) - argv_dict["no_of_consecutive_convergences"] + 1):
                 compound_energy_list = [Nk_IRBZ_dict[nk_irbz]["energy"] for nk_irbz in sorted_Nk_IRBZ_list[start_ind:]]
                 average_energy_list.append(sum(compound_energy_list) / len(compound_energy_list))
                 max_diff_list.append(max(compound_energy_list) - min(compound_energy_list))
                 max_dev_list.append(max([abs(energy - average_energy_list[-1]) for energy in compound_energy_list]))
                 
         with open("Nk_IRBZ_VS_E0_Summary.dat", "a") as summary:
-            for start_ind in range(len(argv_dict["NL_list"]) - argv_dict["no_of_consecutive_convergences"] + 1):
+            for start_ind in range(len(sorted_Nk_IRBZ_list) - argv_dict["no_of_consecutive_convergences"] + 1):
                 summary.write("\nNk_IRBZ\tNL\tE0\tdeviation from average\n")
                 for d_ind in range(len(sorted_Nk_IRBZ_list[start_ind:])):
                     nk_irbz_ = sorted_Nk_IRBZ_list[start_ind+d_ind]
