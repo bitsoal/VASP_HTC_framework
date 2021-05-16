@@ -17,4 +17,3 @@
 
 8. read e_fermi and set EMIN & EMAX for DOS calculations.  
 
-9. change `copy_which_step` from a step number to the corresponding full step name.   
