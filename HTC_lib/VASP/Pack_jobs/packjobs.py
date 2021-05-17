@@ -222,7 +222,7 @@ def update_rank_status_file(main_dir, rank, new_status, job_path="", status_fold
             open(idle_rank_file, "w").close()
 
 
-# In[4]:
+# In[1]:
 
 
 def find_next_valid_packed_job(rank, size, signal_file, job_list_file):
@@ -286,8 +286,10 @@ def operate_lock_file(action="write", lock_file="__locked_valid_packed_jobs_"):
             open(lock_file, "w").close()
             return True
     else:
-        if os.path.isfile(lock_file):
+        try: #avoid the case where multiple ranks simultaneously try to delete this file.
             os.remove(lock_file)
+        except FileNotFoundError:
+            pass
 
 
 # In[25]:
