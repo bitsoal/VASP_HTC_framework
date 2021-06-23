@@ -183,10 +183,14 @@ class Job_management():
     
     def find_queue_id(self):
         assert os.path.isfile(self.queue_id_file), "Error: cannot find {} to parse queue id under {}".format(self.queue_id_file, self.cal_loc)
-        with open(self.queue_id_file, "r") as f:
-            line = next(f)
-        m = re.findall(self.re_to_queue_id, line)
-        assert len(m)==1, "Error: {}\n\t\t\tfail to parse queue ID Given {}".format(self.cal_loc, self.re_to_queue_id)
+        try:
+            with open(self.queue_id_file, "r") as f:
+                line = next(f)
+            m = re.findall(self.re_to_queue_id, line)
+            assert len(m)==1, "Error: {}\n\t\t\tfail to parse queue ID Given {}".format(self.cal_loc, self.re_to_queue_id)
+        except:
+            print("There's something wrong with file job_id under {}".format(cal_loc))
+            raise
         return m[0]
         
 
