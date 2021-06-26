@@ -189,7 +189,7 @@ class Job_management():
             m = re.findall(self.re_to_queue_id, line)
             assert len(m)==1, "Error: {}\n\t\t\tfail to parse queue ID Given {}".format(self.cal_loc, self.re_to_queue_id)
         except:
-            print("There's something wrong with file job_id under {}".format(cal_loc))
+            print("There's something wrong with file job_id under {}".format(self.cal_loc))
             raise
         return m[0]
         
