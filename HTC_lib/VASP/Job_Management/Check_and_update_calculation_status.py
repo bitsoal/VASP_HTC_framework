@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[6]:
+# In[1]:
 
 
 import os, sys, time, random
@@ -144,6 +144,12 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
     elif which_status == "done_folder_list":
         cal_status_diff_list = []
         for cal_loc in job_list:
+            old_cal_status = {"done_folder_list": [cal_loc]}
+            if not os.path.isdir(cal_loc):
+                new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=[])
+                cal_status_diff_list.append(Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status))
+                continue
+            
             if debugging:
                 if isinstance(rank, int):
                     print("{}: process {} cleans|analyzes complete cal under {}".format(get_time_str(), rank, cal_loc), flush=True)
@@ -151,7 +157,7 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
                     print("{}: cleans|analyzes complete cal under {}".format(get_time_str(), cal_loc), flush=True)
                 assert os.path.isfile(os.path.join(cal_loc, "__done__")), "{}: The status of the following job is not __done__: {}".format(get_time_str(), cal_loc)
             clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=[cal_loc], workflow=workflow)
-            old_cal_status = {"done_folder_list": [cal_loc]}
+            #old_cal_status = {"done_folder_list": [cal_loc]}
             if os.path.isfile(os.path.join(get_mat_folder_name_from_cal_loc(cal_loc), "__complete__")):
                 new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=[])
             else:
