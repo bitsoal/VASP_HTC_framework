@@ -214,6 +214,8 @@ def are_all_cal_done(cal_folder_list):
                         os.rename(src=error_folder, dst=os.path.join(cal_folder, "relax_"+error_folder_name))
                 for backup_file in ["INCAR", "POSCAR", "CONTCAR", "KPOINTS", "OSZICAR", "OUTCAR"]:
                     shutil.copyfile(os.path.join(cal_folder, backup_file), os.path.join(cal_folder, "relax_"+backup_file))
+                if os.path.isfile(os.path.join(cal_folder, "out")):
+                    shutil.copyfile(os.path.join(cal_folder, "out"), os.path.join(cal_folder, "relax_out"))
                 print("under %s, the structural optimization finished. --> Backup the relevant input and output files/directories (prefix: relax_) and start scf cal." % cal_folder)
                 shutil.move(os.path.join(cal_folder, "CONTCAR"), os.path.join(cal_folder, "POSCAR"))
                 with open(os.path.join(cal_folder, "INCAR"), "w") as f:
