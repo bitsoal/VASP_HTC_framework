@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[28]:
+# In[1]:
 
 
 # coding: utf-8
@@ -248,12 +248,34 @@ def make_interpolation(status_dict):
     min_energy = min(interpolated_energy_list)
     scaling_factor_for_min_energy = fine_scaling_list[list(interpolated_energy_list).index(min_energy)]
     
+    #Check if the interpolation curve is monotonic/concave.
+    is_interpolation_suspicious = False
+    reduced_slope_sign_list = [100]
+    for energy_0, energy_1 in zip(interpolated_energy_list[:-1], interpolated_energy_list[1:]):
+        energy_diff = energy_1 - energy_0
+        if energy_diff > 0:
+            sign = 1
+        elif energy_diff < 0:
+            sign = -1
+        else:
+            sign = 0
+        if sign != reduced_slope_sign_list[-1]:
+            reduced_slope_sign_list.append(sign)
+    reduced_slope_sign_list = reduced_slope_sign_list[1:]
+    if reduced_slope_sign_list not in [[-1], [1], [-1, 1]]:
+        is_interpolation_suspicious = True
+    
     with open("interpolated_data.json", "w") as f:
         json.dump({"DFT data": {"scaling list": status_dict["scaling list"], "energy list": energy_list}, 
                    "interpolation data":{"scaling list": list(fine_scaling_list), "energy list": list(interpolated_energy_list), 
                                          "prediction": [scaling_factor_for_min_energy, min_energy]}}, f, indent=4)
     
     print("All DFT calculations at {} finished, based on which the interpolated optimal scaling factor and its interpolated energy are {} and {}, respectively".format(status_dict["scaling list"], scaling_factor_for_min_energy, min_energy))
+    
+    if is_interpolation_suspicious:
+        open("__manual__", "w").close()
+        print("However, the interpolation curve is neither monotonic nor concave. The reduced slope sign list is {}. Create __manual__ and go check.".format(reduced_slope_sign_list))
+    
     return scaling_factor_for_min_energy, min_energy
 
 def verify_interpolated_result(status_dict, tot_no_of_atoms):
@@ -327,6 +349,16 @@ def opt_lattice_constant(scaling_list, opt_which_latt_vec, tol_setup):
         status_dict["interpolated result"] = [interpolated_scaling_factor, interpolated_result]
         status_dict["verification folder"] = "verification_folder"
         write_cal_status(status_dict=status_dict)
+        
+        if interpolated_scaling_factor in status_dict["scaling list"]:
+            sub_dirname = "case_"+str(interpolated_scaling_factor)
+            shutil.copyfile(src=os.path.join(sub_dirname, "OSZICAR"), dst=os.path.join("verification_folder", "OSZICAR"))
+            shutil.copyfile(src=os.path.join(sub_dirname, "INCAR"), dst=os.path.join("verification_folder", "INCAR"))
+            os.rename(src=os.path.join("verification_folder", "__ready__"), dst=os.path.join("verification_folder", "__done__"))
+            open(os.path.join("verification_folder", "__copy_incar_oszicar_from_{}__".format(sub_dirname)), "w").close()
+            print("Since the interpolated scaling factor (Scal_inter) is already in the scaling factor list based on which Scal_inter is obtained,", end=" ")
+            print("we do not need to repeat the same calculation. Just copy INCAR and OSZICAR from {} to verification_folder, ".format(sub_dirname), end=" ")
+            print("and under folder verification_folder rename __ready__ to __done__ and create file __copy_incar_oszicar_from_{}__".format(sub_dirname))
     
     if status_dict["verification folder"]:
         if are_all_cal_done([status_dict["verification folder"]]) == False:
