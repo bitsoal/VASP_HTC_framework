@@ -239,6 +239,13 @@ def make_interpolation(status_dict):
     with open("Energy_summary.dat", "w") as f:
         for scaling_factor, energy in zip(status_dict["scaling list"], energy_list):
             f.write('%f    %f\n' % (scaling_factor, energy))
+    plt.plot(status_dict["scaling list"], energy_list, "o--")
+    plt.xlabel("scaling factor")
+    plt.ylabel("energy")
+    plt.title("scaling-E curve obtained by DFT calculations.")
+    plt.tight_layout()
+    plt.savefig("DFT_scaling_Energy_curve.png", format="png")
+            
     tck = interpolate.splrep(status_dict["scaling list"], energy_list, s=0)
     
     max_scaling, min_scaling = max(status_dict["scaling list"]), min(status_dict["scaling list"])
