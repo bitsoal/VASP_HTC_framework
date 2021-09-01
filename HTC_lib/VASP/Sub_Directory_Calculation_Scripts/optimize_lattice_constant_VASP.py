@@ -300,7 +300,7 @@ def verify_interpolated_result(status_dict, tot_no_of_atoms):
     is_grd_state_found = (energy_diff <= tot_tol)
         
     plt.cla()
-    plt.scatter(data_summary_dict["interpolation data"]["prediction"][0], data_summary_dict["interpolation data"]["prediction"][1], s=3, color="lime", label="interpolated optimal point", marker="d")
+    plt.plot(data_summary_dict["interpolation data"]["prediction"][0], data_summary_dict["interpolation data"]["prediction"][1], "d", color="lime", label="interpolated optimal point")
     plt.plot(status_dict["scaling list"], data_summary_dict["DFT data"]["energy list"], "o", label="DFT data")
     plt.plot(data_summary_dict["interpolation data"]["scaling list"], data_summary_dict["interpolation data"]["energy list"], "r-", label="cubic spline interpolation")
     plt.xlabel("scaling factor")
