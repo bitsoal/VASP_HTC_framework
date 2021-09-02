@@ -239,21 +239,24 @@ def make_interpolation(status_dict):
     with open("Energy_summary.dat", "w") as f:
         for scaling_factor, energy in zip(status_dict["scaling list"], energy_list):
             f.write('%f    %f\n' % (scaling_factor, energy))
-    plt.plot(status_dict["scaling list"], energy_list, "o--")
-    plt.xlabel("scaling factor")
-    plt.ylabel("energy")
-    plt.title("scaling-E curve obtained by DFT calculations.")
-    plt.tight_layout()
-    plt.savefig("DFT_scaling_Energy_curve.png", format="png")
             
     tck = interpolate.splrep(status_dict["scaling list"], energy_list, s=0)
     
     max_scaling, min_scaling = max(status_dict["scaling list"]), min(status_dict["scaling list"])
     extension =  (max_scaling - min_scaling) / (len(status_dict["scaling list"]) - 1) / 2.5
-    fine_scaling_list = np.arange(min_scaling-extension, max_scaling+extension, 0.001)
+    fine_scaling_list = np.arange(min_scaling-extension, max_scaling+extension, 0.0001)
     interpolated_energy_list = interpolate.splev(fine_scaling_list, tck, der=0)
     min_energy = min(interpolated_energy_list)
     scaling_factor_for_min_energy = fine_scaling_list[list(interpolated_energy_list).index(min_energy)]
+    
+    plt.plot(status_dict["scaling list"], energy_list, "o--", label="DFT data")
+    plt.plot(fine_scaling_list, interpolated_energy_list, "r-", label="cubic spline interpolation" )
+    plt.xlabel("scaling factor")
+    plt.ylabel("energy")
+    plt.title("scaling-E curve obtained by DFT calculations.")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("interpolation_fig_no_DFT_verification.png", format="png")
     
     #Check if the interpolation curve is monotonic/concave.
     is_interpolation_suspicious = False
@@ -271,6 +274,17 @@ def make_interpolation(status_dict):
     reduced_slope_sign_list = reduced_slope_sign_list[1:]
     if reduced_slope_sign_list not in [[-1], [1], [-1, 1]]:
         is_interpolation_suspicious = True
+        
+    if reduced_slope_sign_list not in [[-1], [1]]:
+        print("Since the interpolated curve is not monotonic, the search of the interpolated minimum is constrained in between the smallest and largest DFT-tested scaling factors.")
+        min_energy_ind, min_energy = 0, max(energy_list)
+        for scaling_ind, scaling in enumerate(fine_scaling_list):
+            if min_scaling <= scaling <= max_scaling:
+                if interpolated_energy_list[scaling_ind] < min_energy:
+                    min_energy_ind, min_energy = scaling_ind, interpolated_energy_list[scaling_ind]
+        scaling_factor_for_min_energy = fine_scaling_list[min_energy_ind]
+    else:
+        print("Since the interpolated curve is monotonic, the search scope for minium includes the extropolation range.")
     
     with open("interpolated_data.json", "w") as f:
         json.dump({"DFT data": {"scaling list": status_dict["scaling list"], "energy list": energy_list}, 
