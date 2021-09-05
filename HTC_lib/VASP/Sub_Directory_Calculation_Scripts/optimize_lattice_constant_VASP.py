@@ -315,7 +315,8 @@ def verify_interpolated_result(status_dict, tot_no_of_atoms):
         
     plt.cla()
     plt.plot(data_summary_dict["interpolation data"]["prediction"][0], data_summary_dict["interpolation data"]["prediction"][1], "d", color="lime", label="interpolated optimal point")
-    plt.plot(status_dict["scaling list"], data_summary_dict["DFT data"]["energy list"], "o", label="DFT data")
+    plt.plot(data_summary_dict["interpolation data"]["prediction"][0], verified_energy, "o", color="orange", label="DFT verification")
+    plt.plot(status_dict["scaling list"], data_summary_dict["DFT data"]["energy list"], "o", color="red", label="DFT data")
     plt.plot(data_summary_dict["interpolation data"]["scaling list"], data_summary_dict["interpolation data"]["energy list"], "r-", label="cubic spline interpolation")
     plt.xlabel("scaling factor")
     plt.ylabel("energy")
