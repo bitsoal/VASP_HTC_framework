@@ -508,6 +508,26 @@ def find_NGXF_NGYF_NGZF_from_OUTCAR(cal_loc="."):
     return [int(value) for value in re.findall("[0-9]+", line)]
 
 
+# In[1]:
+
+
+def find_LPEAD_from_OUTCAR(cal_loc="."):
+    """
+    Find LPEAD from OUTCAR.
+    input arguments:
+        -cal_loc (str): the location of the calculation. Default: "."
+    return True if LPEAD = T; return False otherwise.
+    """
+    LPEAD = False
+    with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:
+        for line in f:
+            if "LPEAD" in line:
+                LPEAD = line.split("=")[1].strip().startswith("T")
+                break
+    
+    return LPEAD
+
+
 # In[21]:
 
 
@@ -533,7 +553,8 @@ def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
                       "ICHARG": find_ICHARG_from_OUTCAR,
                       "FERMI": find_FERMI_from_OUTCAR, 
                       "LREAL": find_LREAL_from_OUTCAR, 
-                      "NG_X_Y_Z_F": find_NGXF_NGYF_NGZF_from_OUTCAR
+                      "NG_X_Y_Z_F": find_NGXF_NGYF_NGZF_from_OUTCAR, 
+                      "LPEAD": find_LPEAD_from_OUTCAR
                      }
     tag = tag.upper()
     assert tag in find_func_dict.keys(), "Error: currently don't support the search for {} in OUTCAR".format(tag)

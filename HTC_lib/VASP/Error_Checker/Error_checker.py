@@ -65,12 +65,13 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__real_optlay__": Vasp_out_real_optlay, 
                           "__bader_charge__": Bader_Charge, 
                           "__pzunmtr_or_pzstein__": Vasp_out_pzunmtr_or_pzstein, 
-                          "__nkx_gt_ikptd__": Vasp_out_nkx_gt_ikptd}
+                          "__nkx_gt_ikptd__": Vasp_out_nkx_gt_ikptd, 
+                          "__pead__": Vasp_out_pead}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__bader_charge__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
     after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
-    after_cal += ["__pzunmtr_or_pzstein__", "__nkx_gt_ikptd__"]
+    after_cal += ["__pzunmtr_or_pzstein__", "__nkx_gt_ikptd__", "__pead__"]
     after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
     
     
@@ -1095,6 +1096,93 @@ class Vasp_out_zbrent(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         shutil.copyfile(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
         
         super(Vasp_out_zbrent, self).write_correction_log(new_incar_tags=new_tags, new_filenames={"CONTCAR": "POSCAR"})
+
+        return True
+                        
+
+
+# In[15]:
+
+
+class Vasp_out_pead(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Target file: vasp.out or the one specified by tag vasp.out
+    Target error string: "Your generating k-point grid is not commensurate to the symmetry" 
+                        && "of the lattice.  This does not sit well in combination with the"
+                        && "PEAD routines, sorry ..."
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow.
+    check method: return True, if not found; return False and write error logs otherwise.
+    correct method: remove INCAR tag LPEAD
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str_list = ["Your generating k-point grid is not commensurate to the symmetry", 
+                                "of the lattice.  This does not sit well in combination with the", 
+                                "PEAD routines, sorry ..."]
+        
+        
+    def check(self):
+        """
+        Return:
+            - False if an error is found;
+            - True otherwise.
+        """        
+        #this method is not active until the job is done
+        if Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files() == [None, None]:
+            return True
+        
+        #Since the job is done, vasp.out must exist
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            super(Vasp_out_pead, self).write_file_absence_log(filename_list = [self.target_file], 
+                                                                initial_signal_file="__running__", 
+                                                                final_signal_file="__error__")
+            return False
+        
+        no_error_list = []
+        for target_str in self.target_str_list:
+            no_error_list.append(find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=target_str))
+            
+        if False in no_error_list:
+            return True
+        else:
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+            self.write_error_log()
+            return False
+    
+            
+    def write_error_log(self):
+        super(Vasp_out_pead, self).write_error_log(target_error_str=self.target_str_list, error_type="__pead__")
+    
+    def correct(self):
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
+            super(Vasp_out_pead, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+                
+        LPEAD = find_incar_tag_from_OUTCAR(tag="LPEAD", cal_loc=self.cal_loc)
+        if LPEAD == False: #This error seems to be incured only when LPEAD is set to True.
+            return False
+        
+        super(Vasp_out_pead, self).backup()
+        
+        #modify_vasp_incar(cal_loc=self.cal_loc, new_tags=new_tags, rename_old_incar=False)
+        modify_vasp_incar(cal_loc=self.cal_loc, remove_tags=["LPEAD"], rename_old_incar=False, 
+                          incar_template=self.workflow[0]["incar_template_list"], 
+                          valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
+        
+        
+        super(Vasp_out_pead, self).write_correction_log(remove_incar_tags=["LPEAD"])
 
         return True
                         
