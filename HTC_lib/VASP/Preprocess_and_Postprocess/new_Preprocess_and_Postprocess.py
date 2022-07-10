@@ -159,8 +159,9 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                 with open(log_txt, "a") as f:
                     f.write("\t\t\t{}\n".format(file))
                     
-        if current_firework["step_no"] == 1:
-            shutil.copy(src=os.path.join(cif_folder, cif_filename), dst=os.path.join(mater_cal_folder, cif_filename))
+        if current_firework["copy_which_step"] == -1:
+            if current_firework["step_no"] == 1:
+                shutil.copy(src=os.path.join(cif_folder, cif_filename), dst=os.path.join(mater_cal_folder, cif_filename))
             Write_Vasp_POSCAR(cal_loc=current_cal_loc, structure_filename=cif_filename, structure_file_folder=cif_folder, 
                               workflow=workflow)
         else:

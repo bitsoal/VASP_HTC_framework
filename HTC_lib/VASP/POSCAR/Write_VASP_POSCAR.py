@@ -26,9 +26,9 @@ def Write_Vasp_POSCAR(cal_loc, structure_filename, structure_file_folder, workfl
         First of all, run commands defined by tag poscar_cmd. Of course, there will be no any commands to run if poscar_cmd is not set.
         Then, check the existence of POSCAR:
             If no POSCAR in cal_loc, write POSCAR:
-                If tag sort_structure is on, struture_filename under structure_file_folder is assumed in the form of POSCAR.
+                If tag sort_structure is off, struture_filename under structure_file_folder is assumed in the form of POSCAR.
                     In this case, just copy the file and rename it as POSCAR
-                If tag sort_structure is off, write POSCAR using pymatgen.Structure
+                If tag sort_structure is on, write POSCAR using pymatgen.Structure
             If POSCAR is present, nothing will be done.
     Input arguments:
         cal_loc (str): the absolute path of the calculation folders
