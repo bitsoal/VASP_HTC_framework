@@ -17,7 +17,7 @@ if HTC_package_path not in sys.path:
 ##############################################################################################################
 
 from pymatgen.io.vasp.outputs import Oszicar, Vasprun
-from pymatgen import Structure
+from pymatgen.core import Structure
 
 import numpy as np
 

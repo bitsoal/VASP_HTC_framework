@@ -13,7 +13,7 @@ from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 from HTC_lib.VASP.POSCAR.POSCAR_IO_functions import read_poscar
 from HTC_lib.VASP.Miscellaneous.Utilities import get_current_firework_from_cal_loc, get_time_str
 
-from pymatgen import Structure
+from pymatgen.core import Structure
 
 
 # In[2]:

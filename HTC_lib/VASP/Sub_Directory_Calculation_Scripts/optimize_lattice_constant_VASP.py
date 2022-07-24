@@ -36,7 +36,7 @@ from scipy import interpolate
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pymatgen import Structure #For testing purpose
+from pymatgen.core import Structure #For testing purpose
 
 
 # In[2]:

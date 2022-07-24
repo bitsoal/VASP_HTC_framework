@@ -12,7 +12,7 @@ if  os.path.isdir(HTC_package_path) and HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
 
 from pymatgen.io.vasp.sets import MPRelaxSet, MPNonSCFSet, MPStaticSet
-from pymatgen import Structure
+from pymatgen.core import Structure
 from pymatgen.symmetry.bandstructure import HighSymmKpath
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str,  find_next_name, decorated_os_rename, get_current_firework_from_cal_loc

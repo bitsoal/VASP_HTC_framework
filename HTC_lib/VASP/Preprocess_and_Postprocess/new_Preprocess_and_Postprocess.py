@@ -15,7 +15,7 @@ if HTC_package_path not in sys.path:
     sys.path.append(HTC_package_path)
 ##############################################################################################################
 
-from pymatgen import Structure
+from pymatgen.core import Structure
 
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, copy_and_move_files, find_next_name, decorated_os_rename#, get_current_firework_from_cal_loc
 from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
