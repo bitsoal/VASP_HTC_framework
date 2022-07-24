@@ -63,7 +63,8 @@ if setup:
     print("You need to set variable 'POTCAR_loc' in write_potcar.sh to the absolute path to the POTCAR folder")
     print("Pls ensure that the POTCAR of each atomic species in the POTCAR folder is named as merely the name of that atomic species.")
     print("e.g. O is the POTCAR associated with Oxygen; V is the POTCAR associated with Vanadium")
-    print("If you want to use V_sv, also rename it as V.\n")
+    print("If you want to use V_sv, also rename it as V.")
+    print("We prepared a bash script (\HTC_lib\VASP\POTCAR\vasp_recommended_paw_psp.sh) to faciliate the POTCAR preparation for each atomic species.\n")
         
     print("You can find the main python sript htc_main.py under {}".format(os.path.join(os.getcwd(), "VASP")))
     print("What's next:")
