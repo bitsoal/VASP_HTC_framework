@@ -66,7 +66,8 @@ def choose_ispin_based_on_prev_cal(current_cal_loc, prev_cal_step, mag_threshold
             log_f.write("\t\t\tCreate files __manual__ and __non_spin_polarized_prev_cal__\n")
         open(os.path.join(current_cal_loc, "__manual__"), "w").close()
         open(os.path.join(current_cal_loc, "__non_spin_polarized_prev_cal__"), "w").close()
-        return False
+        #return False
+        return 1, 0  #The 1st entry: The ISPIN value of the current calculation step; The 2nd entry: Since the previous calculation is non-spin polarized, the total magnetic moement should be zero.
     
     #special case 4
     if not os.path.isfile(prev_OSZICAR_path):
