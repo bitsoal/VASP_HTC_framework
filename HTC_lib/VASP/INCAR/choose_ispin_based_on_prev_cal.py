@@ -63,7 +63,8 @@ def choose_ispin_based_on_prev_cal(current_cal_loc, prev_cal_step, mag_threshold
         with open(os.path.join(current_cal_loc, "log.txt"), "a") as log_f:
             log_f.write("{}: You are trying to set ispin of the current step based on the previous calculation of {}\n".format(get_time_str(), prev_cal_step))
             log_f.write("\t\t\tHowever, the previous calculation is non-spin-polarized\n")
-            log_f.write("\t\t\tCreate files __manual__ and __non_spin_polarized_prev_cal__\n")
+            log_f.write("\t\tNotwitdhstanding, let's assume the total magnetic moment of the previous step is 0.\n")
+            log_f.write("\t\t\tCreate files __manual__ and __non_spin_polarized_prev_cal__ as a warning signal for you to check if this is what you want\n")
         open(os.path.join(current_cal_loc, "__manual__"), "w").close()
         open(os.path.join(current_cal_loc, "__non_spin_polarized_prev_cal__"), "w").close()
         #return False
