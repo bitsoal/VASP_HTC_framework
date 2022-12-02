@@ -224,10 +224,20 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                 f.write("\t\t\t__vis__ --> __sub_dir_cal__\n")
             return True
         
+        
+        is_there_file_manual = False
+        if os.path.isfile(os.path.join(current_cal_loc, "__non_spin_polarized_prev_cal__")):
+            output_str = "But it seems that file __non_spin_polarized_prev_cal__ was created during the input file preparation. File __manual__ is created to ask you to check whether it is correct if the referenced previous step is non-spin polarized.\n"
+            open(os.path.join(current_cal_loc, "__manual__"), "w").close()
+            is_there_file_manual = True
+            
         decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__ready__")
         with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:
             f.write("{} INFO: All VASP input files are ready at {}\n".format(get_time_str(), current_firework["firework_folder_name"]))
             f.write("\t\t\t__vis__ --> __ready__\n")
+            if is_there_file_manual:
+                f.write("\t\t\t"+output_str)
+            
 
 
 # In[4]:
