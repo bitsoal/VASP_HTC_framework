@@ -484,6 +484,8 @@ if __name__ == "__main__":
                     break #Will be handled at the start of the external while loop
                 else:
                     time.sleep(10)
+                while os.path.isfile(os.path.join(main_dir, "__forced_sleep__")):
+                    time.sleep(10) 
             while_loop_t0 = time.time()
         synchron(comm, rank, size)
         if os.path.isfile(update_input_file_path):

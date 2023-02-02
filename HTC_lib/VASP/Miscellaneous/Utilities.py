@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[2]:
 
 
-import os, time, shutil, re, json
+import os, time, shutil, re, json, filecmp
 import subprocess
 
 
@@ -359,4 +359,17 @@ def write_cal_status(cal_status, filename):
                 f.write("#{}\n".format(get_time_str()))
                 for job in job_list:
                     f.write(job + "\n")
+
+
+# In[ ]:
+
+
+def are_2_files_the_same(filename_1, filename_2):
+    status_of_file_1 = os.path.isfile(filename_1)
+    status_of_file_2 = os.path.isfile(filename_2)
+    
+    if status_of_file_1 and status_of_file_2:
+        return (status_of_file_1, status_of_file_2, filecmp.cmp(filename_1, filename_2, shallow=False))
+    else:
+        return (status_of_file_1, status_of_file_2, False)
 

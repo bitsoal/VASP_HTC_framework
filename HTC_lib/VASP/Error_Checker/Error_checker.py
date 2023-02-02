@@ -22,7 +22,7 @@ from pymatgen.core import Structure
 import numpy as np
 
 from HTC_lib.VASP.Miscellaneous.Query_from_OUTCAR import find_incar_tag_from_OUTCAR
-from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, search_file, decorated_os_rename, get_current_firework_from_cal_loc
+from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str, search_file, decorated_os_rename, get_current_firework_from_cal_loc, are_2_files_the_same
 from HTC_lib.VASP.INCAR.Write_VASP_INCAR import get_bader_charge_tags
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 from HTC_lib.VASP.POTCAR.potcar_toolkit import Potcar
@@ -271,7 +271,11 @@ class Vasp_Error_Saver(object):
             latest_sub_error_folder = os.path.join(self.error_folder, "error_"+str(error_times))
             latest_std = Queue_std_files(cal_loc=latest_sub_error_folder, workflow=self.workflow).find_std_files()
             curr_std = Queue_std_files(cal_loc=self.cal_loc, workflow=self.workflow).find_std_files()
-            if latest_std == curr_std:
+            
+            outcar_cmp = are_2_files_the_same(os.path.join(latest_sub_error_folder, "OUTCAR"), os.path.join(self.cal_loc, "OUTCAR"))
+            incar_cmp  = are_2_files_the_same(os.path.join(latest_sub_error_folder, "INCAR"),  os.path.join(self.cal_loc, "INCAR"))
+            
+            if latest_std == curr_std and outcar_cmp[-1] and incar_cmp[-1]:
                 return "error_"+str(error_times)
             else:
                 return "error_"+str(error_times+1)
