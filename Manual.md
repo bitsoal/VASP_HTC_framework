@@ -29,7 +29,7 @@
 
 ### Package Setup and Execution:
 
-1. This package currently relies on [pymatgen](http://pymatgen.org/index.html). Make sure it has been installed.
+1. This package currently relies on [pymatgen](http://pymatgen.org/index.html). Make sure it has been installed. pymatgen.2022.11.7 or earlier versions will do.
 2. enter `HTC_lib` and you will find a file named `setup.py`. run `python setup.py` to set up this package. 
 3. The main program script: `htc_main.py` & `htc_main_mpi.py`
    - `htc_main.py` is under `HTC_lib/VASP`.  
@@ -315,10 +315,8 @@ The directory structure of a HTC is illustrated in the figure below.
   *Note that this tag is meaningless for the first firework*  
   *In a workflow, if there are more than one fireworks that depend on the output of the same calculation and are independent of one another, the calculations defined by them will be carried out simultaneously.*    
   *For any calculation step/firework with `copy_which_step=-1``, POSCAR will be written according to `sort_structure` prescribed in the first calculation/firework.*     
-
+  
   **In old versions, `copy_which_step` was an optional tag, to which the step no of the parent calculation step was passed (e.g. `copy_which_step=2`). Now, however, this tag is mandatory and must be set to the full name of the parent calculation step (format: `step_i_xyz`). This change aims to ensure that you always copy (move) files from the correct parent calculation step according to `copy_from_prev_cal` (`move_from_prev_cal`), especially when you make big changes to `HTC_calculation_setup_file` or `HTC_calculation_setup_folder`, i.e. inserting more steps between existing calculation steps or renaming existing calculation steps.**    
-  
-  
 
 -------------------------------
 
