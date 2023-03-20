@@ -74,6 +74,10 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
         new_incar_tags.update(generate_Hubbard_U_J_INCAR_tags(cal_loc=cal_loc, U_J_table_filename=firework["ldau_u_j_table"]))
     if "NBANDS" in new_incar_tags:
         new_incar_tags["NBANDS"] = get_nbands(cal_loc=cal_loc, nbands_in_add_new_incar_tags_subblk=new_incar_tags["NBANDS"])
+    if "EMAX" in new_incar_tags:
+        new_incar_tags["EMAX"] = cal_emax_or_emin(cal_loc=cal_loc, emax_or_emin_setup=new_incar_tags["EMAX"], incar_tag="EMAX")
+    if "EMIN" in new_incar_tags:
+        new_incar_tags["EMIN"] = cal_emax_or_emin(cal_loc=cal_loc, emax_or_emin_setup=new_incar_tags["EMIN"], incar_tag="EMIN")
     if new_incar_tags or remove_incar_tags:
         if write_INCAR:
             modify_vasp_incar(cal_loc=cal_loc, new_tags=new_incar_tags, rename_old_incar="INCAR.pymatgen", remove_tags=remove_incar_tags, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
@@ -396,4 +400,67 @@ def get_lmaxmix(cal_loc):
             log_f.write("\t\t\tSo LMAXMIX will be set to 2 (Default value)\n")
         return 2
     
+
+
+# In[1]:
+
+
+def cal_emax_or_emin(cal_loc, emax_or_emin_setup, incar_tag):
+    """
+    People are usually interested in the density of states around the Fermi level. But materials may significantly differ in the 
+    Fermi level from one to another. As such, it is hard to set EMAX and EMIN to specific numbers. This function would allow us 
+    to set EMAX and EMIN with respect to the Fermi level decided from the previous calculation step.
+    *cal_loc (str): the absolute path to the calculation
+    *emax_or_emin_setup (str): It is the value assigned to EMAX or EMIN, and has any of below formats: 
+        EMAX = Efermi@step_x_xyz + 5 #The Fermi level of step_x_xyz will be read and used to decide EMAX
+        EMIN = Efermi@step_w_lmn - 4 #The Fermi level of step_w_lmn will be read and used to decide EMIN
+        Note: Sign "+", "-", "*" and "/" will be used to split emax_or_emin_setup and identify the previous calculation step
+                
+        EMAX = number #This function has nothing to do with EMAX
+        EMIN = number #This function has nothing to do with EMIN
+    
+    *incar_tag (str): either "EMIN" or "EMAX"
+        
+    return:
+        The calculated EMAX or EMIN will be returned in a float format
+    """
+    
+    if "Efermi@step" not in emax_or_emin_setup:
+        return float(emax_or_emin_setup)
+    
+    prev_step_name = emax_or_emin_setup.strip()
+    for sign in ["+", "-", "*", "/"]:
+        for item in prev_step_name.split(sign):
+            item = item.strip()
+            if "Efermi@" in item:
+                prev_step_name = item
+                break
+    prev_step_name = prev_step_name.split("@")[1]
+    
+    mater_folder = cal_loc
+    while True:
+        mater_folder, tail = os.path.split(mater_folder)
+        if tail.startswith("step_"):
+            break
+    
+    with open(os.path.join(cal_loc, "log.txt"), "a") as log_f:
+        log_f.write("{}: We notice that {} has been set to {}.\n".format(get_time_str(), incar_tag, emax_or_emin_setup))
+        log_f.write("\t\t\tTrying to parse Efermi from {}.\n".format(os.path.join(mater_folder, prev_step_name, "OUTCAR")))
+    
+    target_line = ""
+    with open(os.path.join(mater_folder, prev_step_name, "OUTCAR"), "r") as f:
+        for line in f:
+            if "E-fermi" in line and "XC(G=0)" in line and "alpha+bet" in line:
+                Efermi = line.split("XC")[0].split(":")[1]
+                target_line = line
+    
+    updated_emax_or_emin_setup = emax_or_emin_setup.replace("Efermi@{}".format(prev_step_name), Efermi)
+    EMAX_or_EMIN = eval(updated_emax_or_emin_setup)
+    
+    with open(os.path.join(cal_loc, "log.txt"), "a") as log_f:
+        log_f.write("\t\t\tThe line containing E-fermi is identified: {}\n".format(target_line))
+        log_f.write("\t\t\tEfermi is parsed as {}\n".format(Efermi))
+        log_f.write("\t\t\t{} = {} = {} = {}\n".format(incar_tag, emax_or_emin_setup, updated_emax_or_emin_setup, EMAX_or_EMIN))
+        
+    return EMAX_or_EMIN
 

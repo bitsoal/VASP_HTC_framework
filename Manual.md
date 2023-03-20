@@ -418,7 +418,17 @@ Default: `No`
 
 **It doesn't make sense that you reset an INCAR tag in `add_new_incar_tags` sub-block while simultaneously trying to remove this INCAR tag using `remove_incar_tags`. If such a contradiction takes place, an error will be incurred.**  
 Default: `empty`  
-  ![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_specific_calculation.png)
+  ![](https://github.com/bitsoal/VASP_HTC_framework/blob/upgrade_to_python_3/figs/VASP_specific_calculation.png)  
+
+-------------------------------------
+
+- **EMAX** and **EMIN** setup in **add\_new\_incar\_tags** sub-block, optional  
+	- For DOS calculations, the focus is usually on the states around the Fermi level. VASP INCAR tags **EMAX** and **EMIN** are used to set the upper and lower energy boundary for DOS evaluations. Since the values assigned to **EMAX** and **EMIN** are not relative to the Fermi level, a set of fixed **EMAX** and **EMIN** values may not work well for all materials of which the Fermi level varies greatly. Here, we introduction symbol `Efermi@step_x_yz` to enable us to set **EMAX** and **EMIN** relative to the Fermi level of each material of interest.  
+	- Format:
+		- `EMAX = Efermi@step_3_scf + 5` (Retrieve the Fermi level from the previous calculation `step_3_scf` and set **EMAX** to the sum of the retrieved Fermi level and 5)
+		- `EMIN = Efermi@step_3_scf - 5` (Retrieve the Fermi level from the previous calculation `step_3_scf` and set **EMIN** to the subtraction of 5 from the retrieved Fermi level)
+	- Of couse, fixed numbered can also be assigned to **EMAX** and **EMIN**
+	- default: `No default`
 
 ----------------  
 
