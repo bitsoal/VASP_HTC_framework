@@ -1,0 +1,21 @@
+**start
+step_no = 6
+cal_name = band_str_MPNonSCFSet_line
+
+copy_which_step = step_5_scf
+copy_from_prev_cal = INCAR, POSCAR, POTCAR, CHGCAR, vasp_htc.pbs
+
+kpoints_type = MPNonSCFSet_line
+kpoints_line_density = 20
+
+*begin(add_new_incar_tags)
+LORBIT = 11
+ICHARG = 11
+LWAVE  = .FALSE.
+LCHARG = .FALSE.
+*end(add_new_incar_tags)
+
+job_submission_script = ${HTC_CWD}/others/vasp_htc.pbs
+job_submission_command = qsub < vasp_htc.pbs > job_id
+**end
+

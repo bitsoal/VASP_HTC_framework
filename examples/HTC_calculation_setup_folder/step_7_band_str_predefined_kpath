@@ -1,0 +1,22 @@
+**start
+step_no = 7
+cal_name = band_str_predefined_kpath
+
+copy_which_step = step_5_scf
+copy_from_prev_cal = INCAR, POSCAR, POTCAR, CHGCAR, vasp_htc.pbs
+
+kpoints_type = MPNonSCFSet_line
+
+kpoints_cmd = cp ${HTC_CWD}/vasp_files/kpath/KPOINTS_${MAT_FOLDER_NAME} KPOINTS
+
+*begin(add_new_incar_tags)
+LORBIT = 11
+ICHARG = 11
+LWAVE  = .FALSE.
+LCHARG = .FALSE.
+*end(add_new_incar_tags)
+
+job_submission_script = ${HTC_CWD}/others/vasp_htc.pbs
+job_submission_command = qsub < vasp_htc.pbs > job_id
+**end
+

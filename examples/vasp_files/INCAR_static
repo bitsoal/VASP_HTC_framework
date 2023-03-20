@@ -1,0 +1,16 @@
+ENCUT  = 520
+ISMEAR = 0
+SIGMA  = 0.05
+EDIFF  = 1.0e-4
+PREC   = Accurate
+
+ISPIN  = 2
+
+ALGO   = Normal
+
+LCHARG = .FALSE.
+LWAVE  = .FALSE.
+LREAL  = Auto
+
+NPAR = 4
+

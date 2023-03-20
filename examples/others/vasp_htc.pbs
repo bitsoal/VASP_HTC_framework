@@ -1,0 +1,32 @@
+#!/bin/bash
+#PBS -P htc_demo
+#PBS -q parallel12
+#PBS -l select=1:ncpus=12:mpiprocs=12:mem=45GB
+##PBS -j oe
+#PBS -N htc_demo
+
+cd $PBS_O_WORKDIR;   ## Change to the working dir in the exec host
+
+##--- Put your exec/application commands below ---
+##--- For example:
+#source /etc/profile.d/rec_modules.sh
+#module load xe_2015
+#!/bin/bash
+module purge
+
+source /app1/ebapps/ebashrc2
+module load intel/2019b
+
+if [ `pwd | grep 2d | wc -l` -eq 1 ]
+then
+	echo This calculation path contains '2d'. So this is a 2D system. We load VASP/5.4.4-18Apr17-p01_2drelax
+	module load VASP/5.4.4-18Apr17-p01_2drelax
+else
+	echo This calculation path does not contain '2d'. So this is not a 2D system. We load VASP/5.4.4-18Apr17-p01
+	module load VASP/5.4.4-18Apr17-p01
+fi
+
+mpirun  vasp_std > out
+
+
+##--- END HERE ---

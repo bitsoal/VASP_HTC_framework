@@ -1,0 +1,17 @@
+**start
+step_no = 2
+cal_name = encut_optimization
+
+user_defined_cmd = cp ../step_1_kpoints_optimization/KPOINTS.optimal KPOINTS
+
+copy_which_step = step_1_kpoints_optimization
+copy_from_prev_cal = INCAR, POTCAR, POSCAR, vasp_htc.pbs
+
+kpoints_type = MPRelaxSet
+
+sub_dir_cal = Yes
+sub_dir_cal_cmd = python ${HTC_LIB_LOC}/HTC_lib/VASP/Sub_Directory_Calculation_Scripts/ENCUT_convergence.py  --end:700  --step:20  --max_no_of_points:5   --convergence:3meV  --convergence_type:aver --no_of_consecutive_convergences:5 --which:3  --opt_encut_if_conv_failed:520 --incar_template:${HTC_CWD}/others/incar_template --extra_copy:vasp_htc.pbs
+
+job_submission_script = ${HTC_CWD}/others/vasp_htc.pbs
+job_submission_command = qsub < vasp_htc.pbs > job_id
+**end

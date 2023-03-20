@@ -1,0 +1,40 @@
+**start
+step_no = 1
+cal_name = kpoints_optimization
+
+incar_cmd = cp ${HTC_CWD}/vasp_files/INCAR_static INCAR
+kpoints_type = MPRelaxSet
+potcar_cmd = bash ${HTC_CWD}/psp/write_potcar.sh
+extra_copy = ${HTC_CWD}/others/vasp_htc.pbs
+
+sub_dir_cal = Yes
+sub_dir_cal_cmd = python ${HTC_LIB_LOC}/HTC_lib/VASP/Sub_Directory_Calculation_Scripts/Vasp_Automatic_Type_KPOINTS_convergence.py  --NL_start:10  --NL_end:100 --dN:any_2  --max_no_of_points:5   --convergence:3meV  --convergence_type:aver --no_of_consecutive_convergences:5 --which:3  --max_vacuum_thickness:5_5_5 --opt_nl_if_conv_failed:100 --extra_copy:vasp_htc.pbs
+
+incar_template = ${HTC_CWD}/others/incar_template
+valid_incar_tags = ${HTC_CWD}/others/incar_template
+
+job_submission_script = ${HTC_CWD}/others/vasp_htc.pbs
+job_submission_command = qsub < vasp_htc.pbs > job_id
+
+job_query_command = qstat
+job_killing_command = qdel
+where_to_parse_queue_id = job_id
+re_to_parse_queue_id = [0-9]+.venus01 #based on re.findall   hpc: [0-9]+.venus01; nscc: [0-9]+.wlm01
+queue_stdout_file_prefix = htc_demo.o
+queue_stderr_file_prefix = htc_demo.e
+
+vasp.out = out
+
+max_running_job = 10
+max_no_of_ready_jobs = 50
+job_name = htc_demo
+
+structure_folder = ${HTC_CWD}/structures
+cal_folder = ${HTC_CWD}/cal_folder
+
+htc_input_backup = structures, others
+htc_input_backup_loc = ${HTC_CWD}/htc_input_backup_folder
+
+**end
+
+

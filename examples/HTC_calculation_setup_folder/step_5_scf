@@ -1,0 +1,20 @@
+**start
+step_no = 5
+cal_name = scf
+
+copy_which_step = step_4_str_opt_II
+copy_from_prev_cal = INCAR, KPOINTS, POTCAR, vasp_htc.pbs
+CONTCAR_to_POSCAR = Yes
+
+kpoints_type = MPRelaxSet
+
+*begin(add_new_incar_tags)
+LWAVE   = .FALSE.
+LCHARG  = .TRUE.
+*end(add_new_incar_tags)
+remove_incar_tags = IBRION, ISIF, NSW, EDIFFG
+
+job_submission_script = ${HTC_CWD}/others/vasp_htc.pbs
+job_submission_command = qsub < vasp_htc.pbs > job_id
+**end
+

@@ -1,0 +1,26 @@
+**start
+step_no = 3
+cal_name = str_opt_I
+
+incar_cmd = cp ../step_2_encut_optimization/INCAR.optimal INCAR
+kpoints_cmd = python ${HTC_LIB_LOC}/HTC_lib/VASP/KPOINTS/VASP_Automatic_K_Mesh.py -write --opt_kpoints_setup:../step_1_kpoints_optimization/optimal_kpoints_setup.json
+
+copy_which_step = step_2_encut_optimization
+copy_from_prev_cal = POTCAR, POSCAR, vasp_htc.pbs
+
+kpoints_type = MPRelaxSet
+
+
+*begin(add_new_incar_tags)
+IBRION = 2
+ISIF   = 3
+EDIFFG = -0.02
+NSW    = 200
+*end(add_new_incar_tags)
+
+max_ionic_step = 10
+
+job_submission_script = ${HTC_CWD}/others/vasp_htc.pbs
+job_submission_command = qsub < vasp_htc.pbs > job_id
+**end
+
