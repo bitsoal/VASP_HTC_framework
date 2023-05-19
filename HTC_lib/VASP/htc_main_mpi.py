@@ -16,11 +16,6 @@ if HTC_package_path not in sys.path:
 ##############################################################################################################
 
 from pathlib import Path
-from mpi4py import MPI
-comm = MPI.COMM_WORLD
-size = comm.Get_size()
-rank = comm.Get_rank()
-
 from HTC_lib.VASP.Miscellaneous.Utilities import get_time_str
 from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_files, backup_a_file
 from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
@@ -30,6 +25,31 @@ from HTC_lib.VASP.Preprocess_and_Postprocess.Parse_calculation_workflow import p
 from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, update_job_status
 from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import submit_jobs, kill_error_jobs
+
+try:
+    #raise Exception #uncomment this line if you do not want to do parallelization.
+    from mpi4py import MPI
+    comm = MPI.COMM_WORLD
+    comm.is_comm_pseudo = False
+except:
+    print("{}: Failed to import MPI from mpi4py or call MPI.COMM_WORLD --> mpi4py-based parallelization is disabled.".format(get_time_str()))
+    class Comm_World():
+        def Get_size(self):
+            return 1
+        def Get_rank(self):
+            return 0
+        def gather(self, data, root=0):
+            return [data]
+        def scatter(self, data, root=0):
+            return data[0]
+        def bcast(self, data, root=0):
+            return data
+    comm = Comm_World()
+    comm.is_comm_pseudo = True
+    
+
+size = comm.Get_size()
+rank = comm.Get_rank()
 
 
 # In[2]:
@@ -71,6 +91,8 @@ def backup_htc_files(workflow):
 
 
 def synchron(comm, rank, size):
+    if comm.is_comm_pseudo == True:
+        return 0
     buf = None
     if rank == 0:
         for ip in range(1,size):
