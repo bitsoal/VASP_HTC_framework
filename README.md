@@ -10,8 +10,7 @@
 
 ## A series of things to be added
 
-3. upgrade to python3
+1. upgrade to python3
 
-4. set DIPOL
-
-5. read e_fermi and set EMIN & EMAX for DOS calculations.  
+2. set DIPOL
+ 
