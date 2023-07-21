@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[3]:
 
 
-import os, pprint, sys, shutil
+import os, pprint, sys, shutil, json
 
 ##############################################################################################################
 ##DO NOT change this part.
@@ -22,6 +22,8 @@ from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 from HTC_lib.VASP.Miscellaneous.Cal_status_dictionary_operation import Cal_status_dict_operation
 
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, are_all_cal_for_a_material_complete
+
+from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 
 from HTC_lib.VASP.INCAR.Write_VASP_INCAR import Write_Vasp_INCAR
 from HTC_lib.VASP.KPOINTS.Write_VASP_KPOINTS import Write_Vasp_KPOINTS
@@ -118,7 +120,7 @@ def pre_and_post_process(cif_filename, cif_folder, cal_folder, workflow):
     return no_of_new_ready_jobs, cal_status_diff
 
 
-# In[1]:
+# In[6]:
 
 
 def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_firework, workflow):
@@ -138,15 +140,19 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
     log_txt = os.path.join(current_cal_loc, "log.txt")
     if not os.path.isdir(current_cal_loc):
         os.mkdir(current_cal_loc)
-        open(os.path.join(current_cal_loc, "__vis__"), "w").close()
+        if current_firework["skip_this_step"]:
+            open(os.path.join(current_cal_loc, "__skipped__"), "w").close()
+        else:
+            open(os.path.join(current_cal_loc, "__vis__"), "w").close()
         with open(log_txt, "a") as f:
             f.write("\n\n***************************************************************************************\n")
             f.write("***************************************************************************************\n")
             f.write("{} INFO: under {}\n".format(get_time_str(), mater_cal_folder))
             f.write("\t\tCreate sub-folder {}\n".format(current_firework["firework_folder_name"]))
-            f.write("\t\tcreate __vis__ under {}\n".format(current_firework["firework_folder_name"]))
-    
-
+            if current_firework["skip_this_step"]:
+                f.write("\t\tskip_this_step is on --> create __skipped__ under {}\n".format(current_firework["firework_folder_name"]))
+            else:
+                f.write("\t\tcreate __vis__ under {}\n".format(current_firework["firework_folder_name"]))
         
     if os.path.isfile(os.path.join(current_cal_loc, "__vis__")):
         
@@ -223,6 +229,20 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                 f.write("{} INFO: All VASP input files needed for sub-directory calculations are ready at {}\n".format(get_time_str(), current_firework["firework_folder_name"]))
                 f.write("\t\t\t__vis__ --> __sub_dir_cal__\n")
             return True
+        
+        if current_firework["is_fixed_incar_tags_on"]:
+            incar_dict = modify_vasp_incar(cal_loc=current_cal_loc)
+            fixed_incar_tags = {"is_fixed_incar_tags_on": True}
+            for tag in current_firework["fixed_incar_tags"]:
+                assert tag in incar_dict.keys(), "While fetching the fixed values of tag {} from INCAR, this tag does not exist in INCAR".format(tag)
+                fixed_incar_tags[tag] = incar_dict[tag]
+            with open(os.path.join(current_cal_loc, "fixed_incar_tags.json"), "w") as f:
+                json.dump(fixed_incar_tags, f, indent=4)
+            with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:
+                f.write("{} INFO: is_fixed_incar_tags_on is on &  fixed_incar_tags={}\n".format(get_time_str(), current_firework["fixed_incar_tags"]))
+                f.write("\t\t\tFetch these values of these incar tags from the ready INCAR and save them into file fixed_incar_tags.json\n")
+                for tag, value in fixed_incar_tags.items():
+                    f.write("\t\t\t\t{}: {}\n".format(tag, value))
         
         
         is_there_file_manual = False

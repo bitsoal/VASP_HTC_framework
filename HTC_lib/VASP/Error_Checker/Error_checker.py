@@ -4,7 +4,7 @@
 # In[1]:
 
 
-import os, time, shutil, sys, re, subprocess
+import os, time, shutil, sys, re, subprocess, json
 
 
 ##############################################################################################################
@@ -66,13 +66,14 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__bader_charge__": Bader_Charge, 
                           "__pzunmtr_or_pzstein__": Vasp_out_pzunmtr_or_pzstein, 
                           "__nkx_gt_ikptd__": Vasp_out_nkx_gt_ikptd, 
-                          "__pead__": Vasp_out_pead}
+                          "__pead__": Vasp_out_pead, 
+                          "__fixed_incar_tags__": Fixed_incar_tags}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__bader_charge__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
     after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
     after_cal += ["__pzunmtr_or_pzstein__", "__nkx_gt_ikptd__", "__pead__"]
-    after_cal += ["__positive_energy__", "__ionic_divergence__", "__unfinished_OUTCAR__"]
+    after_cal += ["__ionic_divergence__", "__fixed_incar_tags__", "__positive_energy__", "__unfinished_OUTCAR__"]
     
     
     if isinstance(error_type, str):  
@@ -1869,6 +1870,124 @@ class Electronic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
 
 
+# In[1]:
+
+
+class Fixed_incar_tags(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    This class is activated when tag is_fixed_incar_tags_on is on.
+    Why is this class: While automatically correcting errors, classes like Electronic_divergence may automatically reduce the electronic convergence criterion EDIFF.
+                    If high calculation accuracy is needed, such automatic decrease in EDIFF is unwanted. Of course, the fixed value requirements can be applied
+                    to other incar tags by setting tag fixed_incar_tags (if multiple tags are provided, separate them by commas)
+    What this class does: If the values of the specified incar tags changed during automatic error corrections, this class incurs error __fixed_incar_tags__ and 
+                            later solves the error by reseting the specified incar tags to the respective fixed values.
+                            
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments: 
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow
+    check method: return True if reahced; return False and write error logs otherwise.
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.firework = get_current_firework_from_cal_loc(cal_loc=cal_loc, workflow=workflow)
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
+        #super(Electronic_divergence, self).__init__(cal_loc)
+        #Write_and_read_error_tag.__init__(self, cal_loc=self.cal_loc)
+     
+    
+    def check(self):
+        """
+        Return:
+            - False if an error is found;
+            - True otherwise.
+        """        
+        
+        if not self.firework["is_fixed_incar_tags_on"]:
+            return True
+        
+        if not os.path.isfile(os.path.join(self.cal_loc, "fixed_incar_tags.json")):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
+            with open(self.log_txt, "a") as log_f:
+                log_f.write("{} Error: is_fixed_incar_tags_on is on but file fixed_incar_tags.json, which is supposed to exist, is missing.\n".format(get_time_str()))
+                log_f.write("\t\t\t__running__ --> __manual__\n")
+            return False
+        
+        with open(os.path.join(self.cal_loc, "fixed_incar_tags.json"), "r") as f:
+            fixed_incar_tags = json.load(f)
+        
+        if fixed_incar_tags["is_fixed_incar_tags_on"] == False:
+            if os.path.isfile(os.path.join(self.cal_loc, "__ignore_differences_in_tag_is_fixed_incar_tags_on__")):
+                with open(self.log_txt, "a") as log_f:
+                    log_f.write("{} Ignored: Despite is_fixed_incar_tags_on being on in the HTC setup, file __ignore_differences_in_tag_is_fixed_incar_tags_on__ is found. --> no checkup for the supposedly fixed incar tags' values\n".format(get_time_str()))
+                return True
+            else:
+                if not os.path.isfile(os.path.join(self.cal_loc, "__different_values_for_tag_is_fixed_incar_tags_on__")):
+                    open(os.path.join(self.cal_loc, "__different_values_for_tag_is_fixed_incar_tags_on__"), "w").close()
+                decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
+                with open(self.log_txt, "a") as log_f:
+                    log_f.write("{} Difference: is_fixed_incar_tags_on is 'True' in the HTC setup VS 'False' in fixed_incar_tags.json.\n".format(get_time_str()))
+                    log_f.write("\t\t\tCreate file __different_values_for_tag_is_fixed_incar_tags_on__\n")
+                    log_f.write("\t\t\t__running__ --> __manual__\n")
+                    log_f.write("\t\t\tIf is_fixed_incar_tags_on=False in fixed_incar_tags.json was manually set by you for this calculation,")
+                    log_f.write("\t\t\tchanging __different_values_for_tag_is_fixed_incar_tags_on__ to __ignore_differences_in_tag_is_fixed_incar_tags_on__ will skip this checkup for this calculation.\n")
+                return False
+            
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)     
+            
+        for tag, value in fixed_incar_tags.items():
+            if tag != "is_fixed_incar_tags_on" and value != incar_dict[tag]:
+                with open(self.log_txt, "a") as log_f:
+                    log_f.write("{} Error: ".format(get_time_str()))
+                    log_f.write(" is_fixed_incar_tags_on is on & tag fixed_incar_tags = {}\n".format(self.firework["fixed_incar_tags"]))
+                    log_f.write("\t\t\t {}={} is not the fixed value in file fixed_incar_tags.json: {}\n".format(tag, incar_dict[tag], value))
+                decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__error__")
+                self.write_error_log()
+                return False
+        
+        return True
+    
+            
+    def write_error_log(self):
+        error_str = "deviation of fixed incar tag value"
+        super(Fixed_incar_tags, self).write_error_log(target_error_str=error_str, error_type="__fixed_incar_tags__")
+    
+    def correct(self):
+        """
+        reset the the specified incar tags to their respective fixed values in fixed_incar_tags.json.
+        return False if the reseting fails.
+        """
+        super(Fixed_incar_tags, self).backup()
+        
+        with open(os.path.join(self.cal_loc, "fixed_incar_tags.json"), "r") as f:
+            fixed_incar_tags = json.load(f)
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        
+        valid_fixed_incar_tags = {}
+        output_str = ""
+        for tag, value in fixed_incar_tags.items():
+            if tag == "is_fixed_incar_tags_on":
+                continue
+            if value != incar_dict[tag]:
+                valid_fixed_incar_tags[tag] = value
+                output_str += "\t\t\t{}: {} --> {}\n".format(tag, incar_dict[tag], value)
+        
+        modify_vasp_incar(cal_loc=self.cal_loc, new_tags=valid_fixed_incar_tags, rename_old_incar=False, 
+                          incar_template=self.workflow[0]["incar_template_list"], 
+                          valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
+        
+        with open(self.log_txt, "a") as log_f:
+            log_f.write("{} Correction: The following incar tags have been successfully reset to the respective fixed values in fixed_incar_tags.json\n".format(get_time_str()))
+            log_f.write(output_str)
+        return True
+    
+
+
 # In[22]:
 
 
@@ -2148,6 +2267,12 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             return True
         
         return False
+
+
+# In[ ]:
+
+
+
 
 
 # In[24]:

@@ -5,10 +5,10 @@
 * Yang Tong  
     bitsoal@gmail.com; yangtong@u.nus.edu  
     Department of Applied Physics, The Hong Kong Polytechnic University  
-* Asst/Prof. [Yang Ming](https://www.polyu.edu.hk/ap/about-ap/staff/academic-staff/162-dr-yang-ming/) (co-supervisor)  
+* Asst/Prof. [Yang Ming](https://www.polyu.edu.hk/en/ap/people/academic-staff/dr-yang-ming/) (co-supervisor)  
     kevin.m.yang@polyu.edu.hk  
     Department of Applied Physics, The Hong Kong Polytechnic University
-* Prof. [Feng Yuanping](https://www.physics.nus.edu.sg/phyfyp/) (supervisor))  
+* Prof. [Feng Yuanping](https://www.physics.nus.edu.sg/faculty/feng-yuan-ping/) (supervisor))  
     phyfyp@nus.edu.sg  
     Department of Physics, National University of Singapore  
 
@@ -380,6 +380,32 @@ Default: `empty`
 
 -------------------------------
 
+- **is\_fixed\_incar\_tags\_on**, optional. (**Debug is underway**)   
+  In most cases, the energy or force convergence of a given calculation step (`EDIFF` and `EDIFFG`) is set to a certain value. However, these values may be automatically changed when the package tries to handle errors. This HTC tag together with `fixed_incar_tags` below are used to overcome this involuntary automatic update of specified INCAR tags. When these two HTC tags are, what these HTC tags do is that  
+	
+	1. Right after the **FIRST** creation of INCAR for a given step, the package will will retrieve the values of the INCAR tags specified by `fixed_incar_tags` from the very initial INCAR and save them into a file named `fixed_incar_tags.json` under the same calculation folder.   
+	2. Let the package change the values of the specified INCAR tags during the process of handling errors.
+	3. After the calculation successfully converges, check if the specified INCAR tags changed comapred to those stored in `fixed_incar_tags.json`. If any tag changes, reset them to those stored in `fixed_incar_tags.json` and repeat the last two steps until the calculation completes with the values of the specified INCAR tags being the same as those in `fixed_incar_tags.json`.   
+  
+  *Note 1: These two HTC tags also apply to other INCAR tags. Please refer to the examples in the `fixed_incar_tags` section*
+  *Note 2: for sub-dir calculations, `fixed_incar_tags.json` will be copied to the newly created sub-folder(s)*  
+ 
+  Default: `is_fixed_incar_tags_on = Yes`      
+
+-------------------------------
+
+- **fixed\_incar\_tags**, optional. (**Debug is underway**)  
+  This tag is active only at `is_fixed_incar_tags_on = Yes`. For more detail, please refer to tag `is_fixed_incar_tags_on`. If multiple incar tags need to be specified, separate them using commas.   
+  
+	1. example 1: `fixed_incar_tags = EDIFF`   
+	2. example 2: `fixed_incar_tags = EDIFF, EDIFFG`   
+	3. example 3: `fixed_incar_tags = EDIFF, EDIFFG, PREC`   
+
+  Default: `fixed_incar_tags = EDIFF`  
+  *Note that whenever `is_fixed_incar_tags_on` is on, tag `EDIFF` is always an implicitly specified INCAR tag.*
+
+-------------------------------
+
 - **partial\_charge\_cal**, optional.  
   This tag enables the partial charge calculation. If this tag is set to `Yes`, the following tags will be automatically added into INCAR of this firework  
   
@@ -648,6 +674,25 @@ This tag provides us with another degree of freedom to ensure an accurate struct
 **Chances are that a structural relaxation calculation may converge w.r.t `EDIFFG` after N steps, but it will still take tens or hundreds of steps to converge if we change CONTCAR to POSCAR and do one more structural relaxation with the same VASP input setting. In principle, the structural relaxation based on the optimized structure should converge within few steps.**   
 If `max_ionic_step` is set, the program will compare the number of step to achieve the ionic convergence, denoted as N, with `max_ionic_step`. If `N>max_ionic_step`, the program will treat the structural relaxation calculation as if the structural relaxation does not converge. The following operations made by the program are to backup the calculation, change CONTCAR to POSCAR, reset `IBRION=1` and re-submit the job. Of course, these automatic operations will be executed only if the number of errors that already happened for the calculation does not reach the specified error maximum above which the error should be handled manually.  
 Default `max_ionic_step=-1 (inactive)`  
+
+-------------------------------------------
+
+**skip\_this\_step**, optional. (Debug is underway)  
+While designing a workflow, you may leave some steps empty/skipped for later use. An empty/skipped step can be realized by seting `skip_this_step = Yes`.  
+When this tag is on, other tags will be ignored. Nevertheless, some compulsory tags need to be set. The following template should work well.  
+>`step_no = 3`  
+>`cal_name = empty_step`      
+>`kpoints_type = MPRelaxSet` 
+> 
+>`copy_which_step = step_2_xyz`
+>  
+>`skip_this_step = Yes`
+>
+>`job_submission_script = a valid path to a whatever file`  
+>`job_submission_command = whatever bash command`  
+
+*Note that the first step cannot be skipped.*  
+Default: `skip_this_step = No`
 
 -------------------------------------------
 

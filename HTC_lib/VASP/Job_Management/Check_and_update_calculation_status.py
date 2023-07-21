@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[3]:
 
 
-import os, sys, time, random
+import os, sys, time, random, shutil
 from pathlib import Path
 
 ##############################################################################################################
@@ -427,7 +427,7 @@ def update_killed_jobs_status(killed_jobs_list, workflow, max_error_times=5):
         error_type = Write_and_read_error_tag(killed_job).read_error_tag("__killed__")
         error_checker = Vasp_Error_checker(cal_loc=killed_job, error_type=error_type, workflow=workflow)
         cal_name = os.path.split(killed_job)[-1]
-        if Vasp_Error_Saver(cal_loc=killed_job, workflow=workflow).find_error_times() >= max_error_times:
+        if Vasp_Error_Saver(cal_loc=killed_job, workflow=workflow).find_error_times() >= max_error_times and error_type != "__fixed_incar_tags__":
             decorated_os_rename(loc=killed_job, old_filename="__killed__", new_filename="__manual__")
             #os.rename(os.path.join(killed_job, "__killed__"), os.path.join(killed_job, "__manual__"))
             with open(os.path.join(killed_job, "log.txt"), "a") as f:
@@ -474,8 +474,31 @@ def update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list, workflow):
     for sub_dir_cal_path in sub_dir_cal_jobs_list:
         current_firework = get_current_firework_from_cal_loc(sub_dir_cal_path, workflow)
         
+        if current_firework["is_fixed_incar_tags_on"]:
+            assert os.path.isfile(os.path.join(sub_dir_cal_path, "fixed_incar_tags.json")), "tag is_fixed_incar_tags_on is on but there is no fixed_incar_tags.json under {}".format(sub_dir_cal_path)
+            sub_folder_lists = []
+            for folder in os.listdir(sub_dir_cal_path):
+                if (not folder.startswith(".")) and os.path.isdir(os.path.join(sub_dir_cal_path, folder)):
+                    sub_folder_lists.append(folder)
+        
         Execute_shell_cmd(cal_loc=sub_dir_cal_path, user_defined_cmd_list=current_firework["sub_dir_cal_cmd"],
                           where_to_execute=sub_dir_cal_path, defined_by_which_htc_tag="sub_dir_cal_cmd")
+        
+        if current_firework["is_fixed_incar_tags_on"]:
+            valid_copy = False
+            output_string = "{} sub_dir_cal: is_fixed_incar_tags_on is on.\n".format(get_time_str())
+            assert os.path.isfile(os.path.join(sub_dir_cal_path, "fixed_incar_tags.json")), "tag is_fixed_incar_tags_on is on but there is no fixed_incar_tags.json under {}".format(sub_dir_cal_path)
+            for folder in os.listdir(sub_dir_cal_path):
+                if folder.startswith(".") or folder.startswith("error"):
+                    continue
+                elif os.path.isdir(os.path.join(sub_dir_cal_path, folder)) and (not os.path.isfile(os.path.join(sub_dir_cal_path, folder, "fixed_incar_tags.json"))):
+                    shutil.copyfile(src=os.path.join(sub_dir_cal_path, "fixed_incar_tags.json"), 
+                                    dst=os.path.join(sub_dir_cal_path, folder, "fixed_incar_tags.json"))
+                    valid_copy = True
+                    output_string += "\t\t\tcopy fixed_incar_tags.json to the newly created sub-folder: {}\n".format(folder)
+            if valid_copy:
+                with open(os.path.join(sub_dir_cal_path, "log.txt"), "a") as f:
+                    f.write(output_string)
 
 
 # In[5]:

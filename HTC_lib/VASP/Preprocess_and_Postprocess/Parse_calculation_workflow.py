@@ -282,7 +282,7 @@ def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hi
         
 
 
-# In[7]:
+# In[1]:
 
 
 def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
@@ -296,12 +296,14 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                     "remove_after_cal", "extra_copy", "final_extra_copy", "comment_incar_tags", "remove_incar_tags",
                     "set_ispin_based_on_prev_cal", "set_lmaxmix",
                     "partial_charge_cal", "which_step_to_read_cbm_vbm", "EINT_wrt_CBM", "EINT_wrt_VBM", "bader_charge",
-                    "ldau_cal", "ldau_u_j_table", "incar_template", "valid_incar_tags",
+                    "ldau_cal", "ldau_u_j_table", "incar_template", "valid_incar_tags", 
+                    "is_fixed_incar_tags_on", "fixed_incar_tags",
                     "kpoints_type", "denser_kpoints", "reciprocal_density", "kpoints_line_density",
                     "intersections", "force_gamma", "2d_system", "sort_structure", "max_ionic_step", "user_defined_cmd", 
                     "final_user_defined_cmd", "user_defined_postprocess_cmd", 
                     "incar_cmd", "kpoints_cmd", "poscar_cmd", "potcar_cmd", "cmd_to_process_finished_jobs",
                     "sub_dir_cal", "sub_dir_cal_cmd", "preview_vasp_inputs",
+                    "skip_this_step",
                     "job_submission_script", "job_submission_command", "job_name", "max_running_job", "where_to_parse_queue_id",
                     "re_to_parse_queue_id", "job_query_command", "job_killing_command", "queue_stdout_file_prefix", "queue_stdout_file_suffix",
                     "queue_stderr_file_prefix", "queue_stderr_file_suffix", "vasp.out"]
@@ -435,6 +437,13 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
             raise Exception(output_str)
     else:
         firework["set_ispin_based_on_prev_cal"] = {}
+        
+    is_fixed_incar_tags_on = firework.get("is_fixed_incar_tags_on", "Yes").lower()
+    firework["is_fixed_incar_tags_on"] = True if "y" in is_fixed_incar_tags_on else False
+    fixed_incar_tags = firework.get("fixed_incar_tags", "")
+    firework["fixed_incar_tags"] = [tag.strip().upper() for tag in fixed_incar_tags.split(",") if tag.strip()] + ["EDIFF"]
+    firework["fixed_incar_tags"] = list(set(firework["fixed_incar_tags"]))
+        
     
     if "comment_incar_tags" in firework.keys():
         raise Exception("HTC tag 'comment_incar_tags' has been obsolete. Only use 'remove_incar_tags' to deactivate INCAR tags.")
@@ -556,6 +565,10 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
     #else:
     #    firework["additional_cal_dependence"] = []
     
+    #9. Tags related to quick creation of temporary skipped steps
+    firework["skip_this_step"] = True if 'y' in firework.get("skip_this_step", "No").lower() else False
+    if firework["skip_this_step"] and firework["step_no"] == 1:
+        raise Exception("The first step cannot be skipped. Please do not set tag skip_this_step in the first step.")
       
         
     #tags only required and optional for the first firework
