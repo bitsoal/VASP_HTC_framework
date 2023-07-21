@@ -387,7 +387,7 @@ Default: `empty`
 	2. Let the package change the values of the specified INCAR tags during the process of handling errors.
 	3. After the calculation successfully converges, check if the specified INCAR tags changed comapred to those stored in `fixed_incar_tags.json`. If any tag changes, reset them to those stored in `fixed_incar_tags.json` and repeat the last two steps until the calculation completes with the values of the specified INCAR tags being the same as those in `fixed_incar_tags.json`.   
   
-  *Note 1: These two HTC tags also apply to other INCAR tags. Please refer to the examples in the `fixed_incar_tags` section*
+  *Note 1: These two HTC tags also apply to other INCAR tags. Please refer to the examples in the `fixed_incar_tags` section*   
   *Note 2: for sub-dir calculations, `fixed_incar_tags.json` will be copied to the newly created sub-folder(s)*  
  
   Default: `is_fixed_incar_tags_on = Yes`      
@@ -402,7 +402,7 @@ Default: `empty`
 	3. example 3: `fixed_incar_tags = EDIFF, EDIFFG, PREC`   
 
   Default: `fixed_incar_tags = EDIFF`  
-  *Note that whenever `is_fixed_incar_tags_on` is on, tag `EDIFF` is always an implicitly specified INCAR tag.*
+  *Note that whenever `is_fixed_incar_tags_on` is on, tag `EDIFF` is implicitly added to the comma-separated INCAR tag lists that you explicitly set.*
 
 -------------------------------
 
