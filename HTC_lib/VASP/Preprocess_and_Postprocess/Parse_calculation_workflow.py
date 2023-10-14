@@ -306,7 +306,8 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                     "skip_this_step",
                     "job_submission_script", "job_submission_command", "job_name", "max_running_job", "where_to_parse_queue_id",
                     "re_to_parse_queue_id", "job_query_command", "job_killing_command", "queue_stdout_file_prefix", "queue_stdout_file_suffix",
-                    "queue_stderr_file_prefix", "queue_stderr_file_suffix", "vasp.out"]
+                    "queue_stderr_file_prefix", "queue_stderr_file_suffix", "vasp.out", 
+                    "jobs_treated_like_running_jobs"]
     htc_tag_list = [tag.lower() for tag in htc_tag_list]
     
     
@@ -658,9 +659,16 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
             raise Exception("\nmax_no_of_ready_jobs in step 1 defines the maximum number of jobs tagged by __ready__ or __prior_ready__. It should be a positive integer.\n")
             
         
-        
-                
-                   
+        #define signal files with which jobs are examined on the fly just like running jobs.
+        jobs_treated_like_running_jobs = []
+        firework["job_folder_list_treated_like_running_folder_list"] = []
+        for job in firework.get("jobs_treated_like_running_jobs", "").split(","):
+            job = job.strip()
+            if job:
+                assert job.startswith("__") and job.endswith("__"), "Error in step 1: The signal file name provided to 'jobs_treated_like_running_jobs' does not follow the signal file format, i.e., starting and ending with a double underscore: {}".format(job)
+                jobs_treated_like_running_jobs.append(job)
+                firework["job_folder_list_treated_like_running_folder_list"].append(job.strip("_") + "_folder_list")
+        firework["jobs_treated_like_running_jobs"] = jobs_treated_like_running_jobs
     #return Read_Only_Dict.from_dict(firework)
     return firework
 

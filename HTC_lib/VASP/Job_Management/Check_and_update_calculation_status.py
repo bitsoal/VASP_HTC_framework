@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 import os, sys, time, random, shutil
@@ -168,6 +168,13 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
                 break  #This if clause ensures a quick response to signal files
         return Cal_status_dict_operation.merge_cal_status_diff(cal_status_diff_list)
     else:
+        #For jobs associated with the signal tag defined in jobs_treated_like_running_jobs, their calculation status will be examined on the fly just like running jobs.
+        #This would allow us to examine those packed running jobs. By packed jobs, we mean that a single allocated computation resource runs multiple jobs
+        #one after another
+        if which_status in workflow[0]["job_folder_list_treated_like_running_folder_list"]:
+            job_status = "__{}__".format(which_status.replace("_folder_list", ""))
+            update_jobs_treated_like_running_jobs(job_list = job_list, workflow=workflow, job_status=job_status)
+        
         old_cal_status = {which_status: job_list}
         new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=job_list)
         return Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
@@ -401,6 +408,99 @@ def update_running_jobs_status(running_jobs_list, workflow):
             else:
                 if os.path.isfile(os.path.join(job_path, "__no_of_times_not_in_queue__")):
                     os.remove(os.path.join(job_path, "__no_of_times_not_in_queue__"))
+
+
+# In[2]:
+
+
+def update_jobs_treated_like_running_jobs(job_list, workflow, job_status):
+    """
+    Check the jobs that are treated like running jobs. Note that only the on-the-fly checkup is made to those jobs.
+    This function would allow us to check the packed running jobs which are running but tagged with other signal files, 
+    say __packed_running__.
+    What this function does to each to-be-checked job:
+        1. find all existing signal files (format: starting and ending with a double underscore) regardless whether they are magic signal files.
+        2. create __running__ and call the on-the-fly checkup originally designed for jobs tagged with __running
+        3. After the on-the-fly checkup finishes, 
+            if the original job_status file (e.g. __packed_running__) is still existent:
+                *If __running__ is not existent:
+                    An on-the-fly error is detected. In this case, STOPCAR containing "LABORT = .TRUE." is created and let VASP
+                    itself to terminate this job. And remove all newly generated signal files
+                    Note that the packed job calcualtion script/programme should be able to turn the original calculation status to __running__ or
+                    other magic signal files so that this HTC package can handle the error automatically.
+                If __running__ is still existent:
+                    The on-the-fly checkup finds no error. The calculation should continue. And remove all newly generated signal files
+                    temporary file __running__ will be removed.
+            else:
+                The packed job calculation script/programme have changed the original calculation status. This indicates that the calculation finishes 
+                during the on-the-fly checkup. In this case, __manual__ is created to ask manual checkup.
+                    
+    input arguments:
+        - jobs_list (list): a list of absolute pathes of the jobs that are treated like running jobs.
+        - workflow:  the output of func Parse_calculation_workflow.parse_calculation_workflow
+        - job_status: the original job calculation status.
+    """
+    
+    for job_path in job_list:
+        
+        #1. The existence of STOPCAR means that this running-like job has been found an error by the previous on-the-fly checkup,
+        #   but VASP has not responded to STOPCAR. So just wait until VASP responds.
+        #2. The disappearance of the original job status (e.g. __packed_running__) means that the packed job calculation script/programme
+        #   has updated the job status because the calculation has finished either successfully or unsuccessfully. In this case,
+        #   no need to do the on-the-fly checkup.
+        if os.path.isfile(os.path.join(job_path, "STOPCAR")) or not os.path.isfile(os.path.join(job_path, job_status)):
+            continue
+        
+        all_org_signal_files = []
+        for file in os.listdir(job_path):
+            if file.startswith("__") and file.endswith("__"):
+                all_org_signal_files.append(file)
+        #with open(os.path.join(job_path, "log.txt"), "a") as log_f:
+        #    log_f.write("\nv"*100 + "\n")
+        #    log_f.write("{}: The current job status is {} and is in the signal file list specified by 'jobs_treated_like_running_jobs' in the step-1 setup\n".format(get_time_str(), job_status))
+        #    log_f.write("**So the current job is treated as a running job and its calculation is going to be examined using the ON-THE-FLY checkup originally designed for jobs tagged with '__running__'\n")
+        #    log_f.write("**The log produced between line 'vvvvvvvvvvvvvvv' and line '^^^^^^^^^^^^^^^^' is the on-the-fly checkup detail\n")
+        #    log_f.write("**Before the on-the-fly checkup, the existing signal files are {}\n".format(", ".join(all_org_signal_files)))
+            
+        open(os.path.join(job_path, "__running__"), "w").close()
+        Vasp_Error_checker(error_type=["on_the_fly"], cal_loc=job_path, workflow=workflow)
+          
+        all_new_signal_files = []
+        for file in os.listdir(job_path):
+            if file.startswith("__") and file.endswith("__"):
+                if file not in all_org_signal_files:
+                    all_new_signal_files.append(file)
+        
+        is_error_detected = False
+        is_org_job_status_missing = False
+        if os.path.isfile(os.path.join(job_path, job_status)):
+            if not os.path.isfile(os.path.join(job_path, "__running__")):
+                with open(os.path.join(job_path, "STOPCAR"), "w") as f:
+                    f.write(" LABORT = .TRUE.\n")
+                is_error_detected = True
+            for file in all_new_signal_files:
+                os.remove(os.path.join(job_path, file))
+        else:
+            open(os.path.join(job_path, "__manual__"), "w").close()
+            is_org_job_status_missing = True
+        
+        if is_error_detected or is_org_job_status_missing:
+            with open(os.path.join(job_path, "log.txt"), "a") as log_f:
+                log_f.write("\n{} Running-like job: The original job status {} is in the list specified by 'jobs_treated_like_running_jobs' in the step-1 setup\n".format(get_time_str(), job_status))
+                log_f.write("**So the job has been examined using the on-the-fly checkup originally designed for jobs tagged with __running__\n")
+                log_f.write("**The checkup result is shown right above.\n")
+                if is_org_job_status_missing:
+                    log_f.write("**While the on-the-fly checkup is being conducted, the original job status {} is changed by the packed job calculation script/programme. Create __manual__ to ask you to manually check this job.\n".format(job_status))
+                else:
+                    log_f.write("**The on-the-fly checkup detected an error. So file STOPCAR containing 'LABORT = .TRUE.' was created to let VASP itself to terminate the calculation.\n")
+                    #if is_error_detected:
+                    #    log_f.write("**The on-the-fly checkup detected an error. So file STOPCAR containing 'LABORT = .TRUE.' was created to let VASP itself to terminate the calculation.\n")
+                    #else:
+                    #    log_f.write("**The on-the-fly checkup detected no error. The calculation continues\n")
+                    log_f.write("**During the on-the-fly checkup, the following signal files were generated: {}. They have been removed after the checkup\n".format(", ".join(all_new_signal_files)))
+                
+                log_f.write("\n\n")
+        
 
 
 # In[4]:
