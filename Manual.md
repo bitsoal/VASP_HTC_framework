@@ -314,7 +314,7 @@ The directory structure of a HTC is illustrated in the figure below.
   This will specify the parent calculation step from which the files listed in copy\_from\_prev\_cal are copied or the files listed in move\_from\_prev\_cal are moved into the current calculation step.  
   *Note that this tag is meaningless for the first firework*  
   *In a workflow, if there are more than one fireworks that depend on the output of the same calculation and are independent of one another, the calculations defined by them will be carried out simultaneously.*    
-  *For any calculation step/firework with `copy_which_step=-1``, POSCAR will be written according to `sort_structure` prescribed in the first calculation/firework.*     
+  *For any calculation step/firework with `copy_which_step=-1`, POSCAR will be written according to `sort_structure` prescribed in the first calculation/firework.*     
   
   **In old versions, `copy_which_step` was an optional tag, to which the step no of the parent calculation step was passed (e.g. `copy_which_step=2`). Now, however, this tag is mandatory and must be set to the full name of the parent calculation step (format: `step_i_xyz`). This change aims to ensure that you always copy (move) files from the correct parent calculation step according to `copy_from_prev_cal` (`move_from_prev_cal`), especially when you make big changes to `HTC_calculation_setup_file` or `HTC_calculation_setup_folder`, i.e. inserting more steps between existing calculation steps or renaming existing calculation steps.**    
 
@@ -883,6 +883,14 @@ default:
   e.g. If the vasp submission cmd is `mpirun -n 16 vasp_std`, then **vasp.out** is `vasp.out`
 
 -------------
+
+- **`jobs_treated_like_running_jobs`, optional for the first firework.** (Debug is underway)  
+The running jobs which are automatically submitted by the HTC package are tagged with `__running__`. But chances are that you do not want the HTC package to do the automatic submission. Instead, you have an additional script responsible for the job submission. This would be the case if you are allowed to request a certain amount of CPUs and memories with a very very long walltime (e.g. a few weeks/months). In this case, the allocated CPUs and memories can be used to run multiple (small) jobs one after another until the walltime is reached. We call these (small) jobs **packed**.  Depending on the calcualtion status, these packed jobs can be tagged with different non-magic signal files. For example, the to-be-calculated packed jobs are tagged with `__packed_1__`; the running packed job with `__packed_running__`; the packed jobs which finished unsuccessfully are tagged with `__packed_error__`. For the **running** packed job, `jobs_treated_like_running_jobs` provides a way to check whether an error occurs for the calculation **on the fly** just like those jobs tagged with `__running__`. Hence, we can somewhat improve the utilization of the limited allocated computational resources.     
+If the running packed jobs have been assigned different signal files, say `__packed_running_1__` for one running packed job and `__packed_running_2__` for another running packed job, separate them using commas, i.e., `jobs_treated_like_running_jobs = __packed_running_1__, __packed_running_2__`.  
+Default: Empty 
+
+-------
+
 
 ### Tag list ends here. You can find a template of `HTC_calculation_setup_file` under folder `Template`
 
