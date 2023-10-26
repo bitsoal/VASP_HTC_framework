@@ -67,13 +67,15 @@ def Vasp_Error_checker(error_type, cal_loc, workflow):
                           "__pzunmtr_or_pzstein__": Vasp_out_pzunmtr_or_pzstein, 
                           "__nkx_gt_ikptd__": Vasp_out_nkx_gt_ikptd, 
                           "__pead__": Vasp_out_pead, 
-                          "__fixed_incar_tags__": Fixed_incar_tags}
+                          "__fixed_incar_tags__": Fixed_incar_tags, 
+                          "__hard_stop_encountered__": Deleting_File_STOPCAR}
     
     on_the_fly = ["__too_few_bands__", "__electronic_divergence__", "__bader_charge__"]
     after_cal = on_the_fly + ["__pricel__", "__posmap__", "__bad_termination__", "__zbrent__", "__invgrp__"]
     after_cal += ["__too_few_kpoints__", "__rhosyg__", "__edddav__", "__zpotrf__", "__real_optlay__"]
     after_cal += ["__pzunmtr_or_pzstein__", "__nkx_gt_ikptd__", "__pead__"]
     after_cal += ["__ionic_divergence__", "__fixed_incar_tags__", "__positive_energy__", "__unfinished_OUTCAR__"]
+    after_cal += ["__hard_stop_encountered__"]
     
     
     if isinstance(error_type, str):  
@@ -2272,7 +2274,68 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
 # In[ ]:
 
 
-
+class Deleting_File_STOPCAR(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
+    """
+    Error checking type: after the calculation.
+    Check if the job is terminated by file STOPCAR
+    inherit methods write_error_tag and read_error_tag from class Write_and_read_error__.
+    input arguments:
+        -cal_loc: the location of the to-be-checked calculation
+        -workflow: the output of func Parse_calculation_workflow.parse_calculation_workflow
+    check method: return False and write error logs if singal line 'deleting file STOPCAR' is found 
+                  in the vasp standard output vasp.out or its equivalent specified by tag 'vasp.out' in the HTC setup file
+                  
+    Associated error type: __hard_stop_encountered__
+    
+    *Debug is underway.
+    """
+    def __init__(self, cal_loc, workflow):
+        Vasp_Error_Saver.__init__(self, cal_loc=cal_loc, workflow=workflow)
+        
+        self.workflow = workflow
+        self.cal_loc = cal_loc
+        self.firework_name = os.path.split(cal_loc)[-1]
+        self.log_txt = os.path.join(self.cal_loc, "log.txt")
+        self.target_file = self.workflow[0]["vasp.out"]
+        self.target_str = "deleting file STOPCAR"
+     
+    
+    def check(self):
+        """
+        Return:
+            - False if an error is found;
+            - True otherwise.
+        """        
+        
+        #Since the job is done, vasp.out or its equivalent defined in the HTC calculation setup must exist.
+        if not os.path.isfile(os.path.join(self.cal_loc, self.target_file)):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
+            super(Deleting_File_STOPCAR, self).write_error_tag(error_tag="__hard_stop_encountered__", file="__manual__")
+            with open(self.log_txt, "a") as log_f:
+                log_f.write("{} Error: This job finished either successfully or unsuccessfully. But file {}, which is supposed to be present, does not exist.\n".format(get_time_str(), self.target_file))
+                log_f.write("\t\t\t__running__ --> __manual__\n")
+            return False
+        
+        if find_target_str(cal_loc=self.cal_loc, target_file=self.target_file, target_str=self.target_str):
+            decorated_os_rename(loc=self.cal_loc, old_filename="__running__", new_filename="__manual__")
+            super(Deleting_File_STOPCAR, self).write_error_tag(error_tag="__hard_stop_encountered__", file="__manual__")
+            with open(self.log_txt, "a") as log_f:
+                log_f.write("{} Error: '{}' is found in {}\n".format(get_time_str(), self.target_str, self.target_file))
+                log_f.write("\t\t\tThis means that this job has been terminated using STOPCAR due to an error or other reason.\n")
+                log_f.write("\t\t\tBut it seems that all existing error checkers do not detect any error\n")
+                log_f.write("\t\t\tSo we ask you to check this job manually. __running__ --> __manual__\n")
+            
+            return False
+        
+        return True
+    
+            
+    def write_error_log(self):
+        raise Exception("Deleting_File_STOPCAR.write_error_log has been obsolete. But it is invoked for {}.".format(self.cal_loc))
+    
+    def correct(self):
+        raise Exception("Deleting_File_STOPCAR.check has already changed __running__ to __manual__ after an error is detected. So Deleting_File_STOPCAR.correct should note be called for {}.".format(self.cal_loc))
+    
 
 
 # In[24]:
