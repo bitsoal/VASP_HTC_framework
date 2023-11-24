@@ -2255,18 +2255,19 @@ class Positive_energy(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             super(Positive_energy, self).write_file_absence_log(filename_list = ["OUTCAR"])
             return False
         
-        IALGO = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="IALGO")
-        
-        if IALGO != 38:
-            super(Positive_energy, self).backup()
-            #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False)
-            modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False, 
-                              incar_template=self.workflow[0]["incar_template_list"], 
-                              valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
-            super(Positive_energy, self).write_correction_log(new_incar_tags={"ALGO": "Normal"})
-            #with open(self.log_txt, "a") as f:
-            #    f.write("{} Correction: ALGO --> Normal\n".format(get_time_str()))
-            return True
+        #Let the  user to check if the positive energy result is meanningful.
+        #IALGO = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="IALGO")
+        #
+        #if IALGO != 38:
+        #    super(Positive_energy, self).backup()
+        #    #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False)
+        #    modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"ALGO": "Normal"}, rename_old_incar=False, 
+        #                      incar_template=self.workflow[0]["incar_template_list"], 
+        #                      valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
+        #    super(Positive_energy, self).write_correction_log(new_incar_tags={"ALGO": "Normal"})
+        #    #with open(self.log_txt, "a") as f:
+        #    #    f.write("{} Correction: ALGO --> Normal\n".format(get_time_str()))
+        #    return True
         
         return False
 
