@@ -1,43 +1,140 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[10]:
 
 
-import os, re
+import os, re, copy, json
 
 
-# In[2]:
+# test_dict = {"a": 1, "b": 2}
+# read_only_dict = Read_Only_Dict.from_dict(test_dict)
+# read_only_dict.__len__(), test_dict.__len__(), read_only_dict == read_only_dict
+
+# for key, values in read_only_dict.items():
+#     print(key, values)
+
+# help(read_only_dict.setdefault)
+
+# read_only_dict["c"] = 1
+# print(read_only_dict)
+# del read_only_dict["a"]
+# read_only_dict
+
+# In[11]:
 
 
-class Read_Only_Dict(dict):
-    def __init__(self, *args, **kwargs):
-        super(Read_Only_Dict, self).__init__(*args, **kwargs)
+class Read_Only_Dict():
+    def __init__(self, org_dict):
+        self.org_dict = copy.deepcopy(org_dict)
+        self.unchangeable_tags = tuple(set(org_dict.keys()))
         
     def __setitem__(self, key, value):
-        raise Exception("{} instance is read-only and cannot be changed!".format(self.__class__.__name__))
+        if key in self.unchangeable_tags:
+            raise Exception("key '{}' of {} instance is read-only and cannot be reset!".format(key, self.__class__.__name__))
+        else:
+            self.org_dict[key] = value
     
     def __delitem__(self, key):
-        raise Exception("{} instance is read-only and cannot be changed!".format(self.__class__.__name__))
+        if key in self.unchangeable_tags:
+            raise Exception("key '{}' of {} instance is read-only and cannot be deleted!".format(key, self.__class__.__name__))
+        else:
+            del self.org_dict[key]
+    
+    def __getitem__(self, key, default=None):
+        return self.org_dict.get(key, default)
+    
+    def __str__(self):
+        return self.org_dict.__str__()
+    
+    def __repr__(self):
+        return self.org_dict.__repr__()
+    
+    def __len__(self):
+        return self.org_dict.__len__()
+    
+    def __contains__(self, key):
+        return (key in self.org_dict)
+    
+    def __iter__(self):
+        return self.org_dict.__iter__()
         
-    def update(self, *args, **kwargs):
-        raise Exception("{} instance is read-only and cannot be changed!".format(self.__class__.__name__))
+    #def update(self, *args, **kwargs):
+    #    raise Exception("{} instance is read-only and cannot be changed!".format(self.__class__.__name__))
+        
+    def get(self, key, default=None):
+        return self.org_dict.get(key, default)
+    
+    def items(self):
+        return self.org_dict.items()
+    
+    def keys(self):
+        return self.org_dict.keys()
     
     @classmethod
     def from_dict(cls, dictionary):
         read_only_dictionary = {}
         for key, value in dictionary.items():
-            if isinstance(value, list):
+            if isinstance(value, list) or isinstance(value, set):
                 value = tuple(value)   
             elif isinstance(value, dict):
                 value = Read_Only_Dict.from_dict(value)
                 
             read_only_dictionary[key] = value
             
-        return Read_Only_Dict(**read_only_dictionary)
+        return Read_Only_Dict(read_only_dictionary)
 
 
-# In[9]:
+# class Read_Only_Dict(dict):
+#     def __init__(self, *args, **kwargs):
+#         super(Read_Only_Dict, self).__init__(*args, **kwargs)
+#         #super(Read_Only_Dict, self).__setitem__("unchangeable_tags", tuple(unchangeable_tags))
+#         
+#         
+#     def __setitem__(self, key, value):
+#         if key in self.unchangeable_tags:
+#             raise Exception("key '{}' of {} instance is read-only and cannot be changed!".format(key, self.__class__.__name__))
+#         else:
+#             #print(key, value)
+#             super(Read_Only_Dict, self).__setitem__(key, value)
+#     
+#     def __delitem__(self, key):
+#         if key in self.unchangeable_tags:
+#             raise Exception("key '{}' of {} instance is read-only and cannot be deleted!".format(key, self.__class__.__name__))
+#         else:
+#             super(Read_Only_Dict, self).__delitem__(key)
+#         
+#     def update(self, *args, **kwargs):
+#         raise Exception("{} instance is read-only and cannot be updated!".format(self.__class__.__name__))
+#         
+#     def pop(self, key, default):
+#         if key in self.unchangeable_tags:
+#             raise Exception("key '{}' of {} instance is read-only and cannot be popped!".format(self.__class__.__name__))
+#         else:
+#             return super(Read_Only_Dict, self).pop(key, default)
+#         
+#     def popitem(self):
+#         raise Exception("method popitem of {} instance is disabled!".format(self.__class__.__name__))
+#         
+#     def clear(self):
+#         raise Exception("method clear of {} instance is disabled!".format(self.__class__.__name__))
+#     
+#     @classmethod
+#     def from_dict(cls, dictionary):
+#         temp_dictionary = {}
+#         for key, value in dictionary.items():
+#             if isinstance(value, list):
+#                 value = tuple(value)   
+#             elif isinstance(value, dict):
+#                 value = Read_Only_Dict.from_dict(value)
+#                 
+#             temp_dictionary[key] = value
+#         
+#         read_only_dictionary = Read_Only_Dict(**temp_dictionary)
+#         read_only_dictionary.unchangeable_tags = tuple(read_only_dictionary.keys())
+#         return read_only_dictionary
+
+# In[3]:
 
 
 def read_HTC_calculation_setup_folder(foldername="HTC_calculation_setup_folder"):
@@ -89,7 +186,7 @@ def read_HTC_calculation_setup_folder(foldername="HTC_calculation_setup_folder")
     return firework_block_filename_list, firework_block_list
 
 
-# In[8]:
+# In[4]:
 
 
 def check_dependent_step_names(workflow):
@@ -120,7 +217,7 @@ def check_dependent_step_names(workflow):
     
 
 
-# In[10]:
+# In[5]:
 
 
 def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
@@ -175,7 +272,11 @@ def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
     firework_hierarchy_dict, workflow = reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hierarchy_dict)
     
     workflow[0]["firework_hierarchy_dict"] = firework_hierarchy_dict
-    
+        
+    with open("Parsed_HTC_setup.JSON", "w") as f:
+        json.dump(workflow, f, indent=1) 
+        #This must be done before we convert workflow entries to read-only format. Because the latter is not Json Serializable
+        
     workflow = [Read_Only_Dict.from_dict(firework) for firework in workflow]
     check_dependent_step_names(workflow)
     
@@ -184,16 +285,11 @@ def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
     if is_it_a_foldername:
         for firework_block_filename, firework in zip(firework_block_filename_list, workflow):
             assert firework_block_filename == firework["firework_folder_name"], "firework_folder_name constructed based on step_no and cal_name should be the same as the filename of the file defining the firework/calculation. {} V.S. {}".format(firework_block_filename, firework["firework_folder_name"])
-    
-    
-    import json
-    with open("Parsed_HTC_setup.JSON", "w") as f:
-        json.dump(workflow, f, indent=1)
-                    
+                              
     return workflow              
 
 
-# In[5]:
+# In[6]:
 
 
 def cal_calculation_sequence_of_all_fireworks(firework_hierarchy_dict):
@@ -228,7 +324,7 @@ def cal_calculation_sequence_of_all_fireworks(firework_hierarchy_dict):
     return cal_sequence_dict
 
 
-# In[6]:
+# In[7]:
 
 
 def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hierarchy_dict):
@@ -274,15 +370,10 @@ def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hi
                 new_hierarchy_dict[new_dependent_firework_name_in_hierarchy] = [firework["firework_folder_name"]]
         workflow[firework_ind]["additional_cal_dependence"] = latest_dependent_firework_list
         
-    return new_hierarchy_dict, workflow
-        
-        
-        
-        
-        
+    return new_hierarchy_dict, workflow   
 
 
-# In[1]:
+# In[8]:
 
 
 def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
@@ -304,6 +395,7 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                     "incar_cmd", "kpoints_cmd", "poscar_cmd", "potcar_cmd", "cmd_to_process_finished_jobs",
                     "sub_dir_cal", "sub_dir_cal_cmd", "preview_vasp_inputs",
                     "skip_this_step",
+                    "max_workers",
                     "job_submission_script", "job_submission_command", "job_name", "max_running_job", "where_to_parse_queue_id",
                     "re_to_parse_queue_id", "job_query_command", "job_killing_command", "queue_stdout_file_prefix", "queue_stdout_file_suffix",
                     "queue_stderr_file_prefix", "queue_stderr_file_suffix", "vasp.out", 
@@ -333,8 +425,7 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                 firework["new_incar_tags"][tag.upper()] = value
             else:
                 assert tag.lower() in htc_tag_list, "Step %d: tag %s has not been defined. Please check!" % (step_no, tag)
-                firework[tag.lower()] = value
-                
+                firework[tag.lower()] = value             
     
     
     #Check the validity of the setting and assign default values to unspecified tags
@@ -608,8 +699,14 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
         if firework["preview_vasp_inputs"]:
             print("preview_vasp_inputs has been obsolete. Reset it to False|No")
             print("The best way to check whether your HTC_calculation_setup works is to feed a cheap|small system to it, and see if it really works.")
-            
-                
+           
+        #If class ProcessPoolExecutor is called for parallel computing, 'max_workers' defines the max number of processes which can be deployed.
+        #If this is not the case, 'max_workers' should not be provided and defaults to None
+        #Note that we do not check if explicitly setting 'max_workers' is right. The htc main script will do this job.
+        if "max_workers" in firework.keys():
+            firework["max_workers"] = int(firework["max_workers"])
+        else:
+            firework["max_workers"] = None
                     
         #set the calculation folder, structure folder, max_running_job
         if "cal_folder" not in firework.keys():
@@ -670,16 +767,17 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                 firework["job_folder_list_treated_like_running_folder_list"].append(job.strip("_") + "_folder_list")
         firework["jobs_treated_like_running_jobs"] = jobs_treated_like_running_jobs
     #return Read_Only_Dict.from_dict(firework)
+    
     return firework
 
 
-# In[ ]:
+# In[9]:
 
 
 if __name__ == "__main__":
-    wf_1 = parse_calculation_workflow("HTC_calculation_setup_file")
-    wf_2 = parse_calculation_workflow("HTC_calculation_setup_folder")
-    print(wf_1 == wf_2)
+    #wf_1 = parse_calculation_workflow("HTC_calculation_setup_file")
+    wf_2 = parse_calculation_workflow("HTC_calculation_setup_folder", HTC_lib_loc=".")
+    #print(wf_1 == wf_2)
 
 
 # workflow[4]

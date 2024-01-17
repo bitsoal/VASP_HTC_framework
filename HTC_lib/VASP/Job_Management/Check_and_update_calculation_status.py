@@ -29,8 +29,10 @@ from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_Saver
 from HTC_lib.VASP.Error_Checker.Error_checker import Queue_std_files
 from HTC_lib.VASP.Error_Checker.Error_checker import Vasp_Error_checker
 
+from concurrent.futures import ProcessPoolExecutor
 
-# In[5]:
+
+# In[2]:
 
 
 def respond_to(signal_file, workflow):
@@ -53,6 +55,19 @@ def respond_to(signal_file, workflow):
 # In[2]:
 
 
+def is_early_termination_file_found(main_dir):
+    signal_file_list = ["__stop__", "__update_now__", "__update_input__", "__change_signal_file__", 
+                        "__go_to_submission__", "__scan_all__"]
+    for file in os.listdir():
+        if file in signal_file_list:
+            #print("{}: {} is detected under HTC_CWD. Stop updating jobs' status.".format(get_time_str(), file), flush=True)
+            return True
+    return False
+
+
+# In[2]:
+
+
 def update_job_status(cal_folder, workflow, which_status='all', job_list=[], rank=None):
     """
     arguements:
@@ -69,47 +84,55 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
     """
     debugging = True
     
-    stop_file_path = os.path.join(workflow[0]["htc_cwd"], "__stop__")
-    htc_job_status_file_path = os.path.join(workflow[0]["htc_cwd"], "htc_job_status.json")
-    update_now_file_path = os.path.join(workflow[0]["htc_cwd"], "__update_now__")
-    change_signal_file_path = os.path.join(workflow[0]["htc_cwd"], "__change_signal_file__")
-    go_to_sub_signal_file_path = os.path.join(workflow[0]["htc_cwd"], "__go_to_submission__")
+    if is_early_termination_file_found(main_dir=workflow[0]["htc_cwd"]):
+        return Cal_status_dict_operation.void_cal_status_diff
     
     if which_status == "all":
         job_status_dict = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
         
-        #update_running_jobs_status(running_jobs_list=job_status_dict["running_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="running_folder_list", 
-                          job_list=job_status_dict["running_folder_list"])
+        job_status_diff = update_job_status(cal_folder, workflow, which_status="running_folder_list", 
+                                            job_list=job_status_dict["running_folder_list"])
+        job_status_dict = Cal_status_dict_operation.update_old_cal_status_dict(old_cal_status_dict=job_status_dict, 
+                                                                               cal_status_dict_diff=job_status_diff)
         
-        job_status_dict = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
-        #kill_error_jobs(error_jobs=job_status_dict["error_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="error_folder_list", 
-                          job_list=job_status_dict["error_folder_list"])
+        job_status_diff = update_job_status(cal_folder, workflow, which_status="error_folder_list", 
+                                            job_list=job_status_dict["error_folder_list"])
+        job_status_dict = Cal_status_dict_operation.update_old_cal_status_dict(old_cal_status_dict=job_status_dict, 
+                                                                               cal_status_dict_diff=job_status_diff)
+                
+        job_status_diff = update_job_status(cal_folder, workflow, which_status="killed_folder_list", 
+                                            job_list=job_status_dict["killed_folder_list"])
+        job_status_dict = Cal_status_dict_operation.update_old_cal_status_dict(old_cal_status_dict=job_status_dict, 
+                                                                               cal_status_dict_diff=job_status_diff)
         
-        job_status_dict = check_calculations_status(cal_folder=cal_folder, workflow=workflow)
+        job_status_diff = update_job_status(cal_folder, workflow, which_status="sub_dir_cal_folder_list", 
+                                            job_list=job_status_dict["sub_dir_cal_folder_list"])
+        job_status_dict = Cal_status_dict_operation.update_old_cal_status_dict(old_cal_status_dict=job_status_dict, 
+                                                                               cal_status_dict_diff=job_status_diff)        
         
-        #update_killed_jobs_status(killed_jobs_list=job_status_dict["killed_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="killed_folder_list", 
-                          job_list=job_status_dict["killed_folder_list"])
-        
-        #update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=job_status_dict["sub_dir_cal_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="sub_dir_cal_folder_list", 
-                          job_list=job_status_dict["sub_dir_cal_folder_list"])
-        
-        #clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=job_status_dict["done_folder_list"], workflow=workflow)
-        update_job_status(cal_folder, workflow, which_status="done_folder_list", 
-                          job_list=job_status_dict["done_folder_list"])
+        job_status_diff = update_job_status(cal_folder, workflow, which_status="done_folder_list", 
+                                            job_list=job_status_dict["done_folder_list"])
+        job_status_dict = Cal_status_dict_operation.update_old_cal_status_dict(old_cal_status_dict=job_status_dict, 
+                                                                               cal_status_dict_diff=job_status_diff)         
     elif which_status == "running_folder_list":
         for cal_loc in job_list:
             if debugging: 
                 assert os.path.isfile(os.path.join(cal_loc, "__running__")), "{}: The status of the following job is not __running__: {}".format(get_time_str(), cal_loc)
-        update_running_jobs_status(running_jobs_list=job_list, workflow=workflow)
+        if workflow[0]["max_workers"] != None: #max_workers is the input argument of class ProcessPoolExecutor. Being true means that ProcessPoolExecutor is deployed for parallization
+            job_status_str = Job_management.check_jobs_in_queue_system(workflow=workflow, return_a_str=True)
+            workflow_list, job_status_str_list = [workflow] * len(job_list), [job_status_str] * len(job_list)
+            with ProcessPoolExecutor(max_workers=workflow[0]["max_workers"]) as executor:
+                executor.map(update_running_jobs_status, [[job] for job in job_list], workflow_list, job_status_str_list)
+        else:
+            update_running_jobs_status(running_jobs_list=job_list, workflow=workflow)
         old_cal_status = {"running_folder_list": job_list}
         new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=job_list)
         return Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
     elif which_status == "error_folder_list":
         for cal_loc in job_list:
+            #To respond to termination files in the main directory
+            if is_early_termination_file_found(main_dir=workflow[0]["htc_cwd"]):
+                break
             if debugging: 
                 assert os.path.isfile(os.path.join(cal_loc, "__error__")), "{}: The status of the following job is not __error__: {}".format(get_time_str(), cal_loc)
             kill_error_jobs(error_jobs=[cal_loc], workflow=workflow)
@@ -118,6 +141,9 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
         return Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
     elif which_status == "killed_folder_list":
         for cal_loc in job_list:
+            #To respond to termination files in the main directory
+            if is_early_termination_file_found(main_dir=workflow[0]["htc_cwd"]):
+                break
             if debugging: 
                 assert os.path.isfile(os.path.join(cal_loc, "__killed__")), "{}: The status of the following job is not __killed__: {}".format(get_time_str(), cal_loc)
             update_killed_jobs_status(killed_jobs_list=[cal_loc], workflow=workflow)
@@ -129,15 +155,16 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
         for cal_loc in job_list:
             if debugging:
                 if isinstance(rank, int):
-                    print("{}: process {} checks sub-dir cal under {}".format(get_time_str(), rank, cal_loc), flush=True)
+                    print("{}: process {} checks sub-dir cal under {}".format(get_time_str(), rank, cal_loc.replace(workflow[0]["cal_folder"], "")), flush=True)
                 else:
-                    print("{}: check sub-dir cal under {}".format(get_time_str(), cal_loc), flush=True)
+                    print("{}: check sub-dir cal under {}".format(get_time_str(), cal_loc.replace(workflow[0]["cal_folder"], "")), flush=True)
                 assert os.path.isfile(os.path.join(cal_loc, "__sub_dir_cal__")), "{}: The status of the following job is not __sub_dir_cal__: {}".format(get_time_str(), cal_loc)
             update_sub_dir_cal_jobs_status(sub_dir_cal_jobs_list=[cal_loc], workflow=workflow)
             old_cal_status = {"sub_dir_cal_folder_list": [cal_loc]}
             new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=[cal_loc])
             cal_status_diff_list.append(Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status))
-            if os.path.isfile(stop_file_path) or os.path.isfile(update_now_file_path) or os.path.isfile(change_signal_file_path) or os.path.isfile(go_to_sub_signal_file_path): 
+            #if os.path.isfile(stop_file_path) or os.path.isfile(update_now_file_path) or os.path.isfile(change_signal_file_path) or os.path.isfile(go_to_sub_signal_file_path): 
+            if is_early_termination_file_found(main_dir=workflow[0]["htc_cwd"]):
                 #update_sub_dir_cal_jobs_status may involve very slow external commands.
                 break  #This if clause ensures a quick response to signal files
         return Cal_status_dict_operation.merge_cal_status_diff(cal_status_diff_list)
@@ -154,7 +181,7 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
                 if isinstance(rank, int):
                     print("{}: process {} cleans|analyzes complete cal under {}".format(get_time_str(), rank, cal_loc), flush=True)
                 else:
-                    print("{}: cleans|analyzes complete cal under {}".format(get_time_str(), cal_loc), flush=True)
+                    print("{}: cleans|analyzes complete cal under {}".format(get_time_str(), cal_loc.replace(workflow[0]["cal_folder"], "")), flush=True)
                 assert os.path.isfile(os.path.join(cal_loc, "__done__")), "{}: The status of the following job is not __done__: {}".format(get_time_str(), cal_loc)
             clean_analyze_or_update_successfully_finished_jobs(done_jobs_list=[cal_loc], workflow=workflow)
             #old_cal_status = {"done_folder_list": [cal_loc]}
@@ -163,7 +190,8 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
             else:
                 new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=[cal_loc])
             cal_status_diff_list.append(Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status))
-            if os.path.isfile(stop_file_path) or os.path.isfile(update_now_file_path) or os.path.isfile(change_signal_file_path) or os.path.isfile(go_to_sub_signal_file_path): 
+            #if os.path.isfile(stop_file_path) or os.path.isfile(update_now_file_path) or os.path.isfile(change_signal_file_path) or os.path.isfile(go_to_sub_signal_file_path): 
+            if is_early_termination_file_found(main_dir=workflow[0]["htc_cwd"]):
                 #clean_analyze_or_update_successfully_finished_jobs may involve very slow external commands.
                 break  #This if clause ensures a quick response to signal files
         return Cal_status_dict_operation.merge_cal_status_diff(cal_status_diff_list)
@@ -178,8 +206,6 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
         old_cal_status = {which_status: job_list}
         new_cal_status = check_calculations_status(cal_folder, workflow, cal_loc_list=job_list)
         return Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status)
-    
-        
 
 
 # In[3]:
@@ -192,7 +218,7 @@ def are_all_cal_for_a_material_complete(mat_folder, cal_name_list):
         - cal_name_list (list of str): a list of calculation folder names. E.g. ["step_1_xxx", "step_2_yyy", "step_3_zzz"]
     return:
         - True if all calculations in cal_name_list are complete as indicated by the presence of either of signal files below:
-            "__skipped__", "__done__", "__done_cleaned_analyzed__" and "__done_failed_to_clean_analyze__"
+            "__skipped__", "__done__", and "__done_cleaned_analyzed__"
         - False otherwise.
     Note that 
         1. if all calculations in cal_name_list are complete, a file named as "__complete__" will be created under mat_folder. The existence of 
@@ -208,7 +234,7 @@ def are_all_cal_for_a_material_complete(mat_folder, cal_name_list):
     elif "__incomplete__" in sub_dir_list:
         return False
     
-    signal_file_list = ["__done__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__", "__skipped__"]
+    signal_file_list = ["__done__", "__done_cleaned_analyzed__", "__skipped__"]
     for cal_name in cal_name_list:
         if cal_name in sub_dir_list:
             if not any([os.path.isfile(os.path.join(mat_folder, cal_name, signal_file)) for signal_file in signal_file_list]):
@@ -337,28 +363,24 @@ def check_calculations_status(cal_folder, workflow, mat_folder_name_list=None, c
 # In[3]:
 
 
-def update_running_jobs_status(running_jobs_list, workflow):
+def update_running_jobs_status(running_jobs_list, workflow, job_status_str=None):
     """
     Update jobs's status. for the running jobs, if any errors are detected, change __running__ to __error__ and 
         the error type will be written into __error__.
     input arguments:
         - running_jobs_list (list): a list of absolute pathes of running jobs.
         - workflow:  the output of func Parse_calculation_workflow.parse_calculation_workflow
+        - job_status_str: a string returned by Job_management.check_jobs_in_queue_system(workflow=workflow, return_a_str=True)
+                default: 'job_status_str=None' --> This function request the string by calling the above function.
     """
-    #Check_after_cal = ["__electronic_divergence__", "__positive_energy__", "__ionic_divergence__"]
-    #Check_on_the_fly = ["__electronic_divergence__", "__positive_energy__"]
-    
-    job_status_str = Job_management.check_jobs_in_queue_system(workflow=workflow, return_a_str=True)
-    #print()
-    #print(get_time_str())
-    #print(job_status_str)
-    #job_status_str = ""
-    #if job_status_list:
-    #    for i in range(1, len(job_status_list)):
-    #        job_status_str += job_status_list[i]
+    if job_status_str == None:
+        job_status_str = Job_management.check_jobs_in_queue_system(workflow=workflow, return_a_str=True)
     
     for job_path in running_jobs_list:
+        if is_early_termination_file_found(main_dir=workflow[0]["htc_cwd"]):
+            return
         
+        print("{}: updating the running job: {}".format(get_time_str(), job_path.replace(workflow[0]["cal_folder"], "")), flush= True)
         
         find_error = False
         if Queue_std_files(cal_loc=job_path, workflow=workflow).find_std_files() != [None, None]:
@@ -420,7 +442,7 @@ def update_jobs_treated_like_running_jobs(job_list, workflow, job_status):
     say __packed_running__.
     What this function does to each to-be-checked job:
         1. find all existing signal files (format: starting and ending with a double underscore) regardless whether they are magic signal files.
-        2. create __running__ and call the on-the-fly checkup originally designed for jobs tagged with __running
+        2. create __running__ and call the on-the-fly checkup originally designed for jobs tagged with __running__
         3. After the on-the-fly checkup finishes, 
             if the original job_status file (e.g. __packed_running__) is still existent:
                 *If __running__ is not existent:

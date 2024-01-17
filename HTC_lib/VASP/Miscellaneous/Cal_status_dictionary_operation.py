@@ -67,16 +67,18 @@ def divide_a_list_evenly(a_list, no_of_sublists):
     return sublist_list
 
 
-# In[5]:
+# In[7]:
 
 
 class Cal_status_dict_operation():
-    
+       
     @classmethod
     def merge_dicts(cls, a_list_of_dicts):
         """
         Merge a set of the dicts whose value is of type list.
         """
+        if len(a_list_of_dicts) == 0:
+            return {}
         a_list_of_dicts = copy.deepcopy(a_list_of_dicts)
         merged_dict = a_list_of_dicts[0]
         for a_dict in a_list_of_dicts[1:]:
@@ -138,6 +140,7 @@ class Cal_status_dict_operation():
             removed_job_list.append(job_status_pair[0])
         
         return {"updated": updated_dict, "removed": removed_job_list, "status_list": list(status_set)}
+    void_cal_status_diff = {"updated": {}, "removed": [], "status_list": []}
     
     @classmethod
     def merge_cal_status_diff(cls, a_list_of_cal_status_diff):

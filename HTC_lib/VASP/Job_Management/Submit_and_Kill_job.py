@@ -20,7 +20,8 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
     """
     submit jobs.
     input arguments:
-        - ready_jobs (list): a list of absolute pathes where the calculation are ready to carry out.
+        - cal_jobs_status (dict): a dict containing keys:running_folder_list, ready_folder_list (prior_ready_folder_list)
+                                The respective item is a list of absolute paths tagged with state __running__, __ready__ (__prior_ready__).
         - workflow: the return of function parse_calculation_workflow, which define a set of DFT calculations and 
             related pre- and post- processes
         - max_jobs_in_queue (int): default 30
@@ -29,23 +30,19 @@ def submit_jobs(cal_jobs_status, workflow, max_jobs_in_queue=30):
     if no_of_running_jobs != len(cal_jobs_status["running_folder_list"]):
         print("Error in counting running jobs: qstat|bjobs gives {} V.S. __running__ gives {}".format(no_of_running_jobs, len(cal_jobs_status["running_folder_list"])))
     no_of_running_jobs = max([no_of_running_jobs, len(cal_jobs_status["running_folder_list"])])
-    #    return False
     
     if no_of_running_jobs < max_jobs_in_queue:
         available_submissions = max_jobs_in_queue - no_of_running_jobs
     else:
         return []
-        #available_submissions = 0
-        
-    #print("{} jobs are running, you can submit {} jobs; {} jobs in queue already".format(no_of_running_jobs, available_submissions, \
-                                                                                         #len(Job_management.check_jobs_in_queue_system(workflow))))
-    
+
     ready_jobs = cal_jobs_status["prior_ready_folder_list"] + cal_jobs_status["ready_folder_list"]
     available_submissions = min([available_submissions, len(ready_jobs)])
+    parsed_jobs_in_queue_system_list = Job_management.check_jobs_in_queue_system(workflow=workflow)
     for i in range(available_submissions):
         cal_loc = ready_jobs[i]
         print("{}: Submit the job under {}".format(get_time_str(), cal_loc), flush=True)
-        Job_management(cal_loc, workflow).submit()
+        Job_management(cal_loc, workflow, parsed_jobs_in_queue_system_list=parsed_jobs_in_queue_system_list).submit()
     return ready_jobs[:available_submissions]
 
 
@@ -75,7 +72,7 @@ def kill_error_jobs(error_jobs, workflow):
 #     else:
 #         return lines
 
-# In[4]:
+# In[2]:
 
 
 class Job_management():
@@ -85,6 +82,10 @@ class Job_management():
         - cal_loc (str): the location of the calculation.
         - workflow: the return of function parse_calculation_workflow, which define a set of DFT calculations and 
             related pre- and post- processes
+        - parsed_jobs_in_queue_system_list (default: None): the return of Job_management.check_jobs_in_queue_system(workflow)
+                    By setting this argument, function Job_management.is_cal_in_queue will directly use this list rather than request via the above command.
+                    This helps reduce the # of requests to the supercomputor's Job scheduler during job submission, 
+                    i.e., one request for ONE to-be-submitted job --> one request for A LIST OF to-be-submitted jobs. (see the last for loop of function submit_jobs above.)
     Operation:
         - If __ready__ exists under cal_loc, submit job and __ready__ --> __running__
         - If __kill__ exists under cal_loc, kill the job and __kill__ --> __killed__
@@ -93,7 +94,7 @@ class Job_management():
                 return queue id if found; otherwise return False
     """
     
-    def __init__(self, cal_loc, workflow):
+    def __init__(self, cal_loc, workflow, parsed_jobs_in_queue_system_list=None):
         self.cal_loc = cal_loc
         self.firework_name = os.path.split(cal_loc)[-1]
         self.log_txt = os.path.join(self.cal_loc, "log.txt")
@@ -105,6 +106,8 @@ class Job_management():
         self.queue_id_file = workflow[0]["where_to_parse_queue_id"]
         self.queue_id_file = os.path.join(self.cal_loc, self.queue_id_file)
         self.re_to_queue_id = workflow[0]["re_to_parse_queue_id"]
+        
+        self.parsed_jobs_in_queue_system_list = parsed_jobs_in_queue_system_list
     
     
     @classmethod
@@ -176,7 +179,11 @@ class Job_management():
         
     def is_cal_in_queue(self):
         queue_id = self.find_queue_id()
-        for job_summary in Job_management.check_jobs_in_queue_system(self.workflow):
+        if self.parsed_jobs_in_queue_system_list != None:
+            parsed_jobs_in_queue_system_list = self.parsed_jobs_in_queue_system_list
+        else:
+            parsed_jobs_in_queue_system_list = Job_management.check_jobs_in_queue_system(self.workflow)
+        for job_summary in parsed_jobs_in_queue_system_list:
             if queue_id in job_summary:
                 return True
         return False

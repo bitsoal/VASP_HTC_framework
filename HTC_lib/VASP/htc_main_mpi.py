@@ -256,13 +256,18 @@ if __name__ == "__main__":
     workflow = read_workflow()
     if rank == 0: 
         if debugging: print("{}: process 0 starts the backup of htc files".format(get_time_str()), flush=True)
-        backup_htc_files(workflow=workflow)
+        try:
+            backup_htc_files(workflow=workflow)
+        except Exception as e:
+            print("{}: An error below is encountered while the program is trying to backup htc files.".format(get_time_str()), flush=True)
+            print(e)
         if debugging: print("{}: process 0 finishes the backup of htc files".format(get_time_str()), flush=True)
     elif debugging: print("{}: process {} is waiting for process 0 to finish the backup of htc files".format(get_time_str(), rank), flush=True)
     synchron(comm=comm, rank=rank, size=size)
     
     structure_file_folder = workflow[0]["structure_folder"]
     cal_folder = workflow[0]["cal_folder"]
+    assert workflow[0]["max_workers"] == None, "Since you are trying to deploy mpi4py for parallel computing, 'max_workers' associated with ProcessPoolExecutor-based parallelization should not be set in the first step."
     
     no_of_structures = len(os.listdir(structure_file_folder))
     assert  no_of_structures >= size, "# of to-be-calculated structures {} should be >= # of requested cores/cpus {}.".format(no_of_structures, size)
@@ -513,6 +518,7 @@ if __name__ == "__main__":
         if os.path.isfile(update_input_file_path):
             if debugging: print("{}: __update_input__ is found found in HTC_CWD. Process {} reads the updated pre-defined calculation workflow".format(get_time_str(), rank), flush=True)
             workflow = read_workflow()
+            assert workflow[0]["max_workers"] == None, "Since you are trying to deploy mpi4py for parallel computing, 'max_workers' associated with ProcessPoolExecutor-based parallelization should not be set in the first step."
             if rank == 0:
                 os.remove(update_input_file_path)
                 if debugging: print("{}: process 0 removes __update_input__".format(get_time_str()), flush=True)
