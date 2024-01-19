@@ -177,6 +177,9 @@ def update_job_status(cal_folder, workflow, which_status='all', job_list=[], ran
                 cal_status_diff_list.append(Cal_status_dict_operation.diff_status_dict(old_cal_status_dict=old_cal_status, new_cal_status_dict=new_cal_status))
                 continue
             
+            current_firework = get_current_firework_from_cal_loc(cal_loc, workflow)
+            if not current_firework["cmd_to_process_finished_jobs"]: continue
+            
             if debugging:
                 if isinstance(rank, int):
                     print("{}: process {} cleans|analyzes complete cal under {}".format(get_time_str(), rank, cal_loc), flush=True)
@@ -638,11 +641,8 @@ def clean_analyze_or_update_successfully_finished_jobs(done_jobs_list, workflow)
     for cal_loc in done_jobs_list:      
         current_firework = get_current_firework_from_cal_loc(cal_loc, workflow)
         
-        if not current_firework["cmd_to_process_finished_jobs"]:
-            #decorated_os_rename(loc=cal_loc, old_filename="__done__", new_filename="__done_not_clean_analyze__")
-            #with open(log_filename, "a") as log_f:
-            #    log_f.write("\t{}: cmd_to_process_finished_jobs is empty: __done__ --> __done_not_clean_analyze__\n".format(get_time_str()))
-            continue
+        #if not current_firework["cmd_to_process_finished_jobs"]:
+        #    continue
         
         log_filename = os.path.join(cal_loc, "log.txt")
         
