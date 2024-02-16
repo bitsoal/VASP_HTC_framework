@@ -132,6 +132,8 @@ if __name__ == "__main__":
     max_workers = workflow[0]["max_workers"]
     assert isinstance(max_workers, int), "Since you are trying to deploy ProcessPoolExecutor for parallel computing, 'max_workers' should be provided in the first step and should be a positive integer."
     print("{}: finished reading the pre-defined calculation workflow".format(get_time_str()), flush=True)
+    if not os.path.isdir(cal_folder):
+        os.mkdir(cal_folder)
     
     print("{}: starts to backup htc files".format(get_time_str()), flush=True)
     try:
@@ -200,6 +202,9 @@ if __name__ == "__main__":
                 cal_status_dict_list = list(executor.map(check_calculations_status, cal_folder_list, workflow_list, mat_folder_name_list))
             del mat_folder_name_list, cal_folder_list, workflow_list, length
             total_cal_status = Cal_status_dict_operation.merge_dicts(a_list_of_dicts=cal_status_dict_list)
+            for tag in ["ready_folder_list", "prior_ready_folder_list"]:
+                if tag not in total_cal_status.keys():
+                    total_cal_status[tag] = []
             Cal_status_dict_operation.write_cal_status(cal_status=total_cal_status, filename=htc_job_status_file_path)
             os.remove(scan_all_file_path)
             print("{}: removed __scan_all__".format(get_time_str()), flush=True)
@@ -210,6 +215,8 @@ if __name__ == "__main__":
             #In the for loop below, swift response to signal files under HTC_CWD/main_dir has been handled properly within function update_job_status
             for which_status in Cal_status_dict_operation.get_to_be_updated_status_list(total_cal_status):
                 print("{}: starts updating {}".format(get_time_str(), which_status), flush=True)
+                if which_status not in  total_cal_status.keys():
+                    continue
                 if which_status == "running_folder_list":
                     #In this case, we put the ProcessPoolExecutor based parallization into function update_job_status.
                     #As such, the defined job_query_command will be just called ONCE to take care of all to-be-updated jobs originally tagged by __running__.
