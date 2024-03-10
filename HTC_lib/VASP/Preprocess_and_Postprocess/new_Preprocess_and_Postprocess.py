@@ -223,12 +223,6 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
         if not Execute_shell_cmd(**input_args_list):
             return False
         
-        if current_firework["sub_dir_cal"]:
-            decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__sub_dir_cal__")
-            with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:
-                f.write("{} INFO: All VASP input files needed for sub-directory calculations are ready at {}\n".format(get_time_str(), current_firework["firework_folder_name"]))
-                f.write("\t\t\t__vis__ --> __sub_dir_cal__\n")
-            return True
         
         if current_firework["is_fixed_incar_tags_on"]:
             incar_dict = modify_vasp_incar(cal_loc=current_cal_loc)
@@ -244,6 +238,12 @@ def prepare_input_files(cif_filename, cif_folder, mater_cal_folder, current_fire
                 for tag, value in fixed_incar_tags.items():
                     f.write("\t\t\t\t{}: {}\n".format(tag, value))
         
+        if current_firework["sub_dir_cal"]:
+            decorated_os_rename(loc=current_cal_loc, old_filename="__vis__", new_filename="__sub_dir_cal__")
+            with open(os.path.join(current_cal_loc, "log.txt"), "a") as f:
+                f.write("{} INFO: All VASP input files needed for sub-directory calculations are ready at {}\n".format(get_time_str(), current_firework["firework_folder_name"]))
+                f.write("\t\t\t__vis__ --> __sub_dir_cal__\n")
+            return True
         
         is_there_file_manual = False
         if os.path.isfile(os.path.join(current_cal_loc, "__non_spin_polarized_prev_cal__")):
@@ -306,15 +306,14 @@ def get_current_firework(mater_cal_folder, workflow, current_firework_folder_nam
     firework_hierarchy_dict = workflow[0]["firework_hierarchy_dict"]
     next_firework_list = []
     for next_firework_folder_name in firework_hierarchy_dict.get(current_firework_folder_name, []):
+        next_firework_step_no = int(next_firework_folder_name.split("_")[1])
         if True in [os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, target_file)) 
                     for target_file in ["__done__", "__skipped__", "__done_cleaned_analyzed__", "__done_failed_to_clean_analyze__"]]:
-        #os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__done__")) or \
-        #os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__skipped__")) or \
-        #os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__done_cleaned_analyzed__")) or \
-        #os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__done_failed_to_clean_analyze__")):
-            next_firework_list.extend(get_current_firework(mater_cal_folder, workflow, current_firework_folder_name=next_firework_folder_name))
+            if workflow[next_firework_step_no-1]["cmd_to_process_finished_jobs"] and os.path.isfile(os.path.join(mater_cal_folder, next_firework_folder_name, "__done__")):
+                next_firework_list.append(workflow[next_firework_step_no-1])
+            else:
+                next_firework_list.extend(get_current_firework(mater_cal_folder, workflow, current_firework_folder_name=next_firework_folder_name))
         else:
-            next_firework_step_no = int(next_firework_folder_name.split("_")[1])
             all_dependent_fireworks_are_complete = True
             for dependent_firework_folder_name in workflow[next_firework_step_no-1]["additional_cal_dependence"]:
                 if True not in [os.path.isfile(os.path.join(mater_cal_folder, dependent_firework_folder_name, target_file)) 
