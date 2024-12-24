@@ -390,8 +390,8 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                     "ldau_cal", "ldau_u_j_table", "incar_template", "valid_incar_tags", 
                     "is_fixed_incar_tags_on", "fixed_incar_tags",
                     "kpoints_type", "denser_kpoints", "reciprocal_density", "kpoints_line_density",
-                    "intersections", "force_gamma", "2d_system", "sort_structure", "max_ionic_step", "user_defined_cmd", 
-                    "final_user_defined_cmd", "user_defined_postprocess_cmd", 
+                    "intersections", "force_gamma", "2d_system", "sort_structure", "max_ionic_step", "update_kpoints_every_round",
+                    "user_defined_cmd", "final_user_defined_cmd", "user_defined_postprocess_cmd", 
                     "incar_cmd", "kpoints_cmd", "poscar_cmd", "potcar_cmd", "cmd_to_process_finished_jobs",
                     "sub_dir_cal", "sub_dir_cal_cmd", "preview_vasp_inputs",
                     "skip_this_step",
@@ -617,6 +617,18 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
     #8. structural optimization related tags
     firework["max_ionic_step"] = int(firework.get("max_ionic_step", -1))
     assert firework["max_ionic_step"] >= 1 or firework["max_ionic_step"] == -1, "tag max_ionic_step should be set to a positive integer or -1 (default) to activate or deactivate this tag, respectively."
+    firework["update_kpoints_every_round"] = firework.get("update_kpoints_every_round", "no").lower()
+    firework["update_kpoints_every_round"] = True if 'y' in firework["update_kpoints_every_round"] else False
+    if firework["update_kpoints_every_round"]:
+        if firework["sub_dir_cal"]:
+            output_str = "Contradictory Setup at step %d: both 'update_kpoints_every_round' and 'sub_dir_cal' are set to 'Yes'. " % step_no
+            output_str += "But it is currently not supported to update KPOINTS according to 'kpoints_cmd' after every round of correction."
+            raise Exception(output_str)
+        if firework["kpoints_cmd"] == []:
+            output_str = "Contradictory Setup at step %d: 'update_kpoints_every_round' is set to 'Yes'. " % step_no
+            output_str = "Therefore, KPOINTS is supposed to update as per tag 'kpoints_cmd' after every round of correction."
+            output_str = " But tag 'kpoints_cmd' is not set or set to empty."
+            raise Exception(output_str)
         
     # job submissions
     assert "job_submission_script" in firework.keys(), "Error: must specify job_submission_script for every firework."

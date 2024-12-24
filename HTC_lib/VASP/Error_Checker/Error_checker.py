@@ -27,6 +27,7 @@ from HTC_lib.VASP.INCAR.Write_VASP_INCAR import get_bader_charge_tags
 from HTC_lib.VASP.INCAR.modify_vasp_incar import modify_vasp_incar
 from HTC_lib.VASP.POTCAR.potcar_toolkit import Potcar
 from HTC_lib.VASP.POSCAR.POSCAR_IO_functions import sort_poscar, write_poscar
+from HTC_lib.VASP.Miscellaneous.Execute_bash_shell_cmd import Execute_shell_cmd
 
 from HTC_lib.VASP.Error_Checker.Error_checker_auxiliary_function import get_trimed_oszicar
 
@@ -1990,7 +1991,7 @@ class Fixed_incar_tags(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     
 
 
-# In[22]:
+# In[2]:
 
 
 class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
@@ -2075,6 +2076,21 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
     def write_error_log(self):
         error_str = "Ionic divergence happens"
         super(Ionic_divergence, self).write_error_log(target_error_str=error_str, error_type="__ionic_divergence__")
+        
+    def update_kpoints_as_per_kpoints_cmd(self, remove_existing_KPOINTS = True):
+        if remove_existing_KPOINTS:
+            if os.path.isfile(os.path.join(self.cal_loc, "KPOINTS")):
+                os.remove(os.path.join(self.cal_loc, "KPOINTS"))
+        #Note: In the case that tag 'update_kpoints_every_round' is activated, tag 'kpoints_cmd' has been checked and would
+        #      not be empty or not set in Parse_calculation_workflow.py. 
+        #The relevant logs will be written by Execute_shell_cmd
+        status = Execute_shell_cmd(cal_loc=self.cal_loc, user_defined_cmd_list=self.firework["kpoints_cmd"], 
+                                   where_to_execute=self.cal_loc, 
+                                   defined_by_which_htc_tag="kpoints_cmd")
+        if status == False: 
+            return False #If the commands failed to run, stop running the following codes.
+        else:
+            return True
     
     def correct(self):
         if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
@@ -2082,9 +2098,29 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
             super(Ionic_divergence, self).write_file_absence_log(filename_list = ["OUTCAR"])
             return False
         
+        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
+        NSW = int(incar_dict.get("NSW", 0))
+        default_IBRION = -1 if NSW in [0, -1] else 0
+        IBRION = int(incar_dict.get("IBRION", default_IBRION))
+        EDIFF = float(incar_dict.get("EDIFF", 1E-4))
+        EDIFFG = float(incar_dict.get("EDIFFG", EDIFF * 10))
+        LHFCALC = True if "t" in incar_dict.get("LHFCALC", ".FALSE.").lower() else False
+        default_ISIF = 0 if IBRION == 0 or LHFCALC else 2
+        ISIF = int(incar_dict.get("ISIF", default_ISIF))
+        if ISIF >=3 and IBRION in [1, 2, 3]:
+            does_str_opt_chg_shape_or_vol = True
+            chg_shape_or_vol_output_str = "Since update_kpoints_every_round is activated and this structure optimization changes "
+            chg_shape_or_vol_output_str += "either the cell shape or cell volume, KPOINTS is also updated as per tag 'kpoints_cmd'. "
+            chg_shape_or_vol_output_str += "The results of 'kpoints_cmd' is what's above the preceding Correction line."
+        else:
+            does_str_opt_chg_shape_or_vol = False
+        
         if os.path.isfile(os.path.join(self.cal_loc, "__converged_but_exceeded_specified_max_ionic_step__")):
             super(Ionic_divergence, self).backup()
             shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
+            if does_str_opt_chg_shape_or_vol and self.firework["update_kpoints_every_round"]:
+                status = self.update_kpoints_as_per_kpoints_cmd()
+                if status == False: return False
             #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False)
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False, 
                               incar_template=self.workflow[0]["incar_template_list"], 
@@ -2098,24 +2134,14 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 f.write("\t\t\tBut max_ionic_step is set to {}. So try one more round.\n".format(self.firework["max_ionic_step"]))
                 f.write("\t\t\tIBRION = 1,  CONTCAR --> POSCAR.\n")
                 f.write("\t\t\tDelete the file named __converged_but_exceeded_specified_max_ionic_step__.\n")
+                if does_str_opt_chg_shape_or_vol and self.firework["update_kpoints_every_round"]:
+                    f.write("\t\t\t{}\n".format(chg_shape_or_vol_output_str))
             return True
         
         if not os.path.isfile(os.path.join(self.cal_loc, "OSZICAR")):
             open(os.path.join(self.cal_loc, "__cannot_find_OSZICAR_for_corrections__"), "w").close()
             super(Ionic_divergence, self).write_file_absence_log(filename_list = ["OSZICAR"])
             return False
-        
-        
-        incar_dict = modify_vasp_incar(cal_loc=self.cal_loc)
-        NSW = int(incar_dict.get("NSW", 0))
-        default_IBRION = -1 if NSW in [0, -1] else 0
-        IBRION = int(incar_dict.get("IBRION", default_IBRION))
-        EDIFF = float(incar_dict.get("EDIFF", 1E-4))
-        EDIFFG = float(incar_dict.get("EDIFFG", EDIFF * 10))
-        #EDIFF = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="EDIFF")
-        #EDIFFG = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="EDIFFG")
-        #NSW = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="NSW")
-        #IBRION = find_incar_tag_from_OUTCAR(cal_loc=self.cal_loc, tag="IBRION")
         
         try:
             if get_trimed_oszicar(cal_loc=self.cal_loc, original_oszicar="OSZICAR", output_oszicar="oszicar"):
@@ -2148,15 +2174,23 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                     
             super(Ionic_divergence, self).backup()
             shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
+            if does_str_opt_chg_shape_or_vol and self.firework["update_kpoints_every_round"]:
+                status = self.update_kpoints_as_per_kpoints_cmd()
+                if status == False: return False
             with open(self.log_txt, "a") as f:
                 f.write("{} Correction: {}\n".format(get_time_str(), self.firework_name))
                 f.write("\t\t\tThis error may be due to that the walltime is reached.\n")
                 f.write("\t\t\tCONTCAR --> POSCAR\n")
+                if does_str_opt_chg_shape_or_vol and self.firework["update_kpoints_every_round"]:
+                    f.write("\t\t\t{}\n".format(chg_shape_or_vol_output_str))
             return True
         elif IBRION in [2, 3]:
             super(Ionic_divergence, self).backup()
             shutil.move(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
             #modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1}, rename_old_incar=False)
+            if does_str_opt_chg_shape_or_vol and self.firework["update_kpoints_every_round"]:
+                status = self.update_kpoints_as_per_kpoints_cmd()
+                if status == False: return False
             modify_vasp_incar(cal_loc=self.cal_loc, new_tags={"IBRION": 1, "NSW": 400}, rename_old_incar=False, 
                               incar_template=self.workflow[0]["incar_template_list"], 
                               valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
@@ -2165,6 +2199,8 @@ class Ionic_divergence(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
                 f.write("\t\t\tThe ionic step reaches the preset maximum step ({})\n".format(NSW))
                 f.write("\t\t\tBut IBRION is {}, not 1. So try one more round.\n".format(IBRION))
                 f.write("\t\t\tIBRION = 1 & NSW = 400,  CONTCAR --> POSCAR.\n")
+                if does_str_opt_chg_shape_or_vol and self.firework["update_kpoints_every_round"]:
+                    f.write("\t\t\t{}\n".format(chg_shape_or_vol_output_str))
             return True
         else:
             return False

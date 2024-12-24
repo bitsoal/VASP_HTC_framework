@@ -679,6 +679,11 @@ Default `max_ionic_step=-1 (inactive)`
 
 -------------------------------------------
 
+**update\_kpoints\_every\_round** (Boolean: Yes or No), optional. (Debug is underway)  
+For a given structural relaxation step, it may take a few rounds of consecutive optimization to reach the optimization target/criterion. If the cell shape or|and volume is|are allowed to optimize, chances are that the change is so significant after a round of optimization that CONTCAR , which will be renamed as POSCAR for the subsequent round of optimization, is inconsistent with the original KPOINTS. In this case, KPOINTS should be updated accordingly before the next round of optimization proceeds. By setting `update_kpoints_every_round=Yes`, the original KPOINTS will be removed and the new consistent KPOINTS will be created according to the command specified by `kpoints_cmd`. These actions happen right after the program moves CONTCAR to POSCAR.   
+*Note: (1). `update_kpoints_every_round` currently does not support the sub-directory calculations. That is, `sub_dir_cal` should be set to "No" or not specified; (2). `kpoints_cmd` must be provided and define an independent way to create KPOINTS accoriding to POSCAR.*  
+Default `pdate_kpoints_every_round=No`
+
 **skip\_this\_step**, optional. (Debug is underway)  
 While designing a workflow, you may leave some steps empty/skipped for later use. An empty/skipped step can be realized by seting `skip_this_step = Yes`.  
 When this tag is on, other tags will be ignored. Nevertheless, some compulsory tags need to be set. The following template should work well.  
