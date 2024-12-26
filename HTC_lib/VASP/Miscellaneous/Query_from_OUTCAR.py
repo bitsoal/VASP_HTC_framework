@@ -360,6 +360,26 @@ def find_IBRION_from_OUTCAR(cal_loc="."):
     return int(items[2]) 
 
 
+# In[ ]:
+
+
+def find_ISIF_from_OUTCAR(cal_loc="."):
+    """
+    Find ISIF from OUTCAR.
+    input arguments:
+        -cal_loc (str): the location of the calculation. Default: "."
+    return the corresponding value if found; otherwise, return None
+    """
+    
+    with open(os.path.join(cal_loc, "OUTCAR"), "r") as f:    
+        for line in f:
+            if "ISIF" in line and "=" in line:
+                break
+                
+    items = [item.strip() for item in line.split(" ") if item.strip()]
+    return int(items[2]) 
+
+
 # In[17]:
 
 
@@ -542,7 +562,8 @@ def find_incar_tag_from_OUTCAR(tag, cal_loc="."):
     
     find_func_dict = {"EDIFFG": find_EDIFFG_from_OUTCAR, 
                       "EDIFF": find_EDIFF_from_OUTCAR, 
-                      "IBRION": find_IBRION_from_OUTCAR, 
+                      "IBRION": find_IBRION_from_OUTCAR,
+                      "ISIF": find_ISIF_from_OUTCAR,
                       "NSW": find_NSW_from_OUTCAR,
                       "NELM": find_NELM_from_OUTCAR,
                       "ISPIN": find_ISPIN_from_OUTCAR, 

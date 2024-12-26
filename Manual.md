@@ -684,6 +684,8 @@ For a given structural relaxation step, it may take a few rounds of consecutive 
 *Note: (1). `update_kpoints_every_round` currently does not support the sub-directory calculations. That is, `sub_dir_cal` should be set to "No" or not specified; (2). `kpoints_cmd` must be provided and define an independent way to create KPOINTS accoriding to POSCAR.*  
 Default `pdate_kpoints_every_round=No`
 
+------------------------------------------
+
 **skip\_this\_step**, optional. (Debug is underway)  
 While designing a workflow, you may leave some steps empty/skipped for later use. An empty/skipped step can be realized by seting `skip_this_step = Yes`.  
 When this tag is on, other tags will be ignored. Nevertheless, some compulsory tags need to be set. The following template should work well.  
