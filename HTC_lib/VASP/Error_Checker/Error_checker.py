@@ -1982,6 +1982,16 @@ class Fixed_incar_tags(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         reset the the specified incar tags to their respective fixed values in fixed_incar_tags.json.
         return False if the reseting fails.
         """
+        #This block deals with the structural optimization involing the change in either the cell shape or volume.
+        if not os.path.isfile(os.path.join(self.cal_loc, "OUTCAR")):
+            open(os.path.join(self.cal_loc, "__cannot_find_OUTCAR_for_corrections__"), "w").close()
+            super(Vasp_out_zbrent, self).write_file_absence_log(filename_list = ["OUTCAR"])
+            return False
+        EDIFF = find_incar_tag_from_OUTCAR(tag="EDIFF", cal_loc=self.cal_loc)
+        IBRION = find_incar_tag_from_OUTCAR(tag="IBRION", cal_loc=self.cal_loc)
+        ISIF = find_incar_tag_from_OUTCAR(tag="ISIF", cal_loc=self.cal_loc)
+        
+        
         super(Fixed_incar_tags, self).backup()
         
         with open(os.path.join(self.cal_loc, "fixed_incar_tags.json"), "r") as f:
@@ -2000,10 +2010,22 @@ class Fixed_incar_tags(Vasp_Error_Checker_Logger, Vasp_Error_Saver):
         modify_vasp_incar(cal_loc=self.cal_loc, new_tags=valid_fixed_incar_tags, rename_old_incar=False, 
                           incar_template=self.workflow[0]["incar_template_list"], 
                           valid_incar_tags=self.workflow[0]["valid_incar_tags_list"])
-        
+                
+        if IBRION in [1, 2, 3]:
+            shutil.copyfile(os.path.join(self.cal_loc, "CONTCAR"), os.path.join(self.cal_loc, "POSCAR"))
+            output_str += "\t\t\tIBRION={} indicates that the calculation involves the structural optimization. Therefore copy CONTCAR to POSCAR\n".format(IBRION)
+            if ISIF >= 3 and self.firework["update_kpoints_every_round"]:
+                status, chg_shape_or_vol_output_str = update_kpoints_as_per_kpoints_cmd(cal_loc=self.cal_loc, 
+                                                                                        firework=self.firework, 
+                                                                                        remove_existing_KPOINTS=True)
+                output_str += "\t\t\t{}\n".format(chg_shape_or_vol_output_str)
+                if status == False: return False
+                
         with open(self.log_txt, "a") as log_f:
             log_f.write("{} Correction: The following incar tags have been successfully reset to the respective fixed values in fixed_incar_tags.json\n".format(get_time_str()))
             log_f.write(output_str)
+        
+
         return True
     
 
