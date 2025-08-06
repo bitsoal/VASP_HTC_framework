@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# last edited on 6 Aug 2025
+
 # In[3]:
 
 
@@ -103,16 +105,20 @@ def Write_Vasp_INCAR(cal_loc, structure_filename, workflow):
         if result == False:
             return False #The relevant information has been written into log.txt by the above function.
         else:
-            ispin, tot_mag = result
-        modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISPIN": str(ispin)}, incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
+            ispin, tot_mag, is_magmom_existent = result
+        remove_tags = ["MAGMOM"] if ispin == 1 and is_magmom_existent else []
+        modify_vasp_incar(cal_loc=cal_loc, new_tags={"ISPIN": str(ispin)}, remove_tags=remove_tags, 
+                          incar_template=incar_template_list, valid_incar_tags=valid_incar_tags_list)
         with open(log_txt, "a") as f:
             f.write("{} INFO: set_ispin_based_on_prev_cal is set to {} in {}\n".format(get_time_str(), set_ispin_based_on_prev_cal["set_ispin_based_on_prev_cal_str"], firework_name))
             f.write("\t\t\t The calculated total magnetic moment from {} is {}, ".format(set_ispin_based_on_prev_cal["prev_cal_step"], tot_mag))
             if ispin == 1:
                 f.write("whose magnitude is smaller than or equal to the prescribed threshold.\n")
+                f.write("\t\t\t So set ISPIN to {} and remove MAGMOM if existent in INCAR\n".format(ispin))
             else:
                 f.write("which is larger than the prescribed threshold.\n")
-            f.write("\t\t\t So set ISPIN to {} in INCAR\n".format(ispin))
+                f.write("\t\t\t So set ISPIN to {} in INCAR\n".format(ispin))
+            
                 
     if firework["bader_charge"]:
         if firework["step_no"] == 1:

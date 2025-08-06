@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# last edited on 6 Aug 2025
+
 # In[1]:
 
 
@@ -27,8 +29,10 @@ def choose_ispin_based_on_prev_cal(current_cal_loc, prev_cal_step, mag_threshold
             e.g. {"mag": 0.02, "mag_type": "per_atom"} <--> the threshold is 0.02 Bohr magneton per atom.
                  {"mag": 0.02, "mag_type": "tot"} <--> the threshold is the total of 0.02 Bohr magneton.
     This function returns:
-        I.  (1, tot_mag) if abs(tot_mag) <= mag_threshold.
-        II. (2, tot_mag) otherwise;
+        I.   (1, tot_mag, False) if abs(tot_mag) <= mag_threshold and no tag MAGMOM found in INCAR
+        II.  (1, tot_mag, True)  if abs(tot_mag) <= mag_threshold and tag MAGMOM found in INCAR
+        III. (2, tot_mag, False) if abs(tot_mag) >= mag_threshold and no tag MAGMOM found in INCAR
+        IV.  (2, tot_mag, True)  if abs(tot_mag) >= mag_threshold and tag MAGMOM found in INCAR
     Note that there are four special cases:
         a) prev_cal_step should not be a sub-directory calculation, where there are multiple sub-dir calculations and 
             it is ambiguous to refer to the OSZICAR of which sub-dir cal. --> raise an error
@@ -110,8 +114,8 @@ def choose_ispin_based_on_prev_cal(current_cal_loc, prev_cal_step, mag_threshold
             tot_mag_threshold = mag_threshold["mag"]
             
         if abs(tot_mag) <= tot_mag_threshold:
-            return 1, tot_mag
+            return 1, tot_mag, "MAGMOM" in current_incar_dict.keys()
         else:
-            return 2, tot_mag
+            return 2, tot_mag, "MAGMOM" in current_incar_dict.keys()
         
 

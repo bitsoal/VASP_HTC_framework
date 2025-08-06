@@ -483,7 +483,11 @@ Default: `empty`
     - `0.02/atom@step_1_str_opt`;  
     - `0.05tot@step_1_str_opt`;
   - default: `empty`
-  - During the INCAR preparation, INCAR is modified first according to the setup in the **add\_new\_incar\_tags** sub-block. Afterwards, set ISPIN if the current tag is provided. Therefore, if provided, the current tag will overwrite the ISPIN provided in the **add\_new\_incar\_tags** sub-block.    
+  - *Notes*    
+    - During the INCAR preparation, INCAR is modified first according to the setup in the **add\_new\_incar\_tags** sub-block. Afterwards, set ISPIN if the current tag is provided. Therefore, if provided, the current tag will overwrite the ISPIN provided in the **add\_new\_incar\_tags** sub-block.  
+    - The current step should be a collinear calculation. If `LSORBIT` is activated in INCAR, which indicates that the calcualtion is noncollinear, `set_ispin_based_on_prev_cal` will incur an error to stop the HTC program   
+    - If `set_ispin_based_on_prev_cal` set `ISPIN=1`, `MAGMOM` if existent will also be removed from INCAR.  
+    
 
 ----------------
 
