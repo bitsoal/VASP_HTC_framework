@@ -323,7 +323,7 @@ def check_calculations_status(cal_folder, workflow, mat_folder_name_list=None, c
                 continue
 
             # exclude anything under error_folder* 
-            if not any(part.startswith("error_folder") for part in subdir.parts):
+            if any(part.startswith("error_folder") for part in subdir.parts):
                 continue
 
             has_incar = (subdir / "INCAR").is_file()
