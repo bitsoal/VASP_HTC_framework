@@ -326,11 +326,12 @@ def check_calculations_status(cal_folder, workflow, mat_folder_name_list=None, c
             if any(part.startswith("error_folder") for part in subdir.parts):
                 continue
 
-            has_incar = (subdir / "INCAR").is_file()
-            has_dunder = any(p.is_file() for p in subdir.glob("__*__"))
-
-            if has_incar or has_dunder:
-                job_list.add(str(subdir))
+            job_list.add(str(subdir))
+            #has_incar = (subdir / "INCAR").is_file()
+            #has_dunder = any(p.is_file() for p in subdir.glob("__*__"))
+    #
+            #if has_incar or has_dunder:
+            #    job_list.add(str(subdir))
 
     job_list = sorted(job_list)
     # For debug
