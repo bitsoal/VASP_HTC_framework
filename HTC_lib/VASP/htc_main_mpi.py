@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# last edited on 8 Aug 2025
+
+# In[2]:
 
 
 import os, sys, time, pprint, copy
@@ -21,8 +23,8 @@ from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_f
 from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
 from HTC_lib.VASP.Miscellaneous.Cal_status_dictionary_operation import Cal_status_dict_operation, divide_a_list_evenly
 
-from HTC_lib.VASP.Preprocess_and_Postprocess.Parse_calculation_workflow import parse_calculation_workflow
-from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process
+from HTC_lib.VASP.Preprocess.Parse_calculation_workflow import parse_calculation_workflow
+from HTC_lib.VASP.Preprocess.Preprocess import preprocess
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, update_job_status
 from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import submit_jobs, kill_error_jobs
 
@@ -398,7 +400,7 @@ if __name__ == "__main__":
         scattered_cal_status_diff_list = []
         try:
             for structure_file in structure_file_sublist:
-                no_of_new_ready_jobs, scattered_cal_status_diff = pre_and_post_process(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
+                no_of_new_ready_jobs, scattered_cal_status_diff = preprocess(structure_file, structure_file_folder, cal_folder=cal_folder, workflow=workflow)
                 max_no_of_ready_jobs -= no_of_new_ready_jobs
                 scattered_cal_status_diff_list.append(scattered_cal_status_diff)
                 if debugging: print("{}: process {} finished input preparation for {}".format(get_time_str(), rank, structure_file), flush=True)

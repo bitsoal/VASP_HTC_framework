@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# last edited on 6 Aug 2025
+# last edited on 18 Aug 2025
 
-# In[3]:
+# In[1]:
 
 
 import pprint,copy, json
@@ -212,10 +212,29 @@ def get_bader_charge_tags(cal_loc):
 
 
 def get_partial_charge_tags(cal_loc, firework, workflow):
-    if firework["eint_wrt_cbm"] != None:
-        step_folder_for_band_edge = workflow[firework["which_step_to_read_cbm_vbm"]-1]["firework_folder_name"]
-        vbm_cbm_efermi_path = os.path.join(os.path.split(cal_loc)[0], step_folder_for_band_edge)
-        VBM, CBM, VBM_occ, CBM_occ, efermi = read_CBM_VBM_Efermi_from_vasprun(cal_loc=vbm_cbm_efermi_path)
+    #step_folder_for_band_edge = workflow[firework["which_step_to_read_cbm_vbm"]-1]["firework_folder_name"]
+    #vbm_cbm_efermi_path = os.path.join(os.path.split(cal_loc)[0], step_folder_for_band_edge)
+    vbm_cbm_efermi_path = os.path.join(os.path.split(cal_loc)[0], firework["which_step_to_read_cbm_vbm"])
+    VBM, CBM, VBM_occ, CBM_occ, efermi = read_CBM_VBM_Efermi_from_vasprun(cal_loc=vbm_cbm_efermi_path)
+    if firework["eint_wrt_cbm"] != None and firework["eint_wrt_vbm"] != None:
+        CBM_, VBM_ = CBM-efermi, VBM-efermi
+        EINT_top = firework["eint_wrt_cbm"][1]
+        EINT_lower = firework["eint_wrt_vbm"][0]
+        new_incar_tags = {"EINT": "{}  {}".format(EINT_lower+VBM_, EINT_top+CBM_), "NBMOD": -3, "LPARD": ".TRUE."}
+        with open(os.path.join(cal_loc, "log.txt"), "a") as f:
+            f.write("{} INFO: partial_charge_cal is set to Yes-->following actions are taken\n".format(get_time_str()))
+            f.write("\t\tread band edge information and the Fermi level from {}\n".format(vbm_cbm_efermi_path))
+            f.write("\t\tCBM={}\tVBM={}\tCBM_occ={}\tVBM_occ={}\tEfermi={}\n".format(CBM, VBM, CBM_occ, VBM_occ, efermi))
+            f.write("\tSince both EINT_wrt_VBM={} {} and EINT_wrt_CBM={} {} are set, ".format(firework["eint_wrt_vbm"][0], firework["eint_wrt_vbm"][1], 
+                                                                                              firework["eint_wrt_cbm"][0], firework["eint_wrt_cbm"][1]))
+            f.write("\tyou are referring to the energy window from {} below VBM to {} above CBM\n".format(firework["eint_wrt_vbm"][0], firework["eint_wrt_cbm"][1]))
+            f.write("\t\tThus, the following tags are generated and added:\n")
+            f.write("\t\t\tEINT={}\tNBMOD=-3\tLPARD=.TRUE.\n".format(new_incar_tags["EINT"]))            
+        return new_incar_tags
+    elif firework["eint_wrt_cbm"] != None:
+        #step_folder_for_band_edge = workflow[firework["which_step_to_read_cbm_vbm"]-1]["firework_folder_name"]
+        #vbm_cbm_efermi_path = os.path.join(os.path.split(cal_loc)[0], step_folder_for_band_edge)
+        #VBM, CBM, VBM_occ, CBM_occ, efermi = read_CBM_VBM_Efermi_from_vasprun(cal_loc=vbm_cbm_efermi_path)
         CBM_ = CBM-efermi
         EINT_lower, EINT_top = firework["eint_wrt_cbm"]
         new_incar_tags = {"EINT": "{}  {}".format(EINT_lower+CBM_, EINT_top+CBM_), "NBMOD": -3, "LPARD": ".TRUE."}
@@ -227,9 +246,9 @@ def get_partial_charge_tags(cal_loc, firework, workflow):
             f.write("\t\t\tEINT={}\tNBMOD=-3\tLPARD=.TRUE.\n".format(new_incar_tags["EINT"]))
         return new_incar_tags
     elif firework["eint_wrt_vbm"] != None:
-        step_folder_for_band_edge = workflow[firework["which_step_to_read_cbm_vbm"]-1]["firework_folder_name"]
-        vbm_cbm_efermi_path = os.path.join(os.path.split(cal_loc)[0], step_folder_for_band_edge)
-        VBM, CBM, VBM_occ, CBM_occ, efermi = read_CBM_VBM_Efermi_from_vasprun(cal_loc=vbm_cbm_efermi_path)
+        #step_folder_for_band_edge = workflow[firework["which_step_to_read_cbm_vbm"]-1]["firework_folder_name"]
+        #vbm_cbm_efermi_path = os.path.join(os.path.split(cal_loc)[0], step_folder_for_band_edge)
+        #VBM, CBM, VBM_occ, CBM_occ, efermi = read_CBM_VBM_Efermi_from_vasprun(cal_loc=vbm_cbm_efermi_path)
         VBM_ = VBM-efermi
         EINT_lower, EINT_top = firework["eint_wrt_vbm"]
         new_incar_tags = {"EINT": "{}  {}".format(EINT_lower+VBM_, EINT_top+VBM_), "NBMOD": -3, "LPARD": ".TRUE."}

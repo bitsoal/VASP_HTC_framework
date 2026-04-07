@@ -1,25 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[10]:
+# last edited on 18 Aug 2025
+
+# In[1]:
 
 
 import os, re, copy, json
+import numpy as np
 
-
-# test_dict = {"a": 1, "b": 2}
-# read_only_dict = Read_Only_Dict.from_dict(test_dict)
-# read_only_dict.__len__(), test_dict.__len__(), read_only_dict == read_only_dict
-
-# for key, values in read_only_dict.items():
-#     print(key, values)
-
-# help(read_only_dict.setdefault)
-
-# read_only_dict["c"] = 1
-# print(read_only_dict)
-# del read_only_dict["a"]
-# read_only_dict
 
 # In[11]:
 
@@ -85,55 +74,6 @@ class Read_Only_Dict():
         return Read_Only_Dict(read_only_dictionary)
 
 
-# class Read_Only_Dict(dict):
-#     def __init__(self, *args, **kwargs):
-#         super(Read_Only_Dict, self).__init__(*args, **kwargs)
-#         #super(Read_Only_Dict, self).__setitem__("unchangeable_tags", tuple(unchangeable_tags))
-#         
-#         
-#     def __setitem__(self, key, value):
-#         if key in self.unchangeable_tags:
-#             raise Exception("key '{}' of {} instance is read-only and cannot be changed!".format(key, self.__class__.__name__))
-#         else:
-#             #print(key, value)
-#             super(Read_Only_Dict, self).__setitem__(key, value)
-#     
-#     def __delitem__(self, key):
-#         if key in self.unchangeable_tags:
-#             raise Exception("key '{}' of {} instance is read-only and cannot be deleted!".format(key, self.__class__.__name__))
-#         else:
-#             super(Read_Only_Dict, self).__delitem__(key)
-#         
-#     def update(self, *args, **kwargs):
-#         raise Exception("{} instance is read-only and cannot be updated!".format(self.__class__.__name__))
-#         
-#     def pop(self, key, default):
-#         if key in self.unchangeable_tags:
-#             raise Exception("key '{}' of {} instance is read-only and cannot be popped!".format(self.__class__.__name__))
-#         else:
-#             return super(Read_Only_Dict, self).pop(key, default)
-#         
-#     def popitem(self):
-#         raise Exception("method popitem of {} instance is disabled!".format(self.__class__.__name__))
-#         
-#     def clear(self):
-#         raise Exception("method clear of {} instance is disabled!".format(self.__class__.__name__))
-#     
-#     @classmethod
-#     def from_dict(cls, dictionary):
-#         temp_dictionary = {}
-#         for key, value in dictionary.items():
-#             if isinstance(value, list):
-#                 value = tuple(value)   
-#             elif isinstance(value, dict):
-#                 value = Read_Only_Dict.from_dict(value)
-#                 
-#             temp_dictionary[key] = value
-#         
-#         read_only_dictionary = Read_Only_Dict(**temp_dictionary)
-#         read_only_dictionary.unchangeable_tags = tuple(read_only_dictionary.keys())
-#         return read_only_dictionary
-
 # In[3]:
 
 
@@ -197,27 +137,128 @@ def check_dependent_step_names(workflow):
         If there is an error, raise it; Otherwise, return True
     """
     if len(workflow) > 1:   
-        cal_name_list = [firework["firework_folder_name"] for firework in workflow]
+        cal_name_list = [firework["firework_folder_name"] for firework in workflow if not firework["skip_this_step"]]
         
         #Task I @ copy_which_step
         for firework in workflow[1:]:
+            if firework["skip_this_step"]:
+                continue
             if firework["copy_which_step_full_name"] == "None": 
                 #this is the case where it is not the first step but creates its vasp input files from scratch.
                 continue
-            assert firework["copy_which_step_full_name"] in cal_name_list,             "tag copy_which_step in {} refers to a non-existent parent step: {}".format(firework["firework_folder_name"], 
+            assert firework["copy_which_step_full_name"] in cal_name_list,             "tag copy_which_step in {} refers to a non-existent or skip_this_step-activated parent step: {}".format(firework["firework_folder_name"], 
                                                                                            firework["copy_which_step_full_name"])
         
         #Task II @ additional_cal_dependence
         for firework in workflow[1:]:
+            if firework["skip_this_step"]:
+                continue
             for dep_cal_name in firework["additional_dependence_full_name"]:
-                assert dep_cal_name in cal_name_list,                 "tag additional_cal_dependence in {} refers to a non-existent additional dependent calculation step: {}".format(
+                assert dep_cal_name in cal_name_list,                 "tag additional_cal_dependence in {} refers to a non-existent or skip_this_step-activated additional dependent calculation step: {}".format(
                     firework["firework_folder_name"], dep_cal_name)
                 
     return True
     
 
 
-# In[5]:
+# In[7]:
+
+
+def get_dependence_matrix(workflow, verbose=True):
+    """
+    The dependence between different calculation steps is represented using an integer matrix, DM. This is aimed to replace 
+    'firework_hierarchy_dict' generated by func cal_calculation_sequence_of_all_fireworks and func 
+    reduce_additional_cal_dependence_and_correct_hierarchy, yet in a more simplified/clearer manner.
+    
+    Representation of the dependence matrix DM.
+    1. Dimension: a (N+1)x(N+1) square matrix, where N is the total number of calcultation steps defined by workflow and 
+                the extra 1 corresponds to "step_no = -1". For the first calculation step(s) defined by workflow, copy_which_step=-1
+    2. The 0-based i-th column/row corresponds to step_i_xxx.
+    3. For step_i_xxx (i>0), DM[i, j] (j<i) denotes the depdendence of step_i_xxx on the previous (i-1) steps:
+        3.1. DM[i, j] = 0 if step_i_xxx is independent of step_j_yyy.
+        3.2. DM[i, j] = 1, 2, or 3 if step_i_xxx is dependent on step_j_yyy. Here 1, 2 or 3 encodes the final state in which step_j_yyy
+            should be. See below for detailed explanations.
+    4. DM[0, j] denotes the final state in which step_j_yyy should be. It could be either of 1, 2 or 3.
+    5. encoded successful final states - 1, 2 or 3
+        * 1: step_j_yyy is successfully completed and marked by magic signal file "__done__"
+        * 2: step_j_yyy is successfully completed and marked by magic signal file "__done_cleaned_analyzed__"
+        * 3: step_j_yyy is skipped because HTC tag "skip_this_step=Yes" for this step
+    6. DM[0, 0] is always 1. It carries no meaning.
+    7. DM[i, j] (i>0 & j>i) denotes if step_j_yyy is either directly or indirectly dependent on step_i_xxx:
+        7.1. DM[i, j] != 0: step_j_yyy is dependent on step_i_xxx, either directly or indirectly.
+        7.2. DM[i, j] == 0: step_j_yyy is completely independent of step_i_xxx.
+        
+    input argument:
+        - workflow: a list of calcualtion setups/fireworks, each of which is generated by func parse_firework_block
+        - verbose (boolean, default: True): whether to print out the parsed final state of each calculation step/firework and its dependence.
+    
+    return:
+        - A (N+1)x(N+1) integer square matrix
+    """
+    workflow_size = len(workflow)
+    debug = False
+    
+    DM = np.zeros(shape=(workflow_size+1, workflow_size+1), dtype=int)
+    DM[0, 0] = 1
+    for firework in workflow:
+        if firework["skip_this_step"]:
+            DM[0, firework["step_no"]] = 3
+        elif firework["cmd_to_process_finished_jobs"]:
+            DM[0, firework["step_no"]] = 2
+        else:
+            DM[0, firework["step_no"]] = 1
+    assert np.min(DM[0]) > 0, "func get_dependence_matrix fails to find the final states of all calculation steps/fireworks: {}".format(DM[0])
+    
+    for firework in workflow:
+        if firework["skip_this_step"]:
+            continue
+        if firework["copy_which_step"] == -1:
+            DM[firework["step_no"], 0] = DM[0, 0]
+        else:
+            DM[firework["step_no"], firework["copy_which_step"]] = DM[0, firework["copy_which_step"]]
+        for add_dep_step_no in firework["additional_cal_dependence"]:
+            DM[firework["step_no"], add_dep_step_no] = DM[0, add_dep_step_no]
+    if debug:
+        print("Dependence matrix: Before the upper triangle is filled:\n{}".format(DM), flush=True)
+    
+    #Fill the upper triangle with all direct or indirect descendant steps. We do it BACKWARDS so that all descendant steps
+    #for a given step can be filled at once.
+    for firework in workflow[-1:0:-1]:
+        if firework["skip_this_step"]:
+            continue
+        step_no = firework["step_no"]
+        for parent_step_no in [firework["copy_which_step"]] + firework["additional_cal_dependence"]:
+            if parent_step_no == -1:
+                continue
+            DM[parent_step_no, step_no:] += DM[step_no, step_no:]
+            DM[parent_step_no, step_no]  += 1
+        if debug:
+            print("Dependence matrix: after filling the parent-child relationship in the upper triangle for step_no={}:\n{}".format(step_no, DM), flush=True)
+            
+    if verbose:
+        print("Dependence matrix: Below is the finally parsed dependence between calculation steps/fireworks", flush=True)
+        print("Dependence matrix: The encoded dependence matrix (DM):\n{}".format(DM), flush=True)
+        print("Dependence matrix: Meaning for the upper right triangle, exclusive of diagonal entries", flush=True)
+        print("Dependence matrix: \tstep_j_yyy is directly or indirectly dependent on step_i_xxx (i<j) if DM[i, j] != 0; Otherwise, completely independent", flush=True)
+        print("Dependence matrix: Meaning for the lower left triangle, exclusive of diagonal entries", flush=True)
+        step_name_arr = np.array(["-1"] + [firework["firework_folder_name"] for firework in workflow])
+        for firework in workflow:
+            i = firework["step_no"]
+            dependent_step_arr = step_name_arr[:i][DM[i, :i] > 0]
+            if DM[0, i] == 3:
+                print("Dependence matrix: {} has skip_this_step activated. It is fully independent".format(firework["firework_folder_name"]), flush=True)
+            elif DM[0, i] == 2:
+                print("Dependence matrix: {} should have a final state of __done_cleaned_analyzed__. It dependes on {}".format(firework["firework_folder_name"], 
+                                                                                                                            dependent_step_arr), flush=True)
+            else:
+                print("Dependence matrix: {} should have a final state of __done__ . It dependes on {}".format(firework["firework_folder_name"], 
+                                                                                                               dependent_step_arr), flush=True)
+    
+    
+    return DM.tolist()
+
+
+# In[8]:
 
 
 def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
@@ -251,27 +292,33 @@ def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
         is_it_a_foldername = True
         firework_block_filename_list, firework_block_list = read_HTC_calculation_setup_folder(foldername=filename_or_foldername)
     
-    firework_hierarchy_dict = {}
     for firework_block_ind, firework_block in enumerate(firework_block_list):
         step_no = firework_block_ind+1
         firework = parse_firework_block(block_str_list=firework_block, step_no=step_no, HTC_lib_loc=HTC_lib_loc)
         workflow.append(firework)
-        if step_no == 1:
-            firework_hierarchy_dict["-1"] = [firework["firework_folder_name"]]
-        else:
-            if firework["copy_which_step"] == -1:
-                prev_firework_folder_name = "-1"
-            else:
-                prev_firework_folder_name = workflow[firework["copy_which_step"]-1]["firework_folder_name"]
-            
-            if prev_firework_folder_name not in firework_hierarchy_dict.keys():
-                firework_hierarchy_dict[prev_firework_folder_name] = [firework["firework_folder_name"]]
-            else:
-                firework_hierarchy_dict[prev_firework_folder_name].append(firework["firework_folder_name"])
+    workflow[0]["firework_dependence_matrix"] = get_dependence_matrix(workflow, verbose=True)
     
-    firework_hierarchy_dict, workflow = reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hierarchy_dict)
+    #firework_hierarchy_dict = {}
+    #for firework_block_ind, firework_block in enumerate(firework_block_list):
+    #    step_no = firework_block_ind+1
+    #    firework = parse_firework_block(block_str_list=firework_block, step_no=step_no, HTC_lib_loc=HTC_lib_loc)
+    #    workflow.append(firework)
+    #    if step_no == 1:
+    #        firework_hierarchy_dict["-1"] = [firework["firework_folder_name"]]
+    #    else:
+    #        if firework["copy_which_step"] == -1:
+    #            prev_firework_folder_name = "-1"
+    #        else:
+    #            prev_firework_folder_name = workflow[firework["copy_which_step"]-1]["firework_folder_name"]
+    #        
+    #        if prev_firework_folder_name not in firework_hierarchy_dict.keys():
+    #            firework_hierarchy_dict[prev_firework_folder_name] = [firework["firework_folder_name"]]
+    #        else:
+    #            firework_hierarchy_dict[prev_firework_folder_name].append(firework["firework_folder_name"])
+    #
+    #firework_hierarchy_dict, workflow = reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hierarchy_dict)
+    #workflow[0]["firework_hierarchy_dict"] = firework_hierarchy_dict
     
-    workflow[0]["firework_hierarchy_dict"] = firework_hierarchy_dict
         
     with open("Parsed_HTC_setup.JSON", "w") as f:
         json.dump(workflow, f, indent=1) 
@@ -280,8 +327,6 @@ def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
     workflow = [Read_Only_Dict.from_dict(firework) for firework in workflow]
     check_dependent_step_names(workflow)
     
-    #import pprint
-    #pprint.pprint(workflow)
     if is_it_a_foldername:
         for firework_block_filename, firework in zip(firework_block_filename_list, workflow):
             assert firework_block_filename == firework["firework_folder_name"], "firework_folder_name constructed based on step_no and cal_name should be the same as the filename of the file defining the firework/calculation. {} V.S. {}".format(firework_block_filename, firework["firework_folder_name"])
@@ -289,89 +334,81 @@ def parse_calculation_workflow(filename_or_foldername, HTC_lib_loc):
     return workflow              
 
 
-# In[6]:
+# def cal_calculation_sequence_of_all_fireworks(firework_hierarchy_dict):
+#     """
+#     Calculate the calculation sequence of all fireworks. The sequence is represented by integers. The smaller the integer of a firework is,
+#             the earlier that firework starts. The first firework is labelled by 1
+#     Example: Suppose step 2 copies from (depends on ) step 1, and step 3 and 4 copy from (depend on) step 2. The calculation sequence should be:
+#             step 1 first starts and then step 2. Following step 2, step 3 and 4 start simultaneously.
+#             So step 1 <--> 1
+#                 step 2 <--> 2
+#                 step 3, 4 <--> 3
+#     """
+#     cal_sequence_dict = {}
+#     for firework_folder_name in firework_hierarchy_dict["-1"]:
+#         cal_sequence_dict[firework_folder_name] = 1
+#     firework_hierarchy_key_list = firework_hierarchy_dict.keys()
+#     current_firework_list = firework_hierarchy_dict["-1"]
+#     current_level = 1
+#     while True:
+#         next_firework_list = []
+#         for current_firework in current_firework_list:
+#             if current_firework in firework_hierarchy_key_list:
+#                 next_firework_list.extend(list(firework_hierarchy_dict[current_firework]))
+#         for next_firework in next_firework_list:
+#             cal_sequence_dict[next_firework] = current_level + 1
+#         if next_firework_list == []:
+#             break
+#         else:
+#             current_firework_list = next_firework_list
+#             current_level += 1
+#     #print(cal_sequence_dict)
+#     return cal_sequence_dict
 
-
-def cal_calculation_sequence_of_all_fireworks(firework_hierarchy_dict):
-    """
-    Calculate the calculation sequence of all fireworks. The sequence is represented by integers. The smaller the integer of a firework is,
-            the earlier that firework starts. The first firework is labelled by 1
-    Example: Suppose step 2 copies from (depends on ) step 1, and step 3 and 4 copy from (depend on) step 2. The calculation sequence should be:
-            step 1 first starts and then step 2. Following step 2, step 3 and 4 start simultaneously.
-            So step 1 <--> 1
-                step 2 <--> 2
-                step 3, 4 <--> 3
-    """
-    cal_sequence_dict = {}
-    for firework_folder_name in firework_hierarchy_dict["-1"]:
-        cal_sequence_dict[firework_folder_name] = 1
-    firework_hierarchy_key_list = firework_hierarchy_dict.keys()
-    current_firework_list = firework_hierarchy_dict["-1"]
-    current_level = 1
-    while True:
-        next_firework_list = []
-        for current_firework in current_firework_list:
-            if current_firework in firework_hierarchy_key_list:
-                next_firework_list.extend(list(firework_hierarchy_dict[current_firework]))
-        for next_firework in next_firework_list:
-            cal_sequence_dict[next_firework] = current_level + 1
-        if next_firework_list == []:
-            break
-        else:
-            current_firework_list = next_firework_list
-            current_level += 1
-    #print(cal_sequence_dict)
-    return cal_sequence_dict
-
-
-# In[7]:
-
-
-def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hierarchy_dict):
-    """
-    Reduce the redundant job dependence relations and correct the firework hierarchy. 
-    Example: Suppose that both step 5 and step 3 copy from step 2, and step 5 additionally depends on the calculation outputs of step 3.
-                In this case, step 5 enssentially should start after step 3, while in the hierarchy relation based on copy_from_which,
-                step 5 is set to start after step 2. So to determine if step 5 should start, we just need to check if step 3 completes.
-    """
-    import copy
-    new_hierarchy_dict = copy.deepcopy(firework_hierarchy_dict)
-    for firework_ind, firework in enumerate(workflow):
-        if firework["additional_cal_dependence"]==[] or firework["step_no"] == 1:
-            continue
-            
-        cal_sequence_dict = cal_calculation_sequence_of_all_fireworks(new_hierarchy_dict)
-        #import pprint
-        #pprint.pprint(cal_sequence_dict)
-        #pprint.pprint(new_hierarchy_dict)
-        copy_step_folder_name = workflow[firework["copy_which_step"]-1]["firework_folder_name"]
-        latest_dependent_firework_cal_level = 0
-        latest_dependent_firework_list = []
-        for dependent_firework_step_no in firework["additional_cal_dependence"]:
-            dependent_firework_folder_name = workflow[dependent_firework_step_no-1]["firework_folder_name"]
-            cal_level = cal_sequence_dict[dependent_firework_folder_name]
-            if cal_level > latest_dependent_firework_cal_level:
-                latest_dependent_firework_cal_level = cal_level
-                latest_dependent_firework_list = [dependent_firework_folder_name]
-            elif cal_level == latest_dependent_firework_cal_level:
-                latest_dependent_firework_list.append(dependent_firework_folder_name)
-        copy_step_cal_level = cal_sequence_dict[copy_step_folder_name]
-        if copy_step_cal_level < latest_dependent_firework_cal_level:
-            for current_step_folder_name, next_step_folder_name_list in new_hierarchy_dict.items():
-                if firework["firework_folder_name"] in next_step_folder_name_list:
-                    new_hierarchy_dict[current_step_folder_name].remove(firework["firework_folder_name"])
-                    break
-            #Here just pick up one dependent firework to ensure that every firework can be uniquelly referred to.
-            #The other depdendence of the firework will be stored in "additional_cal_dependence"
-            new_dependent_firework_name_in_hierarchy = latest_dependent_firework_list.pop()
-            if new_dependent_firework_name_in_hierarchy in new_hierarchy_dict.keys():
-                new_hierarchy_dict[new_dependent_firework_name_in_hierarchy].append(firework["firework_folder_name"])
-            else:
-                new_hierarchy_dict[new_dependent_firework_name_in_hierarchy] = [firework["firework_folder_name"]]
-        workflow[firework_ind]["additional_cal_dependence"] = latest_dependent_firework_list
-        
-    return new_hierarchy_dict, workflow   
-
+# def reduce_additional_cal_dependence_and_correct_hierarchy(workflow, firework_hierarchy_dict):
+#     """
+#     Reduce the redundant job dependence relations and correct the firework hierarchy. 
+#     Example: Suppose that both step 5 and step 3 copy from step 2, and step 5 additionally depends on the calculation outputs of step 3.
+#                 In this case, step 5 enssentially should start after step 3, while in the hierarchy relation based on copy_from_which,
+#                 step 5 is set to start after step 2. So to determine if step 5 should start, we just need to check if step 3 completes.
+#     """
+#     import copy
+#     new_hierarchy_dict = copy.deepcopy(firework_hierarchy_dict)
+#     for firework_ind, firework in enumerate(workflow):
+#         if firework["additional_cal_dependence"]==[] or firework["step_no"] == 1:
+#             continue
+#             
+#         cal_sequence_dict = cal_calculation_sequence_of_all_fireworks(new_hierarchy_dict)
+#         #import pprint
+#         #pprint.pprint(cal_sequence_dict)
+#         #pprint.pprint(new_hierarchy_dict)
+#         copy_step_folder_name = workflow[firework["copy_which_step"]-1]["firework_folder_name"]
+#         latest_dependent_firework_cal_level = 0
+#         latest_dependent_firework_list = []
+#         for dependent_firework_step_no in firework["additional_cal_dependence"]:
+#             dependent_firework_folder_name = workflow[dependent_firework_step_no-1]["firework_folder_name"]
+#             cal_level = cal_sequence_dict[dependent_firework_folder_name]
+#             if cal_level > latest_dependent_firework_cal_level:
+#                 latest_dependent_firework_cal_level = cal_level
+#                 latest_dependent_firework_list = [dependent_firework_folder_name]
+#             elif cal_level == latest_dependent_firework_cal_level:
+#                 latest_dependent_firework_list.append(dependent_firework_folder_name)
+#         copy_step_cal_level = cal_sequence_dict[copy_step_folder_name]
+#         if copy_step_cal_level < latest_dependent_firework_cal_level:
+#             for current_step_folder_name, next_step_folder_name_list in new_hierarchy_dict.items():
+#                 if firework["firework_folder_name"] in next_step_folder_name_list:
+#                     new_hierarchy_dict[current_step_folder_name].remove(firework["firework_folder_name"])
+#                     break
+#             #Here just pick up one dependent firework to ensure that every firework can be uniquelly referred to.
+#             #The other depdendence of the firework will be stored in "additional_cal_dependence"
+#             new_dependent_firework_name_in_hierarchy = latest_dependent_firework_list.pop()
+#             if new_dependent_firework_name_in_hierarchy in new_hierarchy_dict.keys():
+#                 new_hierarchy_dict[new_dependent_firework_name_in_hierarchy].append(firework["firework_folder_name"])
+#             else:
+#                 new_hierarchy_dict[new_dependent_firework_name_in_hierarchy] = [firework["firework_folder_name"]]
+#         workflow[firework_ind]["additional_cal_dependence"] = latest_dependent_firework_list
+#         
+#     return new_hierarchy_dict, workflow   
 
 # In[8]:
 
@@ -446,8 +483,17 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
     assert "cal_name" in firework.keys(), "Error: you should name each firework through tag cal_name!"
     firework["firework_folder_name"] = "step_" + str(step_no) + "_" + firework["cal_name"].replace(" ", "_")
          
+    #2. Tags related to quick creation of temporary skipped steps
+    #By parsing tag skip_this_step right after HTC tag "step_no" and "cal_name", only the latter two tags are compulsory if
+    #the former tag is activated.
+    firework["skip_this_step"] = True if 'y' in firework.get("skip_this_step", "No").lower() else False
+    if firework["skip_this_step"]:
+        if firework["step_no"] == 1:
+            raise Exception("The first step cannot be skipped. Please remove tag skip_this_step from the first step.")
+        else:
+            return firework
         
-    #2. tags involved in copying
+    #3. tags involved in copying
     firework["copy_from_prev_cal"] = firework.get("copy_from_prev_cal", "")
     firework["copy_from_prev_cal"] = [item.strip() for item in firework["copy_from_prev_cal"].split(",") if item.strip()]
     if step_no == 1:
@@ -470,15 +516,6 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
             firework["copy_which_step_full_name"] = firework["copy_which_step"]
             firework["copy_which_step"] = int(firework["copy_which_step"].split("_")[1])
             assert 1 <= firework["copy_which_step"] < step_no, "step {}: tag 'copy_which_step should be in >= 1 and < {}, or == -1'".format(step_no, step_no)   
-    #if "copy_which_step" in firework.keys():
-    #    firework["copy_which_step"] = int(firework["copy_which_step"])
-    #    if firework["copy_which_step"] not in [-1]+[i for i in range(1, step_no)]:
-    #        raise Exception("step {}: tag copy_which_step should be >=1 and <{}, or ==-1".format(step_no, step_no))
-    #else:
-    #    if step_no == 1:
-    #        firework["copy_which_step"] = -1
-    #    else:
-    #        firework["copy_which_step"] = step_no -1
             
     for tag in ["extra_copy", "final_extra_copy"]:
         firework[tag] = firework.get(tag, "")
@@ -491,19 +528,16 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
                                                       "INCAR, POSCAR, CONTCAR, KPOINTS, XDATCAR, OUTCAR, OSZICAR")
     else:
         firework["error_backup_files"] = firework.get("error_backup_files", "")
-    firework["error_backup_files"] = [item.strip() for item in firework["error_backup_files"].split(",") if item.strip()]
-
-       
+    firework["error_backup_files"] = [item.strip() for item in firework["error_backup_files"].split(",") if item.strip()]    
     
-    #3. tags involved in moving, removing and renaming
+    #4. tags involved in moving, removing and renaming
     for tag in ["move_from_prev_cal", "remove_after_cal"]:
         firework[tag] = firework.get(tag, "")
         firework[tag] = [item.strip() for item in firework[tag].split(",") if item.strip()]
     firework["contcar_to_poscar"] = firework.get("contcar_to_poscar", "No").lower()
-    firework["contcar_to_poscar"] = True if "y" in firework["contcar_to_poscar"] else False
-               
+    firework["contcar_to_poscar"] = True if "y" in firework["contcar_to_poscar"] else False           
         
-    #4. INCAR related tags
+    #5. INCAR related tags
     set_ispin_based_on_prev_cal = firework.get("set_ispin_based_on_prev_cal", "")
     if set_ispin_based_on_prev_cal != "":
         try:
@@ -556,9 +590,14 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
         firework["eint_wrt_vbm"] = [float(value) for value in firework["eint_wrt_vbm"].split()]
     else:
         firework["eint_wrt_vbm"] = None
-    firework["which_step_to_read_cbm_vbm"] = int(firework.get("which_step_to_read_cbm_vbm", -1))
+    #firework["which_step_to_read_cbm_vbm"] = int(firework.get("which_step_to_read_cbm_vbm", -1))
+    firework["which_step_to_read_cbm_vbm"] = firework.get("which_step_to_read_cbm_vbm", "")
     if firework["partial_charge_cal"]:
-        assert 0<firework["which_step_to_read_cbm_vbm"]<step_no, "For step {}, which_step_to_read_cbm_vbm should be >0 and <{}".format(step_no, step_no)
+        #automatically add which_step_to_read_cbm_vbm to "additional_cal_dependence" and "additional_dependence_full_name" later
+        assert firework["which_step_to_read_cbm_vbm"].startswith("step_"), "For step {}: since 18 Aug. 2025, we ask you to set the full step name (i.e. step_i_xxx) to 'which_step_to_read_cbm_vbm'".format(step_no)
+        parsed_step_no = int(firework["which_step_to_read_cbm_vbm"].split("_")[1])
+        #assert 0<firework["which_step_to_read_cbm_vbm"]<step_no, "For step {}, which_step_to_read_cbm_vbm should be >0 and <{}".format(step_no, step_no)
+        assert 0 < parsed_step_no < step_no, "For step {}, step_i_xxx specified via HTC tag 'which_step_to_read_cbm_vbm' should be 0 < i < {}".format(step_no, step_no)
         assert firework["eint_wrt_vbm"] != None or firework["eint_wrt_cbm"] != None,         "For step {}, since the partial charge calculation is activated by partial_charge_cal, eith EINT_wrt_CBM or EINT_wrt_VBM shoud be set".format(step_no)
         
     firework["set_lmaxmix"] = firework.get("set_lmaxmix", "no").lower()
@@ -575,7 +614,7 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
         firework["ldau_cal"] = False
         
         
-    #5. KPOINTS related tags
+    #6. KPOINTS related tags
     if "kpoints_type" not in firework.keys():
         print("\nYou don't set tag kpoints_type for step {}".format(step_no))
         print("kpoints_type option: MPRelaxSet, MPStaticSet, MPNonSCFSet_line, MPNonSCFSet_uniform, Line-mode")
@@ -598,23 +637,26 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
         
        
     
-    #6. cmd defined by users
+    #7. cmd defined by users
     for tag in ["user_defined_cmd", "final_user_defined_cmd", "user_defined_postprocess_cmd", "incar_cmd", "kpoints_cmd", "poscar_cmd", 
                 "potcar_cmd", "cmd_to_process_finished_jobs"]:
         if tag in firework.keys(): 
+            if tag == "user_defined_postprocess_cmd":
+                raise Exception("{}: HTC tag 'user_defined_postprocess_cmd' has been obsolete. Now, we provide HTC tag 'cmd_to_process_finished_jobs'".format(firework["firework_folder_name"]))
             firework[tag] = [cmd_.strip() for cmd_ in firework[tag].split(",") if cmd_.strip()]
         else:
             firework[tag] = []
+    
       
 
-    #7. sub-directory calculation specification
+    #8. sub-directory calculation specification
     firework["sub_dir_cal"] = firework.get("sub_dir_cal", "no").lower()
     firework["sub_dir_cal"] = True if 'y' in firework["sub_dir_cal"] else False
     if firework["sub_dir_cal"]:
         assert "sub_dir_cal_cmd" in firework.keys(),         "step %d: Because the sub-directory calculation is invoked (tag: 'sub_dir_cal'), you must specify 'sub_dir_cal_cmd'" % step_no
         firework["sub_dir_cal_cmd"] = [cmd_.strip() for cmd_ in firework["sub_dir_cal_cmd"].split(",") if cmd_.strip()]
        
-    #8. structural optimization related tags
+    #9. structural optimization related tags
     firework["max_ionic_step"] = int(firework.get("max_ionic_step", -1))
     assert firework["max_ionic_step"] >= 1 or firework["max_ionic_step"] == -1, "tag max_ionic_step should be set to a positive integer or -1 (default) to activate or deactivate this tag, respectively."
     firework["update_kpoints_every_round"] = firework.get("update_kpoints_every_round", "no").lower()
@@ -635,7 +677,7 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
     assert os.path.isfile(firework["job_submission_script"]), "Step {}: the specified job submission script does not exist.".format(step_no)
     assert "job_submission_command" in firework.keys(), "Error: must specify how to submit a job for every firework."
     
-    #8. additional calculation dependence besides those specified by copy_which_step
+    #10. additional calculation dependence besides those specified by copy_which_step
     if "additional_cal_dependence" in firework.keys():
         additional_dependence_list, additional_dependence_full_name_list = [], []
         for cal_name in firework["additional_cal_dependence"].strip().split(","):
@@ -661,19 +703,11 @@ def parse_firework_block(block_str_list, step_no, HTC_lib_loc):
     else:
         firework["additional_cal_dependence"] = []
         firework["additional_dependence_full_name"] = []
-    #if "additional_cal_dependence" in firework.keys():
-    #    additional_dependence_list = [int(job_step_no) for job_step_no in firework["additional_cal_dependence"].strip().split(",")]
-    #    for job_step_no in additional_dependence_list:
-    #        assert 1<=job_step_no<firework["step_no"], "For step {}, cal_dependence should be >=1 and < {}".format(step_no, step_no)
-    #    firework["additional_cal_dependence"] = additional_dependence_list
-    #else:
-    #    firework["additional_cal_dependence"] = []
-    
-    #9. Tags related to quick creation of temporary skipped steps
-    firework["skip_this_step"] = True if 'y' in firework.get("skip_this_step", "No").lower() else False
-    if firework["skip_this_step"] and firework["step_no"] == 1:
-        raise Exception("The first step cannot be skipped. Please do not set tag skip_this_step in the first step.")
-      
+    #add which_step_to_read_cbm_vbm to "additional_cal_dependence" and "additional_dependence_full_name" if the former is valid.
+    if firework["partial_charge_cal"] and firework["which_step_to_read_cbm_vbm"] not in firework["additional_dependence_full_name"]:
+        firework["additional_cal_dependence"].append(int(firework["which_step_to_read_cbm_vbm"].split("_")[1]))
+        firework["additional_dependence_full_name"].append(firework["which_step_to_read_cbm_vbm"])
+        
         
     #tags only required and optional for the first firework
     if step_no == 1:
@@ -791,7 +825,3 @@ if __name__ == "__main__":
     wf_2 = parse_calculation_workflow("HTC_calculation_setup_folder", HTC_lib_loc=".")
     #print(wf_1 == wf_2)
 
-
-# workflow[4]
-
-# help("adsfadf".replace)

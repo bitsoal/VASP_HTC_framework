@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# last edited on 8 Aug. 2025
+
+# In[2]:
 
 
 import os, sys, time
@@ -21,8 +23,8 @@ from HTC_lib.VASP.Miscellaneous.Backup_HTC_input_files import backup_htc_input_f
 from HTC_lib.VASP.Miscellaneous.change_signal_file import change_signal_file
 from HTC_lib.VASP.Miscellaneous.Cal_status_dictionary_operation import Cal_status_dict_operation
 
-from HTC_lib.VASP.Preprocess_and_Postprocess.Parse_calculation_workflow import parse_calculation_workflow
-from HTC_lib.VASP.Preprocess_and_Postprocess.new_Preprocess_and_Postprocess import pre_and_post_process
+from HTC_lib.VASP.Preprocess.Parse_calculation_workflow import parse_calculation_workflow
+from HTC_lib.VASP.Preprocess.Preprocess import preprocess
 from HTC_lib.VASP.Job_Management.Check_and_update_calculation_status import check_calculations_status, update_job_status
 from HTC_lib.VASP.Job_Management.Submit_and_Kill_job import submit_jobs
 
@@ -267,7 +269,7 @@ if __name__ == "__main__":
                 length = len(structure_file_sublist)
                 structure_file_folder_list, cal_folder_list, workflow_list = [structure_file_folder]*length, [cal_folder]*length, [workflow]*length
                 with ProcessPoolExecutor(max_workers=max_workers) as executor:
-                    output = executor.map(pre_and_post_process, structure_file_sublist, structure_file_folder_list, cal_folder_list, workflow_list)
+                    output = executor.map(preprocess, structure_file_sublist, structure_file_folder_list, cal_folder_list, workflow_list)
                     cal_status_dict_diff_list = []
                     for no_of_new_ready_jobs, cal_status_dict_diff in output:
                         max_no_of_ready_jobs -= no_of_new_ready_jobs
